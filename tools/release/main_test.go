@@ -60,6 +60,101 @@ func TestReleaseOSNameUsesMiseFriendlyMacOSLabel(t *testing.T) {
 	}
 }
 
+func TestExtractReleaseNotesRequiresVersionDateAndList(t *testing.T) {
+	changelog := `# Changelog
+
+## [Unreleased]
+
+- Future change.
+
+## [0.2.0] - 2026-09-12
+
+### Adicionado
+
+- New command.
+
+## [0.1.0] - 2026-09-01
+
+### Corrigido
+
+- Portable paths.
+`
+	got, err := extractReleaseNotes(changelog, "v0.2.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "## v0.2.0 — 2026-09-12\n\n### Adicionado\n\n- New command.\n"
+	if got != want {
+		t.Fatalf("release notes = %q, want %q", got, want)
+	}
+
+	for _, tc := range []struct {
+		name      string
+		changelog string
+		version   string
+	}{
+		{name: "invalid version", changelog: changelog, version: "0.2.0"},
+		{name: "missing section", changelog: changelog, version: "v0.3.0"},
+		{name: "invalid date", changelog: "## [0.2.0] - 12/09/2026\n\n### Corrigido\n\n- Change.\n", version: "v0.2.0"},
+		{name: "missing list", changelog: "## [0.2.0] - 2026-09-12\n\nNo list.\n", version: "v0.2.0"},
+		{name: "list without category", changelog: "## [0.2.0] - 2026-09-12\n\n- Change.\n", version: "v0.2.0"},
+		{name: "empty category", changelog: "## [0.2.0] - 2026-09-12\n\n### Corrigido\n", version: "v0.2.0"},
+		{name: "unsupported category", changelog: "## [0.2.0] - 2026-09-12\n\n### Misc\n\n- Change.\n", version: "v0.2.0"},
+		{name: "leading zero", changelog: changelog, version: "v00.2.0"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := extractReleaseNotes(tc.changelog, tc.version); err == nil {
+				t.Fatal("expected invalid release notes to fail")
+			}
+		})
+	}
+}
+
+func TestPrepareOutputDirNeverRemovesExistingContent(t *testing.T) {
+	base := t.TempDir()
+	missing := filepath.Join(base, "missing")
+	if err := prepareOutputDir(missing); err != nil {
+		t.Fatalf("prepare absent output: %v", err)
+	}
+	if info, err := os.Lstat(missing); err != nil || !info.IsDir() {
+		t.Fatalf("output directory was not created: info=%v err=%v", info, err)
+	}
+
+	existing := filepath.Join(base, "existing")
+	if err := os.Mkdir(existing, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	keep := filepath.Join(existing, "keep.txt")
+	if err := os.WriteFile(keep, []byte("must remain"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := prepareOutputDir(existing); err == nil {
+		t.Fatal("expected non-empty output directory to be refused")
+	}
+	if got, err := os.ReadFile(keep); err != nil || string(got) != "must remain" {
+		t.Fatalf("existing content changed: %q, %v", got, err)
+	}
+
+	link := filepath.Join(base, "link")
+	if err := os.Symlink(existing, link); err == nil {
+		if err := prepareOutputDir(link); err == nil {
+			t.Fatal("expected symlinked output directory to be refused")
+		}
+	}
+
+	outside := t.TempDir()
+	parentLink := filepath.Join(base, "parent-link")
+	if err := os.Symlink(outside, parentLink); err == nil {
+		outsideChild := filepath.Join(outside, "must-not-exist")
+		if err := prepareOutputDir(filepath.Join(parentLink, "must-not-exist")); err == nil {
+			t.Fatal("expected symlinked output parent to be refused")
+		}
+		if _, err := os.Lstat(outsideChild); !os.IsNotExist(err) {
+			t.Fatalf("output was created through a parent symlink: %v", err)
+		}
+	}
+}
+
 func TestArchivesAreReproducible(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "stage")
 	if err := os.MkdirAll(filepath.Join(root, "bin"), 0o755); err != nil {

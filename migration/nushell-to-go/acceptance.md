@@ -31,7 +31,7 @@ Evidência detalhada da última execução local: [`validation.md`](validation.m
 - [x] statusline merge;
 - [x] Bash/Fish/Zsh completion;
 - [x] nenhum teste usa CLI/credencial real;
-- [ ] macOS CI real verde.
+- [x] macOS CI real verde.
 
 ## `repo-zip`
 
@@ -44,7 +44,7 @@ Evidência detalhada da última execução local: [`validation.md`](validation.m
 - [x] ZIP verificado antes da publicação;
 - [x] mudança no conjunto de arquivos aborta;
 - [x] no-clobber/force sem remove-then-rename em Unix;
-- [ ] macOS CI real verde.
+- [x] macOS CI real verde.
 
 ## Release/mise
 
@@ -54,7 +54,8 @@ Evidência detalhada da última execução local: [`validation.md`](validation.m
 - [x] checksums;
 - [x] release workflow depende de testes Linux/macOS;
 - [ ] tag/release real executada;
-- [ ] `mise use -g github:matheusvcouto/cli-tools@<versão>` validado em sandbox de mise.
+- [ ] asset real validado com `mise --no-config install/exec` e todos os roots
+  de estado/configuração/credenciais redirecionados para sandbox.
 
 ## Encerramento
 

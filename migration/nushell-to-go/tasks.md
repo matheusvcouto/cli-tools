@@ -31,7 +31,7 @@ Marcar apenas com evidência.
 - [x] completions Bash/Fish/Zsh;
 - [x] conversor transitório NUON→JSON sem executar Nushell;
 - [x] E2E do binário cobre `new → list → run → acp` com executáveis falsos e exit codes reais;
-- [ ] runtime macOS confirmado pelo CI do repositório real.
+- [x] runtime macOS confirmado pelo CI do repositório real.
 
 ## `repo-zip`
 - [x] parser/naming;
@@ -47,7 +47,7 @@ Marcar apenas com evidência.
 - [x] rechecagem do conjunto elegível antes de publicar;
 - [x] no-clobber e force separados em Unix;
 - [x] mudança durante snapshot aborta;
-- [ ] runtime macOS confirmado pelo CI do repositório real.
+- [x] runtime macOS confirmado pelo CI do repositório real.
 
 ## Qualidade/release
 - [x] `go test ./...` local;

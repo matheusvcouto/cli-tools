@@ -18,6 +18,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/matheusvcouto/cli-tools/internal/safefs"
 )
 
 type target struct{ GOOS, GOARCH string }
@@ -25,12 +27,18 @@ type target struct{ GOOS, GOARCH string }
 var defaultTargets = []target{{"darwin", "amd64"}, {"darwin", "arm64"}, {"linux", "amd64"}, {"linux", "arm64"}}
 
 func main() {
-	var version, outDir string
-	flag.StringVar(&version, "version", "dev", "release version, e.g. v1.2.0")
+	var version, outDir, changelogPath, notesOut string
+	flag.StringVar(&version, "version", "", "release version in vX.Y.Z format")
 	flag.StringVar(&outDir, "out", "dist", "output directory")
+	flag.StringVar(&changelogPath, "changelog", "CHANGELOG.md", "versioned changelog")
+	flag.StringVar(&notesOut, "notes-out", "", "optional path for the extracted release notes")
 	flag.Parse()
 	if flag.NArg() != 0 {
 		fatalf("unexpected arguments: %v", flag.Args())
+	}
+	notes, err := releaseNotesFromFile(changelogPath, version)
+	if err != nil {
+		fatalf("release notes: %v", err)
 	}
 	if err := requireReleaseToolchain(); err != nil {
 		fatalf("toolchain: %v", err)
@@ -46,11 +54,8 @@ func main() {
 	if len(bins) == 0 {
 		fatalf("no commands found under cmd/")
 	}
-	if err := os.RemoveAll(outDir); err != nil {
-		fatalf("clean output: %v", err)
-	}
-	if err := os.MkdirAll(outDir, 0o755); err != nil {
-		fatalf("mkdir output: %v", err)
+	if err := prepareOutputDir(outDir); err != nil {
+		fatalf("prepare output: %v", err)
 	}
 	for _, t := range defaultTargets {
 		if err := buildTarget(version, outDir, module, bins, t); err != nil {
@@ -60,6 +65,120 @@ func main() {
 	if err := writeChecksums(outDir); err != nil {
 		fatalf("checksums: %v", err)
 	}
+	if notesOut != "" {
+		if err := os.WriteFile(notesOut, []byte(notes), 0o644); err != nil {
+			fatalf("write release notes: %v", err)
+		}
+	}
+}
+
+var releaseVersionRE = regexp.MustCompile(`^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)
+
+var releaseNoteCategories = map[string]struct{}{
+	"Adicionado":    {},
+	"Alterado":      {},
+	"Corrigido":     {},
+	"Segurança":     {},
+	"Descontinuado": {},
+	"Removido":      {},
+}
+
+func releaseNotesFromFile(path, version string) (string, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return extractReleaseNotes(string(raw), version)
+}
+
+func extractReleaseNotes(changelog, version string) (string, error) {
+	if !releaseVersionRE.MatchString(version) {
+		return "", fmt.Errorf("version %q must match vX.Y.Z without leading zeroes", version)
+	}
+
+	wantPrefix := "## [" + strings.TrimPrefix(version, "v") + "] - "
+	lines := strings.Split(strings.ReplaceAll(changelog, "\r\n", "\n"), "\n")
+	start := -1
+	date := ""
+	for i, line := range lines {
+		if !strings.HasPrefix(line, wantPrefix) {
+			continue
+		}
+		if start >= 0 {
+			return "", fmt.Errorf("duplicate changelog section for %s", version)
+		}
+		date = strings.TrimSpace(strings.TrimPrefix(line, wantPrefix))
+		if _, err := time.Parse("2006-01-02", date); err != nil {
+			return "", fmt.Errorf("changelog date for %s must use YYYY-MM-DD: %w", version, err)
+		}
+		start = i
+	}
+	if start < 0 {
+		return "", fmt.Errorf("CHANGELOG.md has no section %q", wantPrefix+"YYYY-MM-DD")
+	}
+
+	end := len(lines)
+	for i := start + 1; i < len(lines); i++ {
+		if strings.HasPrefix(lines[i], "## ") {
+			end = i
+			break
+		}
+	}
+	bodyLines := lines[start+1 : end]
+	category := ""
+	categoryHasItem := false
+	categoryCount := 0
+	for _, line := range bodyLines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "### ") {
+			if category != "" && !categoryHasItem {
+				return "", fmt.Errorf("changelog category %q for %s has no Markdown list item", category, version)
+			}
+			category = strings.TrimSpace(strings.TrimPrefix(trimmed, "### "))
+			if _, ok := releaseNoteCategories[category]; !ok {
+				return "", fmt.Errorf("unsupported changelog category %q for %s", category, version)
+			}
+			categoryHasItem = false
+			categoryCount++
+			continue
+		}
+		if strings.HasPrefix(trimmed, "- ") {
+			if category == "" {
+				return "", fmt.Errorf("changelog list item for %s must be under a supported category", version)
+			}
+			categoryHasItem = true
+		}
+	}
+	if categoryCount == 0 {
+		return "", fmt.Errorf("changelog section for %s must contain at least one supported category", version)
+	}
+	if !categoryHasItem {
+		return "", fmt.Errorf("changelog category %q for %s has no Markdown list item", category, version)
+	}
+	body := strings.TrimSpace(strings.Join(bodyLines, "\n"))
+	return fmt.Sprintf("## %s — %s\n\n%s\n", version, date, body), nil
+}
+
+func prepareOutputDir(path string) error {
+	if strings.TrimSpace(path) == "" {
+		return fmt.Errorf("output directory is required")
+	}
+	clean := filepath.Clean(path)
+	if clean == "." || filepath.Dir(clean) == clean {
+		return fmt.Errorf("refusing unsafe output directory %q", path)
+	}
+	resolved, err := safefs.EnsureDir(clean, 0o755)
+	if err != nil {
+		return err
+	}
+	entries, err := os.ReadDir(resolved)
+	if err != nil {
+		return err
+	}
+	if len(entries) != 0 {
+		return fmt.Errorf("output directory must be empty; refusing to remove existing content: %s", clean)
+	}
+	return nil
 }
 
 func discoverCommands(root string) ([]string, error) {

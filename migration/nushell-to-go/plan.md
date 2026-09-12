@@ -40,7 +40,7 @@ Não existe backend `zip/unzip` por plataforma.
 ## 5. Plataformas — implementação atual
 
 - Linux: runtime sintético testado localmente;
-- macOS: mesma implementação Unix, cross-build verde; falta execução real no GitHub Actions;
+- macOS: mesma implementação Unix, runtime tests reais verdes no GitHub Actions;
 - Windows: compile-only. Stubs deixam explícitas as capabilities nativas ainda não implementadas.
 
 ## 6. Qualidade — local concluído
@@ -63,8 +63,8 @@ A instalação alvo é `mise use -g github:matheusvcouto/cli-tools@latest`.
 
 No repositório real:
 
-1. CI macOS verde;
-2. criar tag de teste/release;
+1. ~~CI macOS verde~~ — comprovado no run `34701668236`;
+2. criar tag de release;
 3. instalar essa release com mise em HOME/MISE_* temporários;
 4. validar que `ai-profile --version` e `repo-zip --version` saem do mesmo archive.
 

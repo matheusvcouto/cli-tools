@@ -61,3 +61,17 @@ A migração preserva capacidades, dados e invariantes de segurança. Texto de e
 ## D016 — Filesystem confinado compartilhado — Accepted
 
 `internal/safefs` representa a invariante comum “não escapar desta raiz”. Official builds com Go 1.27.1 usam `os.Root`; o fallback para toolchains antigas existe para desenvolvimento/bootstrap, não é a baseline de segurança do artifact oficial.
+
+## D017 — Identidade de path é propriedade do filesystem — Accepted
+
+Paths absolutos diferentes podem identificar o mesmo objeto. Comparações de
+identidade de objetos existentes usam metadata + `os.SameFile`; comparações
+lexicais permanecem apenas onde a grafia é o contrato. Isso não relaxa regras de
+symlink nem substitui containment por raiz/relativo.
+
+## D018 — Changelog versionado é a fonte das release notes — Accepted
+
+Tags públicas seguem `vX.Y.Z`. A seção correspondente de `CHANGELOG.md`, com
+data ISO e itens organizados em lista, é validada pelo tooling e publicada como
+descrição da GitHub Release. O gerador recusa diretório de saída não vazio e não
+remove conteúdo preexistente para preparar uma build.

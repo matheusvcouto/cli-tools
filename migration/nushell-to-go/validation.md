@@ -31,6 +31,11 @@ go test -shuffle=on -count=3 ./...
 go test -race ./...
 ```
 
+`go test ./...` compilou todos os packages e testes do módulo. `go vet ./...`,
+que inclui análise de tipos, terminou sem diagnóstico. Nenhuma toolchain ou
+dependência foi baixada: todos os comandos usaram Go 1.27.1 já instalado, com
+`GOTOOLCHAIN=local`, `GOPROXY=off`, `GOVCS=*:off` e caches sintéticos.
+
 O E2E incluído em `integration/e2e_unix_test.go` compila e executa os binários reais com HOME, profile root, Git repo e executáveis Codex/ACP exclusivamente sintéticos.
 
 ## Fuzz smoke executado
@@ -66,7 +71,7 @@ Isso comprova fronteiras de build, **não** suporte de runtime Windows/macOS.
 - `go list -m all` contém somente `github.com/matheusvcouto/cli-tools`;
 - sem `TODO`, `FIXME`, shell intermediário ou secrets reais encontrados na varredura final;
 - workflows YAML parseiam corretamente;
-- `mise.toml` foi aceito pelo `mise`, que selecionou Go 1.27.1; nenhuma instalação de toolchain ou pacote foi feita nesta revisão;
+- `mise.toml` foi aceito pelo `mise`, que selecionou Go 1.27.1; nenhuma instalação de toolchain ou pacote foi feita nessa revisão histórica;
 - `actions/checkout@v7`, `actions/setup-go@v7` e `actions/attest@v4` foram conferidos contra as versões oficiais atuais;
 - API `os.Root` usada por `safefs` foi conferida contra a documentação oficial atual;
 - release e CI descobrem `cmd/*` em vez de manter lista de CLIs distribuídas;
@@ -90,15 +95,21 @@ Isso comprova fronteiras de build, **não** suporte de runtime Windows/macOS.
 
 Não marcar como concluídos sem evidência real:
 
-1. CI GitHub em macOS com Go 1.27.1 verde;
-2. workflow de release real executada por tag;
-3. asset real instalado via `mise` com HOME/MISE_* temporários e ambos os binários validados;
-4. cutover real autorizado pelo usuário;
-5. só então mover esta migração para `docs/history/migrations/2026-09-nushell-to-go/`.
+1. workflow de release real executada por tag;
+2. asset real instalado via `mise` com HOME/MISE_* temporários e ambos os binários validados;
+3. cutover real autorizado pelo usuário;
+4. só então mover esta migração para `docs/history/migrations/2026-09-nushell-to-go/`.
+
+## Evidência externa concluída
+
+- GitHub Actions run `34701668236`: PASS em macOS e Ubuntu com Go 1.27.1,
+  incluindo format, `go test`, `go vet`, shuffle ×3 e race; cross-build também
+  passou. A regressão `/var` versus `/private/var` foi executada no runner
+  macOS que originalmente revelou a comparação textual incorreta.
 
 ## Auditoria de segurança dos testes locais
 
-Após a implementação do suporte a worktrees, os testes foram re-auditados para execução em máquina pessoal. Subprocessos de teste agora recebem ambiente mínimo sintético via `internal/testenv`; Git global/system config, templates e hooks ficam desativados; HOME/TMP/XDG/Go caches ficam temporários; `GOTOOLCHAIN=local`, `GOPROXY=off` e `GOVCS=*:off` impedem downloads/rede do Go. `mise run check` usa `scripts/check-safe.sh`, que aplica o mesmo isolamento ao próprio processo `go test`/`vet`/`race` e remove somente o sandbox criado por `mktemp`. Nenhum teste usa `~/.ai-profiles`, repositórios reais, Keychain, Claude/Codex reais ou credenciais do usuário.
+Após a implementação do suporte a worktrees, os testes foram re-auditados para execução em máquina pessoal. Subprocessos de teste agora recebem ambiente mínimo sintético via `internal/testenv`; Git global/system config, templates e hooks ficam desativados; HOME/TMP/XDG/Go caches ficam temporários; `GOTOOLCHAIN=local`, `GOPROXY=off` e `GOVCS=*:off` impedem downloads/rede do Go. `scripts/check-safe.sh` aplica o mesmo isolamento ao próprio processo `go test`/`vet`/`race` e remove somente o sandbox criado por `mktemp`; agentes o executam diretamente para evitar discovery prévio do mise. Nenhum teste usa `~/.ai-profiles`, repositórios reais, Keychain, Claude/Codex reais ou credenciais do usuário.
 
 ### Evidência após hardening do ambiente de testes
 
@@ -110,4 +121,19 @@ Após a implementação do suporte a worktrees, os testes foram re-auditados par
 - cross-build compile-only: PASS para darwin/linux/windows × amd64/arm64 × 2 CLIs;
 - criação concorrente do mesmo alias: PASS em 100 repetições com create-exclusive do lock;
 - dry-run do release `v0.1.0`: quatro assets macOS/Linux gerados, checksums válidos e ambos os binários macOS arm64 responderam `v0.1.0`;
+- a seção `v0.1.0` do `CHANGELOG.md` foi extraída como release notes com versão,
+  data e listas categorizadas; versões/seções inválidas são recusadas por teste;
+- uma segunda geração contra output não vazio foi recusada e o SHA-256 do
+  asset existente permaneceu idêntico; parent/final symlink também são recusados
+  por teste, sem criar arquivo no alvo externo sintético;
 - nenhum corpus `testdata/fuzz` foi criado no source tree.
+
+### Isolamento do mise
+
+Uma verificação desta revisão mostrou que redirecionar apenas HOME e os
+diretórios `MISE_*` não impediu o mise 2026.4.7 de descobrir a configuração
+pessoal. O comando era somente leitura e as resoluções de rede falharam; nenhuma
+configuração, instalação ou credential store foi alterada. A receita ativa foi
+corrigida para exigir `MISE_NO_CONFIG=1`/`--no-config`, `GH_CONFIG_DIR`
+sintético e fallbacks de credenciais desativados. A instalação real da release
+deve usar essa receita mais restrita.

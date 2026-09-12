@@ -38,6 +38,11 @@ Regra de negócio não seleciona SO. Quando houver diferença real de implementa
 ## Paths/filesystem
 
 - `filepath`, não manipulação manual de separador;
+- path absoluto/limpo não é identidade canônica: para dois objetos existentes
+  que devem ser o mesmo, usar `os.Stat` + `os.SameFile`; preservar `Lstat` quando
+  seguir o symlink mudaria a política;
+- igualdade textual só quando a grafia for parte do contrato; `/var` e
+  `/private/var` são o caso clássico de alias observado no macOS;
 - containment nunca por `strings.HasPrefix`;
 - `Lstat`/`Readlink` quando symlink importa;
 - `os.Root` quando uma operação precisa ficar confinada;

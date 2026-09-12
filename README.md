@@ -13,13 +13,26 @@ binários standalone e criadas para uso pessoal.
 As releases podem ser instaladas globalmente com o [mise](https://mise.jdx.dev/):
 
 ```sh
-mise use -g github:matheusvcouto/cli-tools
+mise use -g github:matheusvcouto/cli-tools@latest
 ```
 
 Para instalar uma versão específica:
 
 ```sh
 mise use -g github:matheusvcouto/cli-tools@0.1.0
+```
+
+Isso grava no arquivo global do mise uma entrada equivalente a:
+
+```toml
+[tools]
+"github:matheusvcouto/cli-tools" = "latest"
+```
+
+Para atualizar uma instalação configurada como `latest`:
+
+```sh
+mise upgrade github:matheusvcouto/cli-tools
 ```
 
 A instalação disponibiliza os comandos:
@@ -48,6 +61,9 @@ Documentação técnica:
 - [Arquitetura](docs/architecture.md)
 - [Testes](docs/testing.md)
 - [Plataformas](docs/platforms.md)
+- [Portabilidade de paths e testes](docs/portability.md)
+- [Release, changelog e mise](docs/release.md)
+- [Histórico de mudanças](CHANGELOG.md)
 - [Engenharia](docs/engineering.md)
 - [Decisões arquiteturais da suíte](ADR.md)
 - [`ai-profile` ADR](cmd/ai-profile/ADR.md)

@@ -12,6 +12,7 @@ Leia sempre:
 4. `docs/architecture.md`
 5. `docs/testing.md`
 6. `docs/platforms.md`
+7. `docs/portability.md`
 
 Ao trabalhar em uma CLI existente, leia também o ADR específico:
 
@@ -50,6 +51,15 @@ Se `migration/` contiver uma migração ativa relacionada à tarefa, leia o `REA
 ## 4. Segurança e filesystem
 
 - Nunca validar containment com prefixo textual.
+- Não tratar a grafia absoluta de um path como identidade única. Em macOS,
+  `/var/...` e `/private/var/...` podem apontar para o mesmo objeto. Quando os
+  dois objetos existentes devem ser o mesmo arquivo/diretório, comparar
+  `os.Stat` + `os.SameFile`; quando symlink em si importa, usar `Lstat` e manter
+  a política explícita. `filepath.Abs`, `Clean` ou igualdade de strings não
+  provam identidade física.
+- Igualdade textual de paths só é válida quando a grafia é parte deliberada do
+  contrato. Containment continua sendo validado com `filepath.Rel`/APIs
+  confinadas, nunca com `os.SameFile` isoladamente.
 - Preferir APIs confinadas (`os.Root`) quando a operação deve permanecer dentro de uma raiz.
 - Usar `Lstat` quando symlink não deve ser seguido.
 - Nunca assumir que `os.Rename` oferece a mesma atomicidade em todos os SOs.
@@ -80,15 +90,34 @@ Dependência externa só entra quando torna a implementação comprovadamente ma
 
 `golang.org/x/sys` é candidato aceitável para primitivas nativas de lock/replace, se necessário. Não adicionar Cobra/Viper apenas por conveniência.
 
-## 7. Qualidade
+## 7. Release e versionamento
+
+- Tags estáveis usam exatamente `vX.Y.Z`, sem reutilizar ou mover uma tag já
+  publicada.
+- Antes da tag, `CHANGELOG.md` deve conter `## [X.Y.Z] - YYYY-MM-DD` e ao menos
+  um item Markdown (`- ...`) sob categorias pertinentes como `Adicionado`,
+  `Alterado`, `Corrigido`, `Segurança` ou `Removido`.
+- A descrição da GitHub Release vem dessa seção versionada; não publicar notas
+  vazias nem usar notas geradas automaticamente como fonte canônica.
+- A tag deve apontar para um commit que já contenha changelog, código e workflow
+  correspondentes e cujo CI de branch esteja verde.
+- O tooling de release deve recusar versão/changelog inválidos e diretório de
+  saída não vazio. Nunca limpar recursivamente um caminho fornecido ao comando.
+- Assets instaláveis pelo mise mantêm tag SemVer, nomes com OS/arquitetura e
+  executáveis em `bin/`. Após publicar, validar instalação em HOME/MISE_*
+  isolados antes de declarar a release pronta.
+
+## 8. Qualidade
 
 Conforme aplicável, prefira o runner sandboxed:
 
 ```sh
-mise run check
-# ou, sem mise já configurado:
 ./scripts/check-safe.sh all
 ```
+
+`mise run check` é conveniência para uso interativo, mas o mise pode descobrir
+configuração global antes de chamar a task. Agentes que precisam provar
+isolamento devem executar `scripts/check-safe.sh` diretamente.
 
 Os subcomandos `fmt`, `test`, `vet`, `shuffle`, `race` e `fuzz` também podem ser executados pelo mesmo script. O runner usa HOME/TMP/caches temporários, não herda secrets/configurações Git do usuário e bloqueia rede/download automático do Go durante os testes.
 
@@ -96,7 +125,17 @@ Os subcomandos `fmt`, `test`, `vet`, `shuffle`, `race` e `fuzz` também podem se
 
 Se algo não pôde ser executado, registrar **não executado**; nunca chamar de aprovado.
 
-## 8. Definition of done
+Ao corrigir uma falha de CI, localizar o teste pelo nome completo mostrado no
+log e revisar o diff no contexto dessa função. Se uma expressão idêntica existir
+em vários testes, não assumir que a primeira ocorrência é o alvo. Uma correção
+de portabilidade só está comprovada depois do job nativo que revelou o problema.
+
+Testes de instalação mise devem usar `MISE_NO_CONFIG=1`/`--no-config`, todos os
+diretórios `MISE_*` e `GH_CONFIG_DIR` sintéticos, além de desativar fallbacks de
+tokens/credenciais. Redirecionar somente HOME/MISE_* não prova que o mise deixou
+de descobrir configuração pessoal.
+
+## 9. Definition of done
 
 Uma mudança só está pronta quando:
 

@@ -52,15 +52,19 @@ mise run fuzz-smoke
 No computador do usuário, use:
 
 ```sh
-mise run check
-# equivalente a:
 ./scripts/check-safe.sh all
 ```
+
+`mise run check` executa a mesma task e continua disponível como conveniência
+interativa. Para uma auditoria de isolamento, agentes usam o script diretamente:
+o mise pode fazer discovery/resolução de configuração global antes de iniciar a
+task, mesmo quando o processo Go chamado depois está isolado.
 
 O runner cria um diretório temporário exclusivo e executa format check, testes, vet, shuffle e race com ambiente mínimo. Ele só preserva `PATH` para localizar as toolchains instaladas. Ao terminar, remove apenas o diretório retornado por `mktemp`, com validação de prefixo antes do `rm -rf`.
 
 `go test ./...` direto continua usando dados sintéticos dentro dos testes, mas o próprio comando Go pode usar os caches/configuração normais da sua conta. Por isso o runner sandboxed é a opção recomendada.
 
-`mise run check` usa Go 1.27.1.
+O projeto fixa Go 1.27.1 em `mise.toml`; o runner exige que a toolchain adequada
+já esteja no PATH e impede download automático com `GOTOOLCHAIN=local`.
 
 Cross-build é compile-only. O workflow de release repete testes nativos em Linux e macOS antes da publicação.
