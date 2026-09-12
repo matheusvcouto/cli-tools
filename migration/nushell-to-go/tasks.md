@@ -62,8 +62,9 @@ Marcar apenas com evidência.
 - [x] release gera `SHA256SUMS`;
 - [x] workflow de release exige Linux + macOS antes de publish;
 - [x] smoke test do archive Linux previsto na workflow;
-- [ ] workflow real executada em GitHub;
-- [ ] instalação de release real via mise testada com HOME/MISE_* temporários.
+- [x] workflow real executada em GitHub para `v0.1.1`;
+- [x] instalação de release real via mise testada com HOME/MISE_* temporários,
+  config discovery desabilitado e fallbacks de credenciais desativados.
 
 ## Cutover/histórico
 - [x] instruções de cutover documentadas;

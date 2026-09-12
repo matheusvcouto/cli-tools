@@ -8,8 +8,9 @@ backend GitHub do mise.
 
 Não há arquivo de versão para editar. Um push de tag no formato `vX.Y.Z`
 dispara `.github/workflows/release.yml`; a tag é injetada em todos os binários
-e também nomeia a GitHub Release. Para a primeira entrega pública desta suíte,
-a versão planejada é `v0.1.0`.
+e também nomeia a GitHub Release. A primeira entrega pública instalável desta
+suíte é `v0.1.1`; a tag `v0.1.0` é histórica e não possui GitHub Release porque
+seu smoke-test falhou antes da publicação.
 
 ## Changelog e descrição obrigatória
 
@@ -121,7 +122,7 @@ mise use -g github:matheusvcouto/cli-tools@latest
 Versão específica:
 
 ```sh
-mise use -g github:matheusvcouto/cli-tools@0.1.0
+mise use -g github:matheusvcouto/cli-tools@0.1.1
 ```
 
 Configuração equivalente:

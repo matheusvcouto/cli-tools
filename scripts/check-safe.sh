@@ -5,6 +5,10 @@ ROOT=$(CDPATH= cd "$(dirname "$0")/.." && pwd)
 MODE=${1:-all}
 BASE_TMP=$(CDPATH= cd "${TMPDIR:-/tmp}" && pwd -P)
 SANDBOX=$(mktemp -d "$BASE_TMP/cli-tools-test.XXXXXX")
+SAFE_PATH=$PATH
+if [ "$(uname -s)" = Darwin ] && [ -x /Library/Developer/CommandLineTools/usr/bin/git ]; then
+  SAFE_PATH="/Library/Developer/CommandLineTools/usr/bin:$SAFE_PATH"
+fi
 cleanup() {
   case "${SANDBOX:-}" in
     "$BASE_TMP"/cli-tools-test.*) rm -rf "$SANDBOX" ;;
@@ -27,7 +31,7 @@ mkdir -p \
 
 run_clean() {
   env -i \
-    PATH="$PATH" \
+    PATH="$SAFE_PATH" \
     HOME="$SANDBOX/home" \
     USERPROFILE="$SANDBOX/home" \
     TMPDIR="$SANDBOX/tmp" \

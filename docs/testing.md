@@ -62,6 +62,19 @@ task, mesmo quando o processo Go chamado depois está isolado.
 
 O runner cria um diretório temporário exclusivo e executa format check, testes, vet, shuffle e race com ambiente mínimo. Ele só preserva `PATH` para localizar as toolchains instaladas. Ao terminar, remove apenas o diretório retornado por `mktemp`, com validação de prefixo antes do `rm -rf`.
 
+### Git e streams no macOS
+
+Sob um ambiente mínimo, `/usr/bin/git` no macOS pode acionar o shim do Xcode e
+emitir diagnósticos enquanto localiza as Command Line Tools. O runner seguro
+prioriza `/Library/Developer/CommandLineTools/usr/bin/git` quando esse binário
+real existe, sem alterar o PATH global.
+
+Isso não substitui a separação correta de streams. Helpers e código que esperam
+stdout estruturado de Git — hash, ref, lista NUL-delimited ou status — devem
+capturar stdout e stderr separadamente. `CombinedOutput` serve para diagnóstico
+de falha, não como entrada de parser: um warning legítimo em stderr não pode se
+tornar parte de um hash válido.
+
 `go test ./...` direto continua usando dados sintéticos dentro dos testes, mas o próprio comando Go pode usar os caches/configuração normais da sua conta. Por isso o runner sandboxed é a opção recomendada.
 
 O projeto fixa Go 1.27.1 em `mise.toml`; o runner exige que a toolchain adequada

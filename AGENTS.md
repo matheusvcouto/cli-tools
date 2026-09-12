@@ -124,6 +124,13 @@ isolamento devem executar `scripts/check-safe.sh` diretamente.
 
 Os subcomandos `fmt`, `test`, `vet`, `shuffle`, `race` e `fuzz` também podem ser executados pelo mesmo script. O runner usa HOME/TMP/caches temporários, não herda secrets/configurações Git do usuário e bloqueia rede/download automático do Go durante os testes.
 
+No macOS, testes herméticos devem priorizar o Apple Git real em
+`/Library/Developer/CommandLineTools/usr/bin` quando ele existir. O executável
+`/usr/bin/git` pode ser um shim do Xcode e emitir diagnóstico ao resolver as
+Command Line Tools sob um ambiente mínimo. Quando stdout possui valor
+estruturado, como hash ou ref, capture stdout e stderr separadamente; nunca use
+`CombinedOutput` como o valor a ser parseado.
+
 `-race` é um job separado: não force `CGO_ENABLED=0` nele. Builds de release devem permanecer `CGO_ENABLED=0`, salvo ADR explícito.
 
 Se algo não pôde ser executado, registrar **não executado**; nunca chamar de aprovado.

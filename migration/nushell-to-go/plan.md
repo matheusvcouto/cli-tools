@@ -47,7 +47,7 @@ Não existe backend `zip/unzip` por plataforma.
 
 Gates locais: format, test, vet, shuffle/repeat e race. Cross-build cobre seis pares OS/arch.
 
-## 7. Release — implementação concluída, execução externa pendente
+## 7. Release — concluída
 
 A workflow de tag:
 
@@ -59,14 +59,15 @@ A workflow de tag:
 
 A instalação alvo é `mise use -g github:matheusvcouto/cli-tools@latest`.
 
-## 8. Gate externo pendente
+## 8. Gate externo — concluído
 
 No repositório real:
 
-1. ~~CI macOS verde~~ — comprovado no run `34701668236`;
-2. criar tag de release;
-3. instalar essa release com mise em HOME/MISE_* temporários;
-4. validar que `ai-profile --version` e `repo-zip --version` saem do mesmo archive.
+1. CI macOS verde — comprovado nos runs `34701668236` e `34719833762`;
+2. tag e GitHub Release `v0.1.1` publicadas pelo run `34719833750`;
+3. release instalada com mise em HOME/MISE_* isolados e sem discovery de config;
+4. `ai-profile --version` e `repo-zip --version` retornaram `v0.1.1` a partir
+   do mesmo archive `macos_arm64`.
 
 ## 9. Cutover autorizado
 

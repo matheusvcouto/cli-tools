@@ -53,8 +53,8 @@ Evidência detalhada da última execução local: [`validation.md`](validation.m
 - [x] artifacts usam `bin/`;
 - [x] checksums;
 - [x] release workflow depende de testes Linux/macOS;
-- [ ] tag/release real executada;
-- [ ] asset real validado com `mise --no-config install/exec` e todos os roots
+- [x] tag/release real `v0.1.1` executada;
+- [x] asset real validado com `mise --no-config install/exec` e todos os roots
   de estado/configuração/credenciais redirecionados para sandbox.
 
 ## Encerramento

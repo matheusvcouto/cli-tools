@@ -95,10 +95,8 @@ Isso comprova fronteiras de build, **não** suporte de runtime Windows/macOS.
 
 Não marcar como concluídos sem evidência real:
 
-1. workflow de release real executada por tag;
-2. asset real instalado via `mise` com HOME/MISE_* temporários e ambos os binários validados;
-3. cutover real autorizado pelo usuário;
-4. só então mover esta migração para `docs/history/migrations/2026-09-nushell-to-go/`.
+1. cutover real autorizado pelo usuário;
+2. só então mover esta migração para `docs/history/migrations/2026-09-nushell-to-go/`.
 
 ## Evidência externa concluída
 
@@ -106,6 +104,24 @@ Não marcar como concluídos sem evidência real:
   incluindo format, `go test`, `go vet`, shuffle ×3 e race; cross-build também
   passou. A regressão `/var` versus `/private/var` foi executada no runner
   macOS que originalmente revelou a comparação textual incorreta.
+- GitHub Actions run `34719833762`, disparado pela tag `v0.1.1`: PASS em macOS
+  e Ubuntu para format, test, vet, shuffle ×3 e race; cross-build também passou.
+- Release workflow `34719833750`: PASS. Publicou a GitHub Release estável
+  `CLI Tools v0.1.1` com notas extraídas da seção versionada do changelog,
+  quatro archives macOS/Linux para amd64/arm64, `SHA256SUMS` e attestations.
+- `mise` 2026.4.7, em macOS arm64, resolveu `latest` como `0.1.1`, baixou
+  `cli-tools_0.1.1_macos_arm64.tar.gz`, validou checksum e attestation e
+  instalou o asset. `ai-profile --version` e `repo-zip --version` executados
+  por `mise --no-config exec` retornaram `v0.1.1`.
+- A prova de instalação usou HOME, TMP, `GH_CONFIG_DIR` e todos os diretórios
+  `MISE_*` dentro de um sandbox regenerável no repositório, com discovery de
+  config desabilitado e fallbacks de tokens do gh/Git desativados; nenhum path
+  de configuração real apareceu na execução.
+- Após um reinício local, `/usr/bin/git` acionou o shim do Xcode sob o ambiente
+  mínimo e seus diagnósticos foram misturados a hashes por um helper de teste
+  que usava `CombinedOutput`. O runner passou a priorizar o Apple Git real no
+  macOS e o helper passou a separar stdout/stderr; a regra foi promovida para
+  `AGENTS.md` e `docs/testing.md` para evitar repetição em outros projetos.
 
 ## Primeira tentativa de release
 

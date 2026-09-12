@@ -6,6 +6,18 @@ versões seguem [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Alterado
+
+- Os exemplos de instalação por versão agora apontam para a primeira release
+  pública instalável, `0.1.1`.
+
+### Corrigido
+
+- O runner seguro prioriza o Apple Git real no macOS para impedir que
+  diagnósticos do shim do Xcode contaminem execuções herméticas.
+- O helper Git de `repo-zip` separa stdout de stderr antes de interpretar hashes
+  e refs nos testes.
+
 ## [0.1.1] - 2026-09-12
 
 ### Alterado

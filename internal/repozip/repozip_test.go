@@ -2,6 +2,7 @@ package repozip
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -43,11 +44,13 @@ func gitRun(t *testing.T, repo string, args ...string) string {
 	argv := append([]string{"-C", repo}, args...)
 	cmd := exec.Command("git", argv...)
 	cmd.Env = sandboxEnv(t)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("git %v: %v\n%s", args, err, out)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("git %v: %v\nstdout:\n%s\nstderr:\n%s", args, err, stdout.Bytes(), stderr.Bytes())
 	}
-	return strings.TrimSpace(string(out))
+	return strings.TrimSpace(stdout.String())
 }
 
 func writeFile(t *testing.T, path, content string) {

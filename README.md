@@ -19,7 +19,7 @@ mise use -g github:matheusvcouto/cli-tools@latest
 Para instalar uma versão específica:
 
 ```sh
-mise use -g github:matheusvcouto/cli-tools@0.1.0
+mise use -g github:matheusvcouto/cli-tools@0.1.1
 ```
 
 Isso grava no arquivo global do mise uma entrada equivalente a:
