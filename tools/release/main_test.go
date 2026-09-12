@@ -155,6 +155,20 @@ func TestPrepareOutputDirNeverRemovesExistingContent(t *testing.T) {
 	}
 }
 
+func TestWorkflowChecksChecksumsFromManifestDirectory(t *testing.T) {
+	raw, err := os.ReadFile("../../.github/workflows/release.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	workflow := string(raw)
+	if !strings.Contains(workflow, "(cd dist && sha256sum -c SHA256SUMS)") {
+		t.Fatal("release workflow must verify relative checksum entries from the manifest directory")
+	}
+	if strings.Contains(workflow, "sha256sum -c dist/SHA256SUMS") {
+		t.Fatal("release workflow resolves checksum entries from the repository root")
+	}
+}
+
 func TestArchivesAreReproducible(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "stage")
 	if err := os.MkdirAll(filepath.Join(root, "bin"), 0o755); err != nil {

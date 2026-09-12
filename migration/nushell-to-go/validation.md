@@ -107,6 +107,17 @@ Não marcar como concluídos sem evidência real:
   passou. A regressão `/var` versus `/private/var` foi executada no runner
   macOS que originalmente revelou a comparação textual incorreta.
 
+## Primeira tentativa de release
+
+- A tag `v0.1.0` executou os jobs `verify` com PASS em macOS e Ubuntu no run
+  `34719383662`.
+- O build dos quatro assets e a extração das notas passaram, mas o job publish
+  parou antes de criar a GitHub Release: `sha256sum -c dist/SHA256SUMS` resolveu
+  os basenames contra a raiz do checkout.
+- A correção executa o checker dentro de `dist` e possui regressão que valida a
+  invocação exata do workflow. A tag `v0.1.0` não será movida nem reutilizada;
+  a próxima tentativa usa a patch version `v0.1.1`.
+
 ## Auditoria de segurança dos testes locais
 
 Após a implementação do suporte a worktrees, os testes foram re-auditados para execução em máquina pessoal. Subprocessos de teste agora recebem ambiente mínimo sintético via `internal/testenv`; Git global/system config, templates e hooks ficam desativados; HOME/TMP/XDG/Go caches ficam temporários; `GOTOOLCHAIN=local`, `GOPROXY=off` e `GOVCS=*:off` impedem downloads/rede do Go. `scripts/check-safe.sh` aplica o mesmo isolamento ao próprio processo `go test`/`vet`/`race` e remove somente o sandbox criado por `mktemp`; agentes o executam diretamente para evitar discovery prévio do mise. Nenhum teste usa `~/.ai-profiles`, repositórios reais, Keychain, Claude/Codex reais ou credenciais do usuário.

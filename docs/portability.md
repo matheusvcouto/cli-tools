@@ -70,3 +70,11 @@ Quando CI expuser uma diferença de plataforma:
 Cross-build prova apenas que o código compila. Diferenças de filesystem,
 credenciais, locks e processos exigem execução nativa no sistema declarado como
 suportado.
+
+## Paths dentro de manifests
+
+Ferramentas nem sempre resolvem referências relativas contra o arquivo que as
+contém. `sha256sum -c path/SHA256SUMS`, por exemplo, resolve os nomes listados
+contra o cwd do processo. Quando o manifesto contém apenas basenames portáveis,
+execute o verificador com cwd no diretório do manifesto. Teste essa invocação
+exata no workflow, não apenas a função que gera os hashes.

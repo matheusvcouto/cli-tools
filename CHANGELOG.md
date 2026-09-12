@@ -6,6 +6,21 @@ versões seguem [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-12
+
+### Alterado
+
+- Esta é a primeira release com assets publicáveis; `v0.1.0` executou todos os
+  gates nativos, mas parou antes da publicação por causa do smoke-test de
+  checksum.
+
+### Corrigido
+
+- O smoke-test de release agora valida `SHA256SUMS` a partir do diretório
+  `dist`, onde os nomes relativos dos assets são resolvidos corretamente.
+- Um teste de política impede que o workflow volte a verificar um manifesto
+  relativo a partir do diretório pai.
+
 ## [0.1.0] - 2026-09-12
 
 ### Adicionado

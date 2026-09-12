@@ -60,6 +60,17 @@ O gerador nunca limpa o diretório informado por `--out`. Ele cria um diretório
 ausente com filesystem confinado ou aceita um diretório vazio; qualquer conteúdo
 preexistente causa erro sem ser alterado.
 
+`SHA256SUMS` contém nomes portáveis relativos ao diretório em que o manifesto
+fica. Ferramentas como `sha256sum -c` resolvem esses nomes contra o cwd, não
+contra o path do manifesto. Portanto a verificação correta é:
+
+```sh
+(cd dist && sha256sum -c SHA256SUMS)
+```
+
+Executar `sha256sum -c dist/SHA256SUMS` a partir do diretório pai procura os
+assets no lugar errado e falha mesmo quando os hashes e arquivos estão corretos.
+
 ## Targets publicados
 
 ```text

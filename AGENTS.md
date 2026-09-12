@@ -103,6 +103,9 @@ Dependência externa só entra quando torna a implementação comprovadamente ma
   correspondentes e cujo CI de branch esteja verde.
 - O tooling de release deve recusar versão/changelog inválidos e diretório de
   saída não vazio. Nunca limpar recursivamente um caminho fornecido ao comando.
+- Entradas de `SHA256SUMS` são relativas ao diretório do manifesto. Validar com
+  cwd nesse diretório (por exemplo, `cd dist && sha256sum -c SHA256SUMS`), não
+  passando apenas `dist/SHA256SUMS` a partir do diretório pai.
 - Assets instaláveis pelo mise mantêm tag SemVer, nomes com OS/arquitetura e
   executáveis em `bin/`. Após publicar, validar instalação em HOME/MISE_*
   isolados antes de declarar a release pronta.
