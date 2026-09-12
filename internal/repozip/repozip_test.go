@@ -706,8 +706,18 @@ func TestDefaultSourceWorksFromRepositoryWorkingDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("repo-zip . from repository root failed: %v", err)
 	}
-	if filepath.Dir(res.Output) != filepath.Join(repo, ".tmp", "repo-zip") {
-		t.Fatalf("unexpected output: %s", res.Output)
+	gotDir := filepath.Dir(res.Output)
+	wantDir := filepath.Join(repo, ".tmp", "repo-zip")
+	gotInfo, err := os.Stat(gotDir)
+	if err != nil {
+		t.Fatalf("stat output directory: %v", err)
+	}
+	wantInfo, err := os.Stat(wantDir)
+	if err != nil {
+		t.Fatalf("stat expected output directory: %v", err)
+	}
+	if !os.SameFile(gotInfo, wantInfo) {
+		t.Fatalf("unexpected output directory: got %q want same directory as %q", gotDir, wantDir)
 	}
 	if _, err := os.Stat(res.Output); err != nil {
 		t.Fatalf("output missing: %v", err)
