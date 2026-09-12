@@ -1,0 +1,4 @@
+Imports atuais a remover somente no cutover:
+
+use modules/ai_profiles [ai-profile]
+use modules/repo_zip [repo-zip]

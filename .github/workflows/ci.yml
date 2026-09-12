@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27.1'
+          check-latest: false
+      - name: Format
+        shell: bash
+        run: test -z "$(gofmt -l .)"
+      - run: go test ./...
+      - run: go vet ./...
+      - run: go test -shuffle=on -count=3 ./...
+      - run: go test -race ./...
+
+  cross-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27.1'
+          check-latest: false
+      - name: Cross-build compile-only targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t commands < <(find cmd -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | LC_ALL=C sort)
+          test "${#commands[@]}" -gt 0
+
+          for target in 'darwin amd64' 'darwin arm64' 'linux amd64' 'linux arm64' 'windows amd64' 'windows arm64'; do
+            read -r goos goarch <<<"$target"
+            for command in "${commands[@]}"; do
+              echo "building $command for $goos/$goarch"
+              GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 \
+                go build -trimpath -o /tmp/cli-tools-cross-build ./cmd/"$command"
+            done
+          done

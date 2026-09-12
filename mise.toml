@@ -1,0 +1,26 @@
+[tools]
+go = "1.27.1"
+
+[env]
+GOTOOLCHAIN = "local"
+
+[tasks.fmt-check]
+run = "./scripts/check-safe.sh fmt"
+
+[tasks.test]
+run = "./scripts/check-safe.sh test"
+
+[tasks.test-shuffle]
+run = "./scripts/check-safe.sh shuffle"
+
+[tasks.test-race]
+run = "./scripts/check-safe.sh race"
+
+[tasks.vet]
+run = "./scripts/check-safe.sh vet"
+
+[tasks.check]
+run = "./scripts/check-safe.sh all"
+
+[tasks.fuzz-smoke]
+run = "./scripts/check-safe.sh fuzz"

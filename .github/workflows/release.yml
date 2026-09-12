@@ -1,0 +1,73 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27.1'
+          check-latest: false
+      - name: Format
+        shell: bash
+        run: test -z "$(gofmt -l .)"
+      - run: go test ./...
+      - run: go vet ./...
+      - run: go test -shuffle=on -count=3 ./...
+      - run: go test -race ./...
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27.1'
+          check-latest: false
+      - run: go run ./tools/release --version "${GITHUB_REF_NAME}" --out dist
+      - name: Smoke-test Linux archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME}"
+          asset="dist/cli-tools_${version#v}_linux_amd64.tar.gz"
+          test -f "$asset"
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          tar -xzf "$asset" -C "$tmp"
+          count=0
+          for binary in "$tmp"/bin/*; do
+            test -f "$binary"
+            test -x "$binary"
+            test "$("$binary" --version)" = "$version"
+            count=$((count + 1))
+          done
+          test "$count" -gt 0
+          sha256sum -c dist/SHA256SUMS
+      - name: Attest release archives
+        if: github.event.repository.visibility == 'public'
+        uses: actions/attest@v4
+        with:
+          subject-checksums: dist/SHA256SUMS
+      - name: Create GitHub release and upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" dist/* --generate-notes --verify-tag
