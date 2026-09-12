@@ -8,7 +8,9 @@ suíte permanecem no [`ADR.md` da raiz](../../ADR.md).
 Alias é apenas um rótulo. Rename nunca move o diretório físico, porque
 credenciais e ferramentas nativas podem vincular estado ao caminho absoluto.
 O índice JSON é versionado; mutações usam lock, backup, commit confinado e
-rollback quando há mais de um efeito persistente.
+rollback quando há mais de um efeito persistente. A criação inicial do arquivo
+de lock usa create-exclusive; concorrentes validam o arquivo já criado antes de
+abri-lo e sua identidade é revalidada antes de adquirir o lock.
 
 ## AP002 — Cada profile possui todos os roots nativos da ferramenta — Accepted
 

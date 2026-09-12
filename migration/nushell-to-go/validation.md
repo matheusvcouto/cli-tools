@@ -78,6 +78,7 @@ Isso comprova fronteiras de build, **não** suporte de runtime Windows/macOS.
 - mudanças em refs não-HEAD durante o snapshot abortam a publicação;
 - `.gitignore` continua sendo respeitado em linked worktree com `--git`;
 - o E2E compila `repo-zip`, cria uma linked worktree sintética e valida o bundle gerado pelo binário real;
+- alias de caminho para a mesma raiz, incluindo a classe `/var` versus `/private/var` do macOS, é coberto por regressão sintética com identidade comprovada por `os.SameFile`;
 - `.repo-zip/` é reservado no archive para impedir colisão entre arquivos do usuário e metadata interna;
 - repositório sem commit recebe erro explícito em `--git`, pois Git não produz bundle restaurável vazio;
 - release publica apenas macOS/Linux; Windows continua compile-only e `repo-zip` falha antes de efeitos colaterais de output.
@@ -107,4 +108,6 @@ Após a implementação do suporte a worktrees, os testes foram re-auditados par
 - `go test -race ./...`: PASS;
 - quatro fuzzers com `-fuzztime=5s`: PASS;
 - cross-build compile-only: PASS para darwin/linux/windows × amd64/arm64 × 2 CLIs;
+- criação concorrente do mesmo alias: PASS em 100 repetições com create-exclusive do lock;
+- dry-run do release `v0.1.0`: quatro assets macOS/Linux gerados, checksums válidos e ambos os binários macOS arm64 responderam `v0.1.0`;
 - nenhum corpus `testdata/fuzz` foi criado no source tree.

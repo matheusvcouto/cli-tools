@@ -266,15 +266,17 @@ func (s Store) openLockedRoot() (*safefs.Root, filelock.Lock, error) {
 		return nil, nil, err
 	}
 
-	if before, err := root.Lstat(".index.lock"); err == nil {
+	f, err := root.OpenFile(".index.lock", os.O_CREATE|os.O_EXCL|os.O_RDWR, 0o600)
+	if errors.Is(err, os.ErrExist) {
+		before, inspectErr := root.Lstat(".index.lock")
+		if inspectErr != nil {
+			return fail(fmt.Errorf("inspect existing lock path: %w", inspectErr))
+		}
 		if before.Mode()&os.ModeSymlink != 0 || !before.Mode().IsRegular() {
 			return fail(fmt.Errorf("lock path is not a regular file"))
 		}
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return fail(fmt.Errorf("inspect lock path: %w", err))
+		f, err = root.OpenFile(".index.lock", os.O_RDWR, 0o600)
 	}
-
-	f, err := root.OpenFile(".index.lock", os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
 		return fail(fmt.Errorf("open profile store lock: %w", err))
 	}

@@ -85,7 +85,39 @@ func (g Git) RepoRoot(source string) (string, error) {
 		return "", fmt.Errorf("source is not inside a Git repository: %s", detail(res))
 	}
 	root := strings.TrimSpace(string(res.stdout))
-	return filepath.Abs(root)
+	root, err = filepath.Abs(root)
+	if err != nil {
+		return "", err
+	}
+	return equivalentAncestorSpelling(source, root), nil
+}
+
+// equivalentAncestorSpelling preserves the caller's spelling of a repository
+// root when the operating system exposes the same directory through aliases.
+// macOS commonly reports temporary paths as /var/... to the caller while Git
+// canonicalizes the same path to /private/var/.... Keeping one spelling avoids
+// treating output paths inside the repository as external paths.
+func equivalentAncestorSpelling(source, root string) string {
+	rootInfo, err := os.Stat(root)
+	if err != nil {
+		return root
+	}
+	candidate, err := filepath.Abs(source)
+	if err != nil {
+		return root
+	}
+	for {
+		info, statErr := os.Stat(candidate)
+		linkInfo, lstatErr := os.Lstat(candidate)
+		if statErr == nil && lstatErr == nil && linkInfo.Mode()&os.ModeSymlink == 0 && info.IsDir() && os.SameFile(info, linkInfo) && os.SameFile(info, rootInfo) {
+			return candidate
+		}
+		parent := filepath.Dir(candidate)
+		if parent == candidate {
+			return root
+		}
+		candidate = parent
+	}
 }
 
 func (g Git) HeadLabel(repo string) (string, error) {

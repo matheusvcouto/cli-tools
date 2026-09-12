@@ -4,6 +4,11 @@
 
 Uma tag versiona todos os binários em `cmd/*`.
 
+Não há arquivo de versão para editar. Um push de tag no formato `vX.Y.Z`
+dispara `.github/workflows/release.yml`; a tag é injetada em todos os binários
+e também nomeia a GitHub Release. Para a primeira entrega pública desta suíte,
+a versão planejada é `v0.1.0`.
+
 `tools/release`:
 
 1. descobre diretórios imediatos de `cmd/`;

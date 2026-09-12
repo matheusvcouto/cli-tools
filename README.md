@@ -19,7 +19,7 @@ mise use -g github:matheusvcouto/cli-tools
 Para instalar uma versão específica:
 
 ```sh
-mise use -g github:matheusvcouto/cli-tools@1.0.0
+mise use -g github:matheusvcouto/cli-tools@0.1.0
 ```
 
 A instalação disponibiliza os comandos:

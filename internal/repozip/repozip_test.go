@@ -112,6 +112,52 @@ func TestSnapshotUsesGitSelectionAndExcludesIgnoredFiles(t *testing.T) {
 	}
 }
 
+func TestSnapshotTreatsEquivalentRepositoryPathSpellingsAsTheSameRoot(t *testing.T) {
+	realParent := t.TempDir()
+	repo := filepath.Join(realParent, "repo")
+	if err := os.Mkdir(repo, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gitRun(t, repo, "init", "-q")
+	gitRun(t, repo, "config", "user.name", "Synthetic User")
+	gitRun(t, repo, "config", "user.email", "synthetic@example.com")
+	writeFile(t, filepath.Join(repo, "tracked.txt"), "tracked")
+	gitRun(t, repo, "add", "tracked.txt")
+
+	aliasParent := filepath.Join(t.TempDir(), "alias")
+	if err := os.Symlink(realParent, aliasParent); err != nil {
+		t.Skipf("directory symlinks unavailable: %v", err)
+	}
+	aliasRepo := filepath.Join(aliasParent, "repo")
+	output := filepath.Join(aliasRepo, "snapshot.zip")
+
+	res, err := service(t).Run(context.Background(), Options{Source: aliasRepo, Output: output})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Output != output {
+		t.Fatalf("output path spelling changed: got %q want %q", res.Output, output)
+	}
+	zr, err := zip.OpenReader(output)
+	if err != nil {
+		t.Fatalf("open snapshot through aliased repository path: %v", err)
+	}
+	defer zr.Close()
+}
+
+func TestEquivalentAncestorSpellingDoesNotReturnSymlinkRoot(t *testing.T) {
+	realRoot := t.TempDir()
+	alias := filepath.Join(t.TempDir(), "repo-link")
+	if err := os.Symlink(realRoot, alias); err != nil {
+		t.Skipf("directory symlinks unavailable: %v", err)
+	}
+
+	got := equivalentAncestorSpelling(alias, realRoot)
+	if got != realRoot {
+		t.Fatalf("symlink root was preserved: got %q want %q", got, realRoot)
+	}
+}
+
 func TestSnapshotRejectsBackslashPathForPortableZip(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("backslash is a path separator on Windows")

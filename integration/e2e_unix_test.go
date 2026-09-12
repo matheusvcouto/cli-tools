@@ -193,7 +193,7 @@ func createAndResolveProfile(t *testing.T, aiBin string, env []string, tool, ali
 
 func assertFakeReport(t *testing.T, tool string, report fakeReport, wantHome, wantCWD string, wantArgs []string) {
 	t.Helper()
-	if report.CWD != wantCWD {
+	if !sameDirectory(report.CWD, wantCWD) {
 		t.Fatalf("cwd=%q want %q", report.CWD, wantCWD)
 	}
 	if strings.Join(report.Args, "\x00") != strings.Join(wantArgs, "\x00") {
@@ -223,6 +223,15 @@ func assertFakeReport(t *testing.T, tool string, report fakeReport, wantHome, wa
 	default:
 		t.Fatalf("unknown tool %q", tool)
 	}
+}
+
+func sameDirectory(a, b string) bool {
+	aInfo, err := os.Stat(a)
+	if err != nil {
+		return false
+	}
+	bInfo, err := os.Stat(b)
+	return err == nil && os.SameFile(aInfo, bInfo)
 }
 
 func runExpectExitAt(t *testing.T, dir string, env []string, bin string, wantCode int, args ...string) (fakeReport, string, int) {
