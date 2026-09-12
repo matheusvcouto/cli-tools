@@ -12,6 +12,8 @@
 - `new` cria diretório e persiste índice sob a mesma root+lock, com rollback se o commit falhar;
 - delete usa quarentena + rollback se o commit falhar;
 - secrets configurados para limpeza são removidos do ambiente filho;
+- Claude recebe `CLAUDE_CONFIG_DIR` e um `ANTHROPIC_CONFIG_DIR` confinado ao mesmo profile, evitando herança do profile Anthropic ativo/default do usuário;
+- componentes fixos de workload identity do Codex e do Claude são removidos do ambiente herdado;
 - ACP não imprime bytes do wrapper em stdout;
 - `AI_PROFILE_ROOT` permite isolamento explícito em testes/uso avançado.
 

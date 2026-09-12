@@ -10,10 +10,15 @@ Antes do código, registre sintaxe, entradas, saídas, efeitos colaterais, risco
 
 ```text
 cmd/<nome>/main.go
+cmd/<nome>/ADR.md
 internal/<dominio>/...
 ```
 
-`main.go` fino; domínio testável. Se houver diferença por SO, o domínio define a capability e o backend específico fica separado conforme `docs/platforms.md`. Não espalhe `runtime.GOOS` pela regra de negócio.
+`main.go` fino; domínio testável. O ADR local registra decisões próprias da
+ferramenta; decisões que afetam toda a suíte continuam no `ADR.md` da raiz. Se
+houver diferença por SO, o domínio define a capability e o backend específico
+fica separado conforme `docs/platforms.md`. Não espalhe `runtime.GOOS` pela
+regra de negócio.
 
 ## 3. Não compartilhe cedo demais
 
@@ -53,4 +58,4 @@ Se “nova lib” significar pacote Go para consumo externo, não colocá-la em 
 - identificar consumidor real;
 - escolher package path estável;
 - definir API mínima;
-- registrar em `ADR.md` porque a API pública passa a ter custo de compatibilidade.
+- registrar no ADR do escopo afetado porque a API pública passa a ter custo de compatibilidade.

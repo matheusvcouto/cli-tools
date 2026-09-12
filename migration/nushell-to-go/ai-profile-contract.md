@@ -44,15 +44,15 @@ Nenhum shell intermediário. Tudo após o alias em `run`/`acp` é argv literal. 
 
 ### Claude
 
-Seta `CLAUDE_CONFIG_DIR=<profile-dir>`. O profile é a fonte de estado/credencial user-scope; contexto global pertence ao próprio profile (`CLAUDE.md`, `rules/`, `settings.json`, `skills/`, `agents/`). O cwd é preservado para o discovery nativo de `CLAUDE.md`, `CLAUDE.local.md` e `.claude/rules/` do projeto.
+Seta `CLAUDE_CONFIG_DIR=<profile-dir>` e `ANTHROPIC_CONFIG_DIR=<profile-dir>/.anthropic`. O segundo root isola profiles/federation do Anthropic CLI/SDK que Claude Code também consulta; `.anthropic` precisa ser diretório real e confinado. O profile é a fonte de estado/credencial user-scope; contexto global pertence ao próprio profile (`CLAUDE.md`, `rules/`, `settings.json`, `skills/`, `agents/`). O cwd é preservado para o discovery nativo de `CLAUDE.md`, `CLAUDE.local.md` e `.claude/rules/` do projeto.
 
-Antes de executar, remove overrides Claude-specific herdados do shell que poderiam substituir autenticação, provider, endpoint ou roots de estado do profile: selectors `CLAUDE_CODE_USE_*`, auth-skip de providers, tokens OAuth, `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN`, federation/profile IDs, endpoints/credentials Anthropic para AWS/Bedrock/Foundry/Vertex, `AWS_BEARER_TOKEN_BEDROCK`, `ANTHROPIC_CUSTOM_HEADERS`, `CLAUDE_SECURESTORAGE_CONFIG_DIR` e `CLAUDE_CODE_PLUGIN_CACHE_DIR`. Credenciais genéricas de projeto (ex.: `AWS_PROFILE`, credenciais GCP/Azure) não são apagadas.
+Antes de executar, remove overrides Claude-specific herdados do shell que poderiam substituir autenticação, provider, endpoint ou roots de estado do profile: selectors `CLAUDE_CODE_USE_*`, auth-skip de providers, tokens OAuth, `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN`, profile IDs e todos os componentes fixos de federation (`RULE_ID`, `ORGANIZATION_ID`, `SERVICE_ACCOUNT_ID`, `WORKSPACE_ID`, identity token literal/arquivo), endpoints/credentials Anthropic para AWS/Bedrock/Foundry/Vertex, `AWS_BEARER_TOKEN_BEDROCK`, `ANTHROPIC_CUSTOM_HEADERS`, `CLAUDE_SECURESTORAGE_CONFIG_DIR` e `CLAUDE_CODE_PLUGIN_CACHE_DIR`. Credenciais genéricas de projeto (ex.: `AWS_PROFILE`, credenciais GCP/Azure) não são apagadas.
 
 Para profiles diferentes do default, adiciona `claudeMdExcludes` para `$HOME/.claude/CLAUDE.md`, `$HOME/.claude/CLAUDE.local.md` e `$HOME/.claude/rules/**`, preservando todas as outras chaves de `settings.json`. Isso é defesa em profundidade; managed policy e settings do projeto continuam válidos. ACP usa `claude-agent-acp`.
 
 ### Codex
 
-Seta `CODEX_HOME=<profile-dir>` e remove `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `CODEX_API_KEY`, `CODEX_ACCESS_TOKEN` e `CODEX_SQLITE_HOME`. ACP usa `codex-acp`.
+Seta `CODEX_HOME=<profile-dir>` e remove `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `CODEX_API_KEY`, `CODEX_ACCESS_TOKEN`, `CODEX_SQLITE_HOME`, `OPENAI_FEDERATION_RULE_ID`, `OPENAI_IDENTITY_TOKEN_FILE` e `OPENAI_WORKLOAD_IDENTITY_CONTEXT`. ACP usa `codex-acp`.
 
 Guidance global é **profile-native**: `AGENTS.override.md` ou `AGENTS.md` deve estar dentro do `CODEX_HOME` selecionado. O wrapper nunca copia/symlinka guidance de `~/.codex`. O cwd é preservado para que Codex descubra a cadeia `AGENTS.md` do projeto normalmente.
 

@@ -2,6 +2,8 @@
 
 Gerencia perfis isolados para Claude e Codex.
 
+Decisões técnicas: [`ADR.md`](ADR.md).
+
 ## Uso
 
 Listar perfis:
@@ -61,6 +63,11 @@ AI_PROFILE_ROOT=/path/to/profiles ai-profile claude list
 
 O projeto mantém os perfis separados por ferramenta e remove do ambiente
 herdado as configurações que poderiam misturar os contextos.
+
+Para Claude, cada profile contém tanto o `CLAUDE_CONFIG_DIR` quanto um
+`ANTHROPIC_CONFIG_DIR` próprio em `<profile>/.anthropic`. Para Codex, cada
+profile é o seu `CODEX_HOME`. Consulte a documentação detalhada em
+[`docs/ai-profile.md`](../../docs/ai-profile.md).
 
 ## Completions
 

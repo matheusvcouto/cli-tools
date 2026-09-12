@@ -1,6 +1,9 @@
 package aiprofile
 
-const StoreSchemaVersion = 1
+const (
+	StoreSchemaVersion     = 1
+	anthropicConfigDirName = ".anthropic"
+)
 
 type Profile struct {
 	Tool      string `json:"tool"`
@@ -55,7 +58,10 @@ var Tools = []ToolSpec{
 			"CLAUDE_CODE_OAUTH_SCOPES",
 			"ANTHROPIC_PROFILE",
 			"ANTHROPIC_FEDERATION_RULE_ID",
+			"ANTHROPIC_IDENTITY_TOKEN",
+			"ANTHROPIC_IDENTITY_TOKEN_FILE",
 			"ANTHROPIC_ORGANIZATION_ID",
+			"ANTHROPIC_SERVICE_ACCOUNT_ID",
 			"ANTHROPIC_WORKSPACE_ID",
 
 			// Provider-specific Claude credentials and routing. Generic AWS/GCP/Azure
@@ -95,6 +101,9 @@ var Tools = []ToolSpec{
 			"CODEX_API_KEY",
 			"CODEX_ACCESS_TOKEN",
 			"CODEX_SQLITE_HOME",
+			"OPENAI_FEDERATION_RULE_ID",
+			"OPENAI_IDENTITY_TOKEN_FILE",
+			"OPENAI_WORKLOAD_IDENTITY_CONTEXT",
 		},
 		ACP: &ACPTool{Binary: "codex-acp"},
 	},

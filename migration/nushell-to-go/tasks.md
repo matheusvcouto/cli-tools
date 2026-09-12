@@ -22,7 +22,7 @@ Marcar apenas com evidência.
 - [x] create com rollback;
 - [x] rename alias-only;
 - [x] delete com confirmação, quarentena e rollback;
-- [x] env isolation;
+- [x] env isolation, incluindo roots Anthropic/Claude e workload identity;
 - [x] argv passthrough;
 - [x] process replacement/exit status em Unix;
 - [x] ACP stdout limpo;

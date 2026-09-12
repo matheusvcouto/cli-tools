@@ -175,7 +175,7 @@ func (s *Service) Run(ctx context.Context, tool, alias string, args []string, io
 	if err := s.prepareProfile(tool, profile.Dir); err != nil {
 		return err
 	}
-	env := isolatedEnv(s.Env(), spec.ConfigEnv, profile.Dir, spec.ClearEnv)
+	env := isolatedEnv(s.Env(), profileEnvironment(spec, profile.Dir), spec.ClearEnv)
 	return s.Runner.Replace(ctx, spec.Binary, args, env, io)
 }
 
@@ -193,18 +193,36 @@ func (s *Service) ACP(ctx context.Context, tool, alias string, args []string, io
 	if err := s.prepareProfile(tool, profile.Dir); err != nil {
 		return err
 	}
-	env := isolatedEnv(s.Env(), spec.ConfigEnv, profile.Dir, spec.ClearEnv)
+	env := isolatedEnv(s.Env(), profileEnvironment(spec, profile.Dir), spec.ClearEnv)
 	argv := append(append([]string{}, spec.ACP.Args...), args...)
 	return s.Runner.Replace(ctx, spec.ACP.Binary, argv, env, io)
 }
 
-func isolatedEnv(base []string, configKey, configValue string, clear []string) []string {
-	remove := make(map[string]struct{}, len(clear)+1)
-	remove[configKey] = struct{}{}
+type envValue struct {
+	key   string
+	value string
+}
+
+func profileEnvironment(spec ToolSpec, profileDir string) []envValue {
+	values := []envValue{{key: spec.ConfigEnv, value: profileDir}}
+	if spec.Name == "claude" {
+		values = append(values, envValue{
+			key:   "ANTHROPIC_CONFIG_DIR",
+			value: filepath.Join(profileDir, anthropicConfigDirName),
+		})
+	}
+	return values
+}
+
+func isolatedEnv(base []string, set []envValue, clear []string) []string {
+	remove := make(map[string]struct{}, len(clear)+len(set))
+	for _, item := range set {
+		remove[item.key] = struct{}{}
+	}
 	for _, key := range clear {
 		remove[key] = struct{}{}
 	}
-	out := make([]string, 0, len(base)+1)
+	out := make([]string, 0, len(base)+len(set))
 	for _, item := range base {
 		key, _, ok := strings.Cut(item, "=")
 		if ok {
@@ -214,7 +232,10 @@ func isolatedEnv(base []string, configKey, configValue string, clear []string) [
 		}
 		out = append(out, item)
 	}
-	return append(out, configKey+"="+configValue)
+	for _, item := range set {
+		out = append(out, item.key+"="+item.value)
+	}
+	return out
 }
 
 func (s *Service) prepareProfile(tool, profileDir string) error {
@@ -242,6 +263,17 @@ func (s *Service) ensureClaudeContextIsolation(profileDir string) error {
 		return fmt.Errorf("open Claude profile directory safely: %w", err)
 	}
 	defer root.Close()
+
+	if err := root.Mkdir(anthropicConfigDirName, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
+		return fmt.Errorf("create profile-local Anthropic configuration directory: %w", err)
+	}
+	configInfo, err := root.Lstat(anthropicConfigDirName)
+	if err != nil {
+		return fmt.Errorf("inspect profile-local Anthropic configuration directory: %w", err)
+	}
+	if configInfo.Mode()&os.ModeSymlink != 0 || !configInfo.IsDir() {
+		return fmt.Errorf("profile-local Anthropic configuration path is not a real directory")
+	}
 
 	settings := map[string]json.RawMessage{}
 	if raw, err := readStableRegularRoot(root, "settings.json"); err == nil {

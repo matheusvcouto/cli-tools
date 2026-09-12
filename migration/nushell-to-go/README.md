@@ -12,7 +12,7 @@ Evidências reproduzíveis da última validação local estão em [`validation.m
 - store JSON/migração transitória;
 - testes sintéticos, race, vet e cross-build;
 - CI/release/mise design;
-- docs/ADR ativos atualizados.
+- docs e ADRs da suíte/CLIs ativos atualizados.
 
 ## Ainda aberto antes de arquivar
 

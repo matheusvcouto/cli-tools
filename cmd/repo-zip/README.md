@@ -2,6 +2,8 @@
 
 Cria snapshots ZIP de repositórios Git.
 
+Decisões técnicas: [`ADR.md`](ADR.md).
+
 ## Uso
 
 Criar um snapshot do repositório atual:

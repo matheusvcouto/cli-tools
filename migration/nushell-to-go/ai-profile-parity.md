@@ -14,7 +14,7 @@ O objetivo não é copiar a aparência antiga; é preservar capacidades e dados 
 | `delete` seguro | quarentena + rollback | tests |
 | `run` | Unix `exec` | runtime synthetic test |
 | `acp` | Unix `exec`, stdout limpo | runtime synthetic test |
-| env isolation | implementado | tests |
+| env isolation | roots nativos + auth/provider/workload identity | tests + E2E |
 | passthrough argv | implementado | tests |
 | Codex profile-native AGENTS | `CODEX_HOME/AGENTS.override.md` ou `AGENTS.md`; sem herança do default | tests + E2E |
 | statusline Claude-only | built-in + custom dir | tests |

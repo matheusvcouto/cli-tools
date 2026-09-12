@@ -13,6 +13,11 @@ Leia sempre:
 5. `docs/testing.md`
 6. `docs/platforms.md`
 
+Ao trabalhar em uma CLI existente, leia também o ADR específico:
+
+- `cmd/ai-profile/ADR.md`;
+- `cmd/repo-zip/ADR.md`.
+
 Se `migration/` contiver uma migração ativa relacionada à tarefa, leia o `README.md` daquela migração e siga a ordem indicada lá.
 
 `docs/history/` é histórico: não deve ser carregado por padrão. Consulte apenas para regressão, auditoria ou decisão antiga específica.
@@ -40,7 +45,7 @@ Se `migration/` contiver uma migração ativa relacionada à tarefa, leia o `REA
 - Não criar `utils`, `helpers`, `common` ou `shared` genéricos.
 - Só extrair pacote reutilizável quando houver semântica comum comprovada, não apenas chamadas parecidas à stdlib.
 - Novo utilitário deve seguir `docs/adding-tools.md`.
-- Pacote Go público fora de `internal/` exige consumidor externo real e registro em `ADR.md`.
+- Pacote Go público fora de `internal/` exige consumidor externo real e registro no ADR do escopo afetado.
 
 ## 4. Segurança e filesystem
 
@@ -70,7 +75,7 @@ Dependência externa só entra quando torna a implementação comprovadamente ma
 1. provar a lacuna concreta;
 2. avaliar licença/manutenção/transitivas;
 3. preferir dependência pequena e focada;
-4. registrar a decisão em `ADR.md` se afetar arquitetura/plataforma;
+4. registrar a decisão no ADR da suíte ou da CLI afetada;
 5. adicionar teste que cubra a semântica motivadora.
 
 `golang.org/x/sys` é candidato aceitável para primitivas nativas de lock/replace, se necessário. Não adicionar Cobra/Viper apenas por conveniência.

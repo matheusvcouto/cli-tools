@@ -49,7 +49,9 @@ Documentação técnica:
 - [Testes](docs/testing.md)
 - [Plataformas](docs/platforms.md)
 - [Engenharia](docs/engineering.md)
-- [Decisões arquiteturais](ADR.md)
+- [Decisões arquiteturais da suíte](ADR.md)
+- [`ai-profile` ADR](cmd/ai-profile/ADR.md)
+- [`repo-zip` ADR](cmd/repo-zip/ADR.md)
 
 ## Sobre o projeto
 

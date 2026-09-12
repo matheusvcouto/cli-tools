@@ -332,7 +332,7 @@ func TestClaudeRunClearsAuthOverridesAndAddsDefaultContextExcludes(t *testing.T)
 		t.Fatal(err)
 	}
 	s.Env = func() []string {
-		env := []string{"PATH=/synthetic/bin", "KEEP=yes"}
+		env := []string{"PATH=/synthetic/bin", "KEEP=yes", "ANTHROPIC_CONFIG_DIR=/wrong/anthropic"}
 		spec, _ := LookupTool("claude")
 		for _, key := range spec.ClearEnv {
 			env = append(env, key+"=synthetic-override")
@@ -347,6 +347,13 @@ func TestClaudeRunClearsAuthOverridesAndAddsDefaultContextExcludes(t *testing.T)
 	env := envMap(r.env)
 	if env["CLAUDE_CONFIG_DIR"] != p.Dir {
 		t.Fatalf("CLAUDE_CONFIG_DIR mismatch: %q", env["CLAUDE_CONFIG_DIR"])
+	}
+	wantAnthropicConfig := filepath.Join(p.Dir, anthropicConfigDirName)
+	if env["ANTHROPIC_CONFIG_DIR"] != wantAnthropicConfig {
+		t.Fatalf("ANTHROPIC_CONFIG_DIR=%q want %q", env["ANTHROPIC_CONFIG_DIR"], wantAnthropicConfig)
+	}
+	if info, err := os.Lstat(wantAnthropicConfig); err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		t.Fatalf("profile-local Anthropic config directory is unsafe: info=%v err=%v", info, err)
 	}
 	spec, _ := LookupTool("claude")
 	for _, key := range spec.ClearEnv {
@@ -405,6 +412,36 @@ func TestClaudeRunClearsAuthOverridesAndAddsDefaultContextExcludes(t *testing.T)
 	}
 	if string(raw) != before {
 		t.Fatalf("second preparation changed settings:\nfirst=%s\nsecond=%s", before, raw)
+	}
+}
+
+func TestClaudeRunRejectsSymlinkedAnthropicConfigDirectory(t *testing.T) {
+	s, r := testService(t)
+	p, err := s.Create("claude", "work")
+	if err != nil {
+		t.Fatal(err)
+	}
+	outside := t.TempDir()
+	marker := filepath.Join(outside, "marker")
+	if err := os.WriteFile(marker, []byte("unchanged"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(p.Dir, anthropicConfigDirName)); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	if err := s.Run(context.Background(), "claude", "work", nil, ProcessIO{}); err == nil {
+		t.Fatal("expected symlinked Anthropic config directory to be rejected")
+	}
+	if r.calls != 0 {
+		t.Fatal("Claude process ran despite unsafe Anthropic config directory")
+	}
+	raw, err := os.ReadFile(marker)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(raw) != "unchanged" {
+		t.Fatalf("outside marker changed: %q", raw)
 	}
 }
 

@@ -14,6 +14,11 @@ stdlib + capabilities pequenas quando a semântica muda por SO
 
 A suite não possui framework de CLI próprio.
 
+Decisões compartilhadas ficam no [`ADR.md`](../ADR.md). Decisões próprias de
+cada CLI ficam em [`cmd/ai-profile/ADR.md`](../cmd/ai-profile/ADR.md) e
+[`cmd/repo-zip/ADR.md`](../cmd/repo-zip/ADR.md), evitando misturar contratos
+independentes no registro da suíte.
+
 ## Estrutura
 
 ```text

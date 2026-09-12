@@ -7,16 +7,17 @@ Este arquivo registra **o que realmente foi executado**. Cross-build não é tra
 ## Ambiente local
 
 ```text
-GOOS/GOARCH: linux/amd64
-Go: go1.23.2
+GOOS/GOARCH: darwin/arm64
+Go: go1.27.1 (selecionado pelo mise)
 Dependências de módulo externas: nenhuma
 ```
 
-A toolchain oficial do projeto/release é Go 1.27.1. O ambiente local não conseguiu baixar essa toolchain por restrição de rede. Portanto:
-
-- os testes locais exercitam o fallback conservador de `internal/safefs` para Go < 1.25;
-- a implementação `os.Root` selecionada em Go 1.27.1 foi revisada contra a API oficial, mas sua compilação/runtime é gate do CI oficial;
-- isso **não** é representado como evidência local de Go 1.27.1.
+A toolchain oficial do projeto/release, incluindo a implementação `os.Root` de
+`internal/safefs`, foi compilada e exercitada localmente. Todos os comandos Go
+receberam HOME/TMP/XDG/caches e configuração Git sintéticos, com downloads e
+rede do Go desabilitados. No macOS, o PATH de teste apontou diretamente para o
+Apple Git em `/Library/Developer/CommandLineTools/usr/bin`, evitando que o shim
+`/usr/bin/git` misturasse diagnóstico do Xcode à saída de hashes dos testes.
 
 ## Gates locais executados
 
@@ -34,12 +35,12 @@ O E2E incluído em `integration/e2e_unix_test.go` compila e executa os binários
 
 ## Fuzz smoke executado
 
-Sessões limitadas de 5 segundos por alvo passaram sem panic/falha:
+Sessões limitadas de 5 segundos por alvo passaram sem panic/falha nesta revisão:
 
-- `FuzzValidateAlias`: ~233k execuções na revisão mais recente;
-- `FuzzValidateSuffix`: ~454k execuções na revisão mais recente;
-- `FuzzVerifyZipNeverPanics`: ~191k execuções na revisão mais recente;
-- `FuzzParseLegacyNUONNeverPanics`: ~456k execuções na revisão mais recente.
+- `FuzzValidateAlias`: ~135k execuções;
+- `FuzzValidateSuffix`: ~470k execuções;
+- `FuzzVerifyZipNeverPanics`: ~97k execuções;
+- `FuzzParseLegacyNUONNeverPanics`: ~511k execuções.
 
 Os números são apenas evidência daquela execução, não meta de cobertura.
 
@@ -65,7 +66,7 @@ Isso comprova fronteiras de build, **não** suporte de runtime Windows/macOS.
 - `go list -m all` contém somente `github.com/matheusvcouto/cli-tools`;
 - sem `TODO`, `FIXME`, shell intermediário ou secrets reais encontrados na varredura final;
 - workflows YAML parseiam corretamente;
-- `mise.toml` parseia como TOML válido; o executável `mise` não está instalado neste ambiente, então nenhuma instalação foi simulada localmente;
+- `mise.toml` foi aceito pelo `mise`, que selecionou Go 1.27.1; nenhuma instalação de toolchain ou pacote foi feita nesta revisão;
 - `actions/checkout@v7`, `actions/setup-go@v7` e `actions/attest@v4` foram conferidos contra as versões oficiais atuais;
 - API `os.Root` usada por `safefs` foi conferida contra a documentação oficial atual;
 - release e CI descobrem `cmd/*` em vez de manter lista de CLIs distribuídas;
@@ -80,8 +81,9 @@ Isso comprova fronteiras de build, **não** suporte de runtime Windows/macOS.
 - `.repo-zip/` é reservado no archive para impedir colisão entre arquivos do usuário e metadata interna;
 - repositório sem commit recebe erro explícito em `--git`, pois Git não produz bundle restaurável vazio;
 - release publica apenas macOS/Linux; Windows continua compile-only e `repo-zip` falha antes de efeitos colaterais de output.
-- `ai-profile` foi re-auditado contra a documentação atual de Claude Code e o código/documentação atual do Codex: `CLAUDE_CONFIG_DIR`/`CODEX_HOME` continuam sendo os roots corretos; parent-shell auth/provider overrides conhecidos são removidos; Codex não herda mais `~/.codex/AGENTS*`; cwd do projeto é preservado; Claude profiles mantêm seu `CLAUDE.md` próprio e recebem defesa em profundidade contra contexto do `~/.claude` default;
-- E2E do `ai-profile` prova `run` e `acp` para Codex/Claude com profile-global guidance própria, project guidance no cwd, argv/exit status e ausência dos redirects de autenticação testados.
+- `ai-profile` foi re-auditado contra a documentação atual de Claude Code e do Codex: Claude recebe `CLAUDE_CONFIG_DIR` e `ANTHROPIC_CONFIG_DIR`; Codex recebe `CODEX_HOME`; parent-shell auth/provider/workload-identity overrides conhecidos são removidos; Codex não herda `~/.codex/AGENTS*`; cwd do projeto é preservado; Claude profiles mantêm seu `CLAUDE.md` próprio e recebem defesa em profundidade contra contexto do `~/.claude` default;
+- E2E do `ai-profile` prova `run` e `acp` para Codex/Claude com profile-global guidance própria, project guidance no cwd, argv/exit status, roots esperados e ausência dos redirects de autenticação testados;
+- o teste unitário rejeita `.anthropic` como symlink antes do spawn e prova que o alvo externo sintético permanece inalterado.
 
 ## Gates externos ainda abertos
 
@@ -99,10 +101,10 @@ Após a implementação do suporte a worktrees, os testes foram re-auditados par
 
 ### Evidência após hardening do ambiente de testes
 
-- `./scripts/check-safe.sh test`: PASS;
-- `./scripts/check-safe.sh vet`: PASS;
-- `./scripts/check-safe.sh race`: PASS;
-- `./scripts/check-safe.sh fuzz`: PASS, executando fuzzers numa cópia temporária do source;
-- shuffle: três execuções sandboxed com `-shuffle=on -count=1`: PASS. O comando único `-count=3` excede o limite temporal desta sessão por repetir o E2E, não por falha dos testes;
-- cross-build compile-only: PASS novamente para darwin/linux/windows × amd64/arm64 × 2 CLIs;
-- após os testes, não permaneceram diretórios `cli-tools-test.*` nem corpus `testdata/fuzz` no source tree.
+- `go test ./...`: PASS;
+- `go vet ./...`: PASS;
+- `go test -shuffle=on -count=3 ./...`: PASS;
+- `go test -race ./...`: PASS;
+- quatro fuzzers com `-fuzztime=5s`: PASS;
+- cross-build compile-only: PASS para darwin/linux/windows × amd64/arm64 × 2 CLIs;
+- nenhum corpus `testdata/fuzz` foi criado no source tree.

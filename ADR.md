@@ -1,6 +1,10 @@
-# ADR
+# ADR — suíte
 
-Registro curto das decisões arquiteturais vigentes.
+Registro curto das decisões arquiteturais compartilhadas por toda a suíte.
+Decisões específicas de cada CLI ficam próximas ao respectivo entrypoint:
+
+- [`ai-profile`](cmd/ai-profile/ADR.md);
+- [`repo-zip`](cmd/repo-zip/ADR.md).
 
 ## D001 — Monorepo Go, módulo único — Accepted
 
@@ -17,10 +21,6 @@ Preferir stdlib. Dependência externa só entra quando resolve uma lacuna concre
 ## D004 — Testes nunca usam estado real — Accepted
 
 Profiles, HOME, credenciais, executáveis Claude/Codex e repos do usuário são proibidos nos testes. Git real só roda em repo sintético temporário.
-
-## D005 — Git é a fonte de verdade do `repo-zip` — Accepted
-
-Não reimplementar `.gitignore`, index ou status semantics. A CLI usa o `git` instalado com argv/cwd controlados.
 
 ## D006 — Release como suite — Accepted
 
@@ -58,22 +58,6 @@ A migração preserva capacidades, dados e invariantes de segurança. Texto de e
 
 `internal/cliapp` contém apenas IO/erro/exit code comuns. Parsing, command tree e regras permanecem em cada CLI. Não existe framework interno genérico de CLI.
 
-## D015 — `repo-zip` usa `archive/zip` — Accepted
-
-Criação e verificação do ZIP são Go puro. Não depender de `/usr/bin/zip` ou `unzip`. Symlinks são armazenados como links, nunca dereferenciados.
-
 ## D016 — Filesystem confinado compartilhado — Accepted
 
 `internal/safefs` representa a invariante comum “não escapar desta raiz”. Official builds com Go 1.27.1 usam `os.Root`; o fallback para toolchains antigas existe para desenvolvimento/bootstrap, não é a baseline de segurança do artifact oficial.
-
-## D017 — Migração NUON é ferramenta transitória — Accepted
-
-`tools/migrate-ai-profile-index` lê somente o schema legado necessário e nunca invoca Nushell. Não faz parte dos artifacts. Após o cutover real, deve ser arquivado com a migração.
-
-## D018 — `repo-zip --git` usa Git bundle, não `.git` bruto — Accepted
-
-`--git` inclui `.repo-zip/repository.bundle` + metadata mínima. O bundle é produzido e verificado pelo próprio Git, permitindo linked worktrees sem conhecer `$GIT_DIR`/`$GIT_COMMON_DIR` ou copiar internals de `.git`. Hooks, config local e reflogs não fazem parte desse contrato. `.repo-zip/` é namespace reservado do archive.
-
-## D019 — Profiles own their native tool context — Accepted
-
-`ai-profile` selects `CLAUDE_CONFIG_DIR` / `CODEX_HOME` and preserves the caller cwd. It never copies global Codex guidance from the default profile. Tool-specific authentication/provider overrides inherited from the parent shell are removed; project and managed configuration continue to follow the native tool rules.

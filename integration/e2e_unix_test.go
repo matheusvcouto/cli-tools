@@ -19,26 +19,35 @@ import (
 )
 
 type fakeReport struct {
-	Executable         string   `json:"executable"`
-	Args               []string `json:"args"`
-	CodexHome          string   `json:"codex_home"`
-	ClaudeConfigDir    string   `json:"claude_config_dir"`
-	APIKey             string   `json:"api_key"`
-	OpenAIBaseURL      string   `json:"openai_base_url"`
-	CodexAPIKey        string   `json:"codex_api_key"`
-	CodexAccessToken   string   `json:"codex_access_token"`
-	CodexSQLiteHome    string   `json:"codex_sqlite_home"`
-	AnthropicAPIKey    string   `json:"anthropic_api_key"`
-	AnthropicAuthToken string   `json:"anthropic_auth_token"`
-	AnthropicProfile   string   `json:"anthropic_profile"`
-	ClaudeUseBedrock   string   `json:"claude_use_bedrock"`
-	FoundryAuthToken   string   `json:"foundry_auth_token"`
-	AnthropicHeaders   string   `json:"anthropic_custom_headers"`
-	SecureStorageDir   string   `json:"secure_storage_dir"`
-	PluginCacheDir     string   `json:"plugin_cache_dir"`
-	ProfileGuidance    string   `json:"profile_guidance"`
-	ProjectGuidance    string   `json:"project_guidance"`
-	CWD                string   `json:"cwd"`
+	Executable              string   `json:"executable"`
+	Args                    []string `json:"args"`
+	CodexHome               string   `json:"codex_home"`
+	ClaudeConfigDir         string   `json:"claude_config_dir"`
+	APIKey                  string   `json:"api_key"`
+	OpenAIBaseURL           string   `json:"openai_base_url"`
+	CodexAPIKey             string   `json:"codex_api_key"`
+	CodexAccessToken        string   `json:"codex_access_token"`
+	CodexSQLiteHome         string   `json:"codex_sqlite_home"`
+	OpenAIFederation        string   `json:"openai_federation_rule_id"`
+	OpenAIIdentityFile      string   `json:"openai_identity_token_file"`
+	OpenAIIdentityCtx       string   `json:"openai_workload_identity_context"`
+	AnthropicAPIKey         string   `json:"anthropic_api_key"`
+	AnthropicAuthToken      string   `json:"anthropic_auth_token"`
+	AnthropicConfigDir      string   `json:"anthropic_config_dir"`
+	AnthropicActiveProfile  string   `json:"anthropic_active_profile"`
+	AnthropicProfile        string   `json:"anthropic_profile"`
+	AnthropicFederation     string   `json:"anthropic_federation_rule_id"`
+	AnthropicIdentity       string   `json:"anthropic_identity_token"`
+	AnthropicIdentityFile   string   `json:"anthropic_identity_token_file"`
+	AnthropicServiceAccount string   `json:"anthropic_service_account_id"`
+	ClaudeUseBedrock        string   `json:"claude_use_bedrock"`
+	FoundryAuthToken        string   `json:"foundry_auth_token"`
+	AnthropicHeaders        string   `json:"anthropic_custom_headers"`
+	SecureStorageDir        string   `json:"secure_storage_dir"`
+	PluginCacheDir          string   `json:"plugin_cache_dir"`
+	ProfileGuidance         string   `json:"profile_guidance"`
+	ProjectGuidance         string   `json:"project_guidance"`
+	CWD                     string   `json:"cwd"`
 }
 
 func TestCLIEndToEndWithSyntheticState(t *testing.T) {
@@ -60,9 +69,13 @@ func TestCLIEndToEndWithSyntheticState(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(home, ".claude", "rules"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.MkdirAll(filepath.Join(home, ".config", "anthropic"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	write(t, filepath.Join(home, ".codex", "AGENTS.md"), "default codex guidance must not leak")
 	write(t, filepath.Join(home, ".claude", "CLAUDE.md"), "default claude guidance must not leak")
 	write(t, filepath.Join(home, ".claude", "rules", "default.md"), "default rule must not leak")
+	write(t, filepath.Join(home, ".config", "anthropic", "active_config"), "default-anthropic-profile-must-not-leak")
 
 	project := filepath.Join(sandbox, "project")
 	if err := os.MkdirAll(project, 0o755); err != nil {
@@ -74,20 +87,28 @@ func TestCLIEndToEndWithSyntheticState(t *testing.T) {
 	baseEnv = setEnv(baseEnv, "AI_PROFILE_ROOT", profileRoot)
 	baseEnv = setEnv(baseEnv, "PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	for key, value := range map[string]string{
-		"OPENAI_API_KEY":                  "must-not-reach-child",
-		"OPENAI_BASE_URL":                 "https://wrong.invalid",
-		"CODEX_API_KEY":                   "must-not-reach-child",
-		"CODEX_ACCESS_TOKEN":              "must-not-reach-child",
-		"CODEX_SQLITE_HOME":               "/wrong/sqlite",
-		"ANTHROPIC_API_KEY":               "must-not-reach-child",
-		"ANTHROPIC_AUTH_TOKEN":            "must-not-reach-child",
-		"CLAUDE_CODE_OAUTH_TOKEN":         "must-not-reach-child",
-		"ANTHROPIC_PROFILE":               "wrong-profile",
-		"CLAUDE_CODE_USE_BEDROCK":         "1",
-		"ANTHROPIC_FOUNDRY_AUTH_TOKEN":    "must-not-reach-child",
-		"ANTHROPIC_CUSTOM_HEADERS":        "Authorization: Bearer wrong",
-		"CLAUDE_SECURESTORAGE_CONFIG_DIR": "/wrong/secure",
-		"CLAUDE_CODE_PLUGIN_CACHE_DIR":    "/wrong/plugins",
+		"OPENAI_API_KEY":                   "must-not-reach-child",
+		"OPENAI_BASE_URL":                  "https://wrong.invalid",
+		"CODEX_API_KEY":                    "must-not-reach-child",
+		"CODEX_ACCESS_TOKEN":               "must-not-reach-child",
+		"CODEX_SQLITE_HOME":                "/wrong/sqlite",
+		"OPENAI_FEDERATION_RULE_ID":        "wrong-federation",
+		"OPENAI_IDENTITY_TOKEN_FILE":       "/wrong/openai-token",
+		"OPENAI_WORKLOAD_IDENTITY_CONTEXT": `{"source":"wrong"}`,
+		"ANTHROPIC_API_KEY":                "must-not-reach-child",
+		"ANTHROPIC_AUTH_TOKEN":             "must-not-reach-child",
+		"ANTHROPIC_CONFIG_DIR":             "/wrong/anthropic-config",
+		"CLAUDE_CODE_OAUTH_TOKEN":          "must-not-reach-child",
+		"ANTHROPIC_PROFILE":                "wrong-profile",
+		"ANTHROPIC_FEDERATION_RULE_ID":     "wrong-federation",
+		"ANTHROPIC_IDENTITY_TOKEN":         "must-not-reach-child",
+		"ANTHROPIC_IDENTITY_TOKEN_FILE":    "/wrong/anthropic-token",
+		"ANTHROPIC_SERVICE_ACCOUNT_ID":     "wrong-service-account",
+		"CLAUDE_CODE_USE_BEDROCK":          "1",
+		"ANTHROPIC_FOUNDRY_AUTH_TOKEN":     "must-not-reach-child",
+		"ANTHROPIC_CUSTOM_HEADERS":         "Authorization: Bearer wrong",
+		"CLAUDE_SECURESTORAGE_CONFIG_DIR":  "/wrong/secure",
+		"CLAUDE_CODE_PLUGIN_CACHE_DIR":     "/wrong/plugins",
 	} {
 		baseEnv = setEnv(baseEnv, key, value)
 	}
@@ -180,7 +201,7 @@ func assertFakeReport(t *testing.T, tool string, report fakeReport, wantHome, wa
 	}
 	switch tool {
 	case "codex":
-		if report.APIKey != "" || report.OpenAIBaseURL != "" || report.CodexAPIKey != "" || report.CodexAccessToken != "" || report.CodexSQLiteHome != "" {
+		if report.APIKey != "" || report.OpenAIBaseURL != "" || report.CodexAPIKey != "" || report.CodexAccessToken != "" || report.CodexSQLiteHome != "" || report.OpenAIFederation != "" || report.OpenAIIdentityFile != "" || report.OpenAIIdentityCtx != "" {
 			t.Fatalf("Codex authentication override leaked: %#v", report)
 		}
 		if report.CodexHome != wantHome || report.ClaudeConfigDir != "" {
@@ -190,10 +211,10 @@ func assertFakeReport(t *testing.T, tool string, report fakeReport, wantHome, wa
 			t.Fatalf("bad Codex context: %#v", report)
 		}
 	case "claude":
-		if report.AnthropicAPIKey != "" || report.AnthropicAuthToken != "" || report.AnthropicProfile != "" || report.ClaudeUseBedrock != "" || report.FoundryAuthToken != "" || report.AnthropicHeaders != "" || report.SecureStorageDir != "" || report.PluginCacheDir != "" {
+		if report.AnthropicAPIKey != "" || report.AnthropicAuthToken != "" || report.AnthropicProfile != "" || report.AnthropicFederation != "" || report.AnthropicIdentity != "" || report.AnthropicIdentityFile != "" || report.AnthropicServiceAccount != "" || report.ClaudeUseBedrock != "" || report.FoundryAuthToken != "" || report.AnthropicHeaders != "" || report.SecureStorageDir != "" || report.PluginCacheDir != "" {
 			t.Fatalf("Claude authentication/config redirect leaked: %#v", report)
 		}
-		if report.ClaudeConfigDir != wantHome || report.CodexHome != "" {
+		if report.ClaudeConfigDir != wantHome || report.AnthropicConfigDir != filepath.Join(wantHome, ".anthropic") || report.AnthropicActiveProfile != "" || report.CodexHome != "" {
 			t.Fatalf("bad Claude profile env: %#v", report)
 		}
 		if report.ProfileGuidance != "profile claude guidance" || report.ProjectGuidance != "project claude guidance" {
@@ -376,6 +397,7 @@ func main() {
     projectFile = "CLAUDE.md"
   }
   profileGuidance, _ := os.ReadFile(filepath.Join(profileRoot, profileFile))
+	activeAnthropicProfile, _ := os.ReadFile(filepath.Join(os.Getenv("ANTHROPIC_CONFIG_DIR"), "active_config"))
   cwd, _ := os.Getwd()
   projectGuidance, _ := os.ReadFile(filepath.Join(cwd, projectFile))
   _ = json.NewEncoder(os.Stdout).Encode(map[string]any{
@@ -388,9 +410,18 @@ func main() {
     "codex_api_key": os.Getenv("CODEX_API_KEY"),
     "codex_access_token": os.Getenv("CODEX_ACCESS_TOKEN"),
     "codex_sqlite_home": os.Getenv("CODEX_SQLITE_HOME"),
+	"openai_federation_rule_id": os.Getenv("OPENAI_FEDERATION_RULE_ID"),
+	"openai_identity_token_file": os.Getenv("OPENAI_IDENTITY_TOKEN_FILE"),
+	"openai_workload_identity_context": os.Getenv("OPENAI_WORKLOAD_IDENTITY_CONTEXT"),
     "anthropic_api_key": os.Getenv("ANTHROPIC_API_KEY"),
     "anthropic_auth_token": os.Getenv("ANTHROPIC_AUTH_TOKEN"),
+	"anthropic_config_dir": os.Getenv("ANTHROPIC_CONFIG_DIR"),
+	"anthropic_active_profile": string(activeAnthropicProfile),
     "anthropic_profile": os.Getenv("ANTHROPIC_PROFILE"),
+	"anthropic_federation_rule_id": os.Getenv("ANTHROPIC_FEDERATION_RULE_ID"),
+	"anthropic_identity_token": os.Getenv("ANTHROPIC_IDENTITY_TOKEN"),
+	"anthropic_identity_token_file": os.Getenv("ANTHROPIC_IDENTITY_TOKEN_FILE"),
+	"anthropic_service_account_id": os.Getenv("ANTHROPIC_SERVICE_ACCOUNT_ID"),
     "claude_use_bedrock": os.Getenv("CLAUDE_CODE_USE_BEDROCK"),
     "foundry_auth_token": os.Getenv("ANTHROPIC_FOUNDRY_AUTH_TOKEN"),
     "anthropic_custom_headers": os.Getenv("ANTHROPIC_CUSTOM_HEADERS"),

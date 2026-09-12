@@ -10,9 +10,12 @@ For a selected Claude profile, `ai-profile` sets:
 
 ```text
 CLAUDE_CONFIG_DIR=<profile-dir>
+ANTHROPIC_CONFIG_DIR=<profile-dir>/.anthropic
 ```
 
 Claude Code uses this directory for the profile's user-scoped state and credentials. On macOS, Claude Code keys the Keychain entry by `CLAUDE_CONFIG_DIR`, so different profile directories resolve different login entries.
+
+Claude Code also honors Anthropic CLI/SDK profiles, including the active or `default` profile under the Anthropic configuration directory. Pointing `ANTHROPIC_CONFIG_DIR` at a real, profile-local `.anthropic` directory prevents `~/.config/anthropic` from silently supplying a different profile or federation credential.
 
 Profile-global files belong inside the selected profile directory, for example:
 
@@ -20,6 +23,7 @@ Profile-global files belong inside the selected profile directory, for example:
 <profile-dir>/
 ├── CLAUDE.md
 ├── settings.json
+├── .anthropic/
 ├── rules/
 ├── skills/
 └── agents/
@@ -29,7 +33,7 @@ Project context remains native to Claude Code because `ai-profile` preserves the
 
 Claude Code does **not** natively treat `AGENTS.md` as its memory file. To share project instructions with Codex, use a project `CLAUDE.md` containing `@AGENTS.md`, or a symlink when appropriate.
 
-To prevent a selected profile from being silently replaced by parent-shell authentication/routing, `ai-profile` removes Claude-specific login/provider overrides before launch. It intentionally preserves generic project credentials such as `AWS_PROFILE` and Google/Azure environment state: project commands may need them, and a profile that intentionally enables a cloud provider can still use the provider's normal credential chain.
+To prevent a selected profile from being silently replaced by parent-shell authentication/routing, `ai-profile` removes Claude-specific login/provider overrides before launch, including direct API/OAuth credentials and all fixed environment components of Workload Identity Federation. It intentionally preserves generic project credentials such as `AWS_PROFILE` and Google/Azure environment state: project commands may need them, and a profile that intentionally enables a cloud provider can still use the provider's normal credential chain.
 
 As defense in depth, non-default Claude profiles add exclusions for the default `$HOME/.claude/CLAUDE.md`, `$HOME/.claude/CLAUDE.local.md`, and `$HOME/.claude/rules/**` while preserving existing `settings.json` keys. Managed organization policy and project settings still apply; profile isolation is not a bypass for organization/project policy.
 
@@ -55,7 +59,7 @@ or, when no override is needed:
 
 `ai-profile` does not copy or symlink guidance from the default `~/.codex`; each profile owns its own global instructions. Codex continues to discover applicable project `AGENTS.md` files from the project hierarchy because the wrapper preserves the caller's working directory.
 
-Parent-shell authentication/state overrides (`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `CODEX_API_KEY`, `CODEX_ACCESS_TOKEN`, and `CODEX_SQLITE_HOME`) are removed before launch so the selected `CODEX_HOME` remains authoritative.
+Parent-shell authentication/state overrides (`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `CODEX_API_KEY`, `CODEX_ACCESS_TOKEN`, `CODEX_SQLITE_HOME`, and the public `OPENAI_*` workload-identity variables) are removed before launch so the selected `CODEX_HOME` remains authoritative.
 
 ## run and ACP
 
@@ -76,4 +80,4 @@ Arguments after the profile alias are passed literally to the target process.
 
 ## Scope of the guarantee
 
-`ai-profile` isolates the selected tool's user account/configuration home and removes known tool-specific parent-shell overrides. It does not disable project configuration, managed organization policy, or generic cloud credentials used by project tooling. Those remain intentionally visible to the real Claude Code/Codex process according to each tool's own rules.
+`ai-profile` isolates the selected tool's user account/configuration roots and removes known fixed tool-specific parent-shell overrides. It does not disable project configuration, managed organization policy, generic cloud credentials used by project tooling, or a provider credential named explicitly by the selected profile's own `env_key`. Those remain intentionally visible to the real Claude Code/Codex process according to each tool's own rules.

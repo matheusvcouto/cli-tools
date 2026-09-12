@@ -24,7 +24,7 @@ Evidência detalhada da última execução local: [`validation.md`](validation.m
 - [x] aliases/diretórios/created_at preserváveis na migração;
 - [x] rename não move diretório;
 - [x] delete transacional com rollback;
-- [x] env isolation atual para overrides de auth/provider/state de Claude e Codex;
+- [x] env isolation atual para roots e overrides de auth/provider/state/workload identity de Claude e Codex;
 - [x] run/ACP preservam argv e exit em Unix;
 - [x] ACP sem output do wrapper;
 - [x] context isolation atual: Codex profile-native `AGENTS*`, Claude profile-native `CLAUDE.md`/rules + cwd de projeto;
