@@ -372,7 +372,8 @@ func TestNativeShellSyntaxWhereAvailable(t *testing.T) {
 		{name: "nushell", shell: ShellNushell, binary: "nu", args: func(path string) []string { return []string{"-n", path} }},
 		{name: "zsh", shell: ShellZsh, binary: "zsh", args: func(path string) []string { return []string{"-f", "-n", path} }},
 		{name: "powershell", shell: ShellPowerShell, binary: "pwsh", args: func(path string) []string {
-			return []string{"-NoLogo", "-NoProfile", "-NonInteractive", "-Command", `$errors=$null;$tokens=$null;[System.Management.Automation.Language.Parser]::ParseFile($args[0],[ref]$tokens,[ref]$errors)>$null;if($errors.Count -gt 0){$errors | ForEach-Object { Write-Error $_ }; exit 1}`, path}
+			probe := `$errors=$null;$tokens=$null;[System.Management.Automation.Language.Parser]::ParseFile(` + psSingleQuote(path) + `,[ref]$tokens,[ref]$errors)>$null;if($errors.Count -gt 0){$errors | ForEach-Object { Write-Error $_ }; exit 1}`
+			return []string{"-NoLogo", "-NoProfile", "-NonInteractive", "-Command", probe}
 		}},
 	}
 	for _, tc := range cases {

@@ -217,8 +217,8 @@ func TestPowerShellNativeCompletionBehaviorWhereAvailable(t *testing.T) {
 	dir := t.TempDir()
 	installNativeShellFake(t, dir)
 	path := writeNativeShellScript(t, shellFixture(t), ShellPowerShell, dir)
-	probe := `. $args[0]; $r = TabExpansion2 -inputScript 'fixture serve t' -cursorColumn 15; $r.CompletionMatches | ForEach-Object { $_.CompletionText }`
-	cmd := exec.Command(pwsh, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", probe, path)
+	probe := `. ` + psSingleQuote(path) + `; $r = TabExpansion2 -inputScript 'fixture serve t' -cursorColumn 15; $r.CompletionMatches | ForEach-Object { $_.CompletionText }`
+	cmd := exec.Command(pwsh, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", probe)
 	cmd.Env = nativeShellEnv(t, dir)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
