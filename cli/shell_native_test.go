@@ -98,7 +98,11 @@ func writeNativeShellScript(t *testing.T, app *CompiledApp, shell Shell, dir str
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(dir, "completion-"+string(shell)+".txt")
+	extension := ".txt"
+	if shell == ShellPowerShell {
+		extension = ".ps1"
+	}
+	path := filepath.Join(dir, "completion-"+string(shell)+extension)
 	if err := os.WriteFile(path, []byte(script), 0o600); err != nil {
 		t.Fatal(err)
 	}
