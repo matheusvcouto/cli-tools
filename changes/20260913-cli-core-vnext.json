@@ -3,7 +3,7 @@
   "changes": [
     {
       "component": "module",
-      "impact": "minor",
+      "impact": "major",
       "breaking": false,
       "summary": "Introduce the public declarative CLI Core with shared parsing, completion, schema, contracts, diagnostics and runtime infrastructure"
     },
@@ -15,8 +15,9 @@
     },
     {
       "component": "repo-zip",
-      "impact": "minor",
+      "impact": "major",
       "breaking": true,
+      "stability": "stable",
       "summary": "Migrate to CLI Core and reserve --version for product version; use --suffix for archive suffixes"
     },
     {
@@ -33,8 +34,9 @@
     },
     {
       "component": "ai-profile",
-      "impact": "minor",
+      "impact": "major",
       "breaking": true,
+      "stability": "stable",
       "summary": "Expose ACP only when the tool registry declares it and retire apply-statusline from the active ai-profile implementation while preserving the historical Nushell reference"
     }
   ]
