@@ -6,17 +6,19 @@ versões seguem [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-14
+
+### Adicionado
+
+- **ai-profile:** Migrate to CLI Core with generated shell completion and introspection
+- **module:** Add a compatibility lock and external-consumer tests for the reusable public Go CLI API
+- **module:** Harden release preparation with rollback and explicit product stability promotion for v1
+
 ### Alterado
 
-- Os exemplos de instalação por versão agora apontam para a primeira release
-  pública instalável, `0.1.1`.
-
-### Corrigido
-
-- O runner seguro prioriza o Apple Git real no macOS para impedir que
-  diagnósticos do shim do Xcode contaminem execuções herméticas.
-- O helper Git de `repo-zip` separa stdout de stderr antes de interpretar hashes
-  e refs nos testes.
+- **ai-profile:** Expose ACP only when the tool registry declares it and retire apply-statusline from the active ai-profile implementation while preserving the historical Nushell reference
+- **module:** Introduce the public declarative CLI Core with shared parsing, completion, schema, contracts, diagnostics and runtime infrastructure
+- **repo-zip:** Migrate to CLI Core and reserve --version for product version; use --suffix for archive suffixes
 
 ## [0.1.1] - 2026-09-12
 
