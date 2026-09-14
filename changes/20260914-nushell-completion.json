@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "module",
+      "impact": "patch",
+      "breaking": false,
+      "summary": "Fix Nushell completion cursor coordinates and validate the native completion request"
+    },
+    {
+      "component": "ai-profile",
+      "impact": "patch",
+      "breaking": false,
+      "summary": "Fix generated Nushell completions"
+    },
+    {
+      "component": "repo-zip",
+      "impact": "patch",
+      "breaking": false,
+      "summary": "Fix generated Nushell completions"
+    }
+  ]
+}

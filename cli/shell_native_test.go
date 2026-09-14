@@ -30,6 +30,17 @@ func runNativeShellFake(args []string) int {
 	}
 	switch args[1] {
 	case "complete":
+		var request CompletionRequest
+		if err := json.NewDecoder(os.Stdin).Decode(&request); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "decode completion request: %v\\n", err)
+			return 1
+		}
+		if request.Protocol != CompletionProtocol || request.CursorArg < 0 || request.CursorOffset < 0 {
+			return 2
+		}
+		if request.Shell == "nushell" && (len(request.Argv) != 3 || request.Argv[0] != "fixture" || request.Argv[1] != "serve" || request.Argv[2] != "t" || request.CursorArg != 2 || request.CursorOffset != 1) {
+			return 2
+		}
 		_ = json.NewEncoder(os.Stdout).Encode(CompletionResult{
 			Protocol: CompletionProtocol,
 			Candidates: []CompletionCandidate{{
