@@ -6,6 +6,14 @@ versões seguem [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-09-14
+
+### Corrigido
+
+- **ai-profile:** Fix generated Nushell completions
+- **module:** Fix Nushell completion cursor coordinates and validate the native completion request
+- **repo-zip:** Fix generated Nushell completions
+
 ## [1.0.0] - 2026-09-14
 
 ### Adicionado

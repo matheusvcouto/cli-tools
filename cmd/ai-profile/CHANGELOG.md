@@ -9,3 +9,9 @@
 ### Alterado
 
 - **ai-profile:** Expose ACP only when the tool registry declares it and retire apply-statusline from the active ai-profile implementation while preserving the historical Nushell reference
+
+## [1.0.1] - 2026-09-14
+
+### Corrigido
+
+- **ai-profile:** Fix generated Nushell completions
