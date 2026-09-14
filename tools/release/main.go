@@ -27,6 +27,24 @@ type target struct{ GOOS, GOARCH string }
 var defaultTargets = []target{{"darwin", "amd64"}, {"darwin", "arm64"}, {"linux", "amd64"}, {"linux", "arm64"}}
 
 func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "prepare":
+			runPrepareCommand(os.Args[2:])
+			return
+		case "changes":
+			runChangesCommand(os.Args[2:])
+			return
+		case "contracts":
+			runContractsCommand(os.Args[2:])
+			return
+		case "api":
+			runAPICommand(os.Args[2:])
+			return
+		case "build":
+			os.Args = append([]string{os.Args[0]}, os.Args[2:]...)
+		}
+	}
 	var version, outDir, changelogPath, notesOut string
 	flag.StringVar(&version, "version", "", "release version in vX.Y.Z format")
 	flag.StringVar(&outDir, "out", "dist", "output directory")
@@ -285,7 +303,7 @@ func buildTarget(version, outDir, module string, bins []string, t target) error 
 			exe += ".exe"
 		}
 		out := filepath.Join(binDir, exe)
-		args := []string{"build", "-trimpath", "-ldflags", fmt.Sprintf("-s -w -X %s/internal/version.Version=%s", module, version), "-o", out, "./cmd/" + name}
+		args := []string{"build", "-trimpath", "-ldflags", fmt.Sprintf("-s -w -X %s/internal/version.SuiteVersion=%s", module, version), "-o", out, "./cmd/" + name}
 		cmd := exec.Command("go", args...)
 		cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS="+t.GOOS, "GOARCH="+t.GOARCH)
 		cmd.Stdout = os.Stdout

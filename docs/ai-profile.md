@@ -74,10 +74,6 @@ ai-profile codex acp work
 
 Arguments after the profile alias are passed literally to the target process.
 
-## Status line
-
-`apply-statusline` is Claude-only. It merges only the `statusLine` property into that profile's `settings.json` and preserves all other settings.
-
 ## Scope of the guarantee
 
 `ai-profile` isolates the selected tool's user account/configuration roots and removes known fixed tool-specific parent-shell overrides. It does not disable project configuration, managed organization policy, generic cloud credentials used by project tooling, or a provider credential named explicitly by the selected profile's own `env_key`. Those remain intentionally visible to the real Claude Code/Codex process according to each tool's own rules.

@@ -1,0 +1,822 @@
+{
+  "schema_version": 1,
+  "package": "cli",
+  "symbols": [
+    {
+      "id": "const AllOrNone",
+      "declaration": "const AllOrNone ConstraintKind"
+    },
+    {
+      "id": "const ArgOpaque",
+      "declaration": "const ArgOpaque ArgMode"
+    },
+    {
+      "id": "const ArgSingle",
+      "declaration": "const ArgSingle ArgMode"
+    },
+    {
+      "id": "const ArgVariadic",
+      "declaration": "const ArgVariadic ArgMode"
+    },
+    {
+      "id": "const AtLeastOne",
+      "declaration": "const AtLeastOne ConstraintKind"
+    },
+    {
+      "id": "const AvailabilityAvailable",
+      "declaration": "const AvailabilityAvailable Availability"
+    },
+    {
+      "id": "const AvailabilityUnavailable",
+      "declaration": "const AvailabilityUnavailable Availability"
+    },
+    {
+      "id": "const AvailabilityUnknown",
+      "declaration": "const AvailabilityUnknown Availability"
+    },
+    {
+      "id": "const CandidateCommand",
+      "declaration": "const CandidateCommand CandidateKind"
+    },
+    {
+      "id": "const CandidateFlag",
+      "declaration": "const CandidateFlag CandidateKind"
+    },
+    {
+      "id": "const CandidateValue",
+      "declaration": "const CandidateValue CandidateKind"
+    },
+    {
+      "id": "const ChangeAdditive",
+      "declaration": "const ChangeAdditive ChangeSeverity"
+    },
+    {
+      "id": "const ChangeBreaking",
+      "declaration": "const ChangeBreaking ChangeSeverity"
+    },
+    {
+      "id": "const ChangeMetadata",
+      "declaration": "const ChangeMetadata ChangeSeverity"
+    },
+    {
+      "id": "const CodeConstraint",
+      "declaration": "const CodeConstraint DiagnosticCode"
+    },
+    {
+      "id": "const CodeInternal",
+      "declaration": "const CodeInternal DiagnosticCode"
+    },
+    {
+      "id": "const CodeInvalidValue",
+      "declaration": "const CodeInvalidValue DiagnosticCode"
+    },
+    {
+      "id": "const CodeMissingArgument",
+      "declaration": "const CodeMissingArgument DiagnosticCode"
+    },
+    {
+      "id": "const CodeMissingValue",
+      "declaration": "const CodeMissingValue DiagnosticCode"
+    },
+    {
+      "id": "const CodeNonInteractive",
+      "declaration": "const CodeNonInteractive DiagnosticCode"
+    },
+    {
+      "id": "const CodeRequirement",
+      "declaration": "const CodeRequirement DiagnosticCode"
+    },
+    {
+      "id": "const CodeResolution",
+      "declaration": "const CodeResolution DiagnosticCode"
+    },
+    {
+      "id": "const CodeUnavailable",
+      "declaration": "const CodeUnavailable DiagnosticCode"
+    },
+    {
+      "id": "const CodeUnknownCommand",
+      "declaration": "const CodeUnknownCommand DiagnosticCode"
+    },
+    {
+      "id": "const CodeUnknownFlag",
+      "declaration": "const CodeUnknownFlag DiagnosticCode"
+    },
+    {
+      "id": "const CompletionProtocol",
+      "declaration": "const CompletionProtocol"
+    },
+    {
+      "id": "const Conflicts",
+      "declaration": "const Conflicts ConstraintKind"
+    },
+    {
+      "id": "const ContractVersion",
+      "declaration": "const ContractVersion"
+    },
+    {
+      "id": "const DoctorHealthy",
+      "declaration": "const DoctorHealthy DoctorStatus"
+    },
+    {
+      "id": "const DoctorMissing",
+      "declaration": "const DoctorMissing DoctorStatus"
+    },
+    {
+      "id": "const DoctorUnsupported",
+      "declaration": "const DoctorUnsupported DoctorStatus"
+    },
+    {
+      "id": "const DoctorWarning",
+      "declaration": "const DoctorWarning DoctorStatus"
+    },
+    {
+      "id": "const ExactlyOne",
+      "declaration": "const ExactlyOne ConstraintKind"
+    },
+    {
+      "id": "const ExitExecution",
+      "declaration": "const ExitExecution ExitClass"
+    },
+    {
+      "id": "const ExitSuccess",
+      "declaration": "const ExitSuccess ExitClass"
+    },
+    {
+      "id": "const ExitUnavailable",
+      "declaration": "const ExitUnavailable ExitClass"
+    },
+    {
+      "id": "const ExitUsage",
+      "declaration": "const ExitUsage ExitClass"
+    },
+    {
+      "id": "const FlagAppend",
+      "declaration": "const FlagAppend FlagAction"
+    },
+    {
+      "id": "const FlagCount",
+      "declaration": "const FlagCount FlagAction"
+    },
+    {
+      "id": "const FlagSet",
+      "declaration": "const FlagSet FlagAction"
+    },
+    {
+      "id": "const FlagSwitch",
+      "declaration": "const FlagSwitch FlagAction"
+    },
+    {
+      "id": "const HintDirectory",
+      "declaration": "const HintDirectory ValueHint"
+    },
+    {
+      "id": "const HintEmail",
+      "declaration": "const HintEmail ValueHint"
+    },
+    {
+      "id": "const HintEnum",
+      "declaration": "const HintEnum ValueHint"
+    },
+    {
+      "id": "const HintExecutable",
+      "declaration": "const HintExecutable ValueHint"
+    },
+    {
+      "id": "const HintFile",
+      "declaration": "const HintFile ValueHint"
+    },
+    {
+      "id": "const HintHostname",
+      "declaration": "const HintHostname ValueHint"
+    },
+    {
+      "id": "const HintNone",
+      "declaration": "const HintNone ValueHint"
+    },
+    {
+      "id": "const HintPath",
+      "declaration": "const HintPath ValueHint"
+    },
+    {
+      "id": "const HintURL",
+      "declaration": "const HintURL ValueHint"
+    },
+    {
+      "id": "const HintUsername",
+      "declaration": "const HintUsername ValueHint"
+    },
+    {
+      "id": "const MaxCompletionCandidates",
+      "declaration": "const MaxCompletionCandidates"
+    },
+    {
+      "id": "const MaxOccurrences",
+      "declaration": "const MaxOccurrences ConstraintKind"
+    },
+    {
+      "id": "const MinOccurrences",
+      "declaration": "const MinOccurrences ConstraintKind"
+    },
+    {
+      "id": "const OptionsBeforeArgs",
+      "declaration": "const OptionsBeforeArgs OptionPolicy"
+    },
+    {
+      "id": "const OptionsInterspersed",
+      "declaration": "const OptionsInterspersed OptionPolicy"
+    },
+    {
+      "id": "const OutputHuman",
+      "declaration": "const OutputHuman OutputFormat"
+    },
+    {
+      "id": "const OutputJSON",
+      "declaration": "const OutputJSON OutputFormat"
+    },
+    {
+      "id": "const OutputNDJSON",
+      "declaration": "const OutputNDJSON OutputFormat"
+    },
+    {
+      "id": "const OutputRaw",
+      "declaration": "const OutputRaw OutputFormat"
+    },
+    {
+      "id": "const Requires",
+      "declaration": "const Requires ConstraintKind"
+    },
+    {
+      "id": "const ReservedNamespace",
+      "declaration": "const ReservedNamespace"
+    },
+    {
+      "id": "const SchemaVersion",
+      "declaration": "const SchemaVersion"
+    },
+    {
+      "id": "const ShellBash",
+      "declaration": "const ShellBash Shell"
+    },
+    {
+      "id": "const ShellFish",
+      "declaration": "const ShellFish Shell"
+    },
+    {
+      "id": "const ShellNushell",
+      "declaration": "const ShellNushell Shell"
+    },
+    {
+      "id": "const ShellPowerShell",
+      "declaration": "const ShellPowerShell Shell"
+    },
+    {
+      "id": "const ShellZsh",
+      "declaration": "const ShellZsh Shell"
+    },
+    {
+      "id": "const SourceCLI",
+      "declaration": "const SourceCLI ValueSource"
+    },
+    {
+      "id": "const SourceDefault",
+      "declaration": "const SourceDefault ValueSource"
+    },
+    {
+      "id": "const SourceEnv",
+      "declaration": "const SourceEnv ValueSource"
+    },
+    {
+      "id": "const SourceProjectConfig",
+      "declaration": "const SourceProjectConfig ValueSource"
+    },
+    {
+      "id": "const SourceProvider",
+      "declaration": "const SourceProvider ValueSource"
+    },
+    {
+      "id": "const SourceUserConfig",
+      "declaration": "const SourceUserConfig ValueSource"
+    },
+    {
+      "id": "const ValuePredicate",
+      "declaration": "const ValuePredicate ConstraintKind"
+    },
+    {
+      "id": "func BoolValue",
+      "declaration": "func BoolValue() Value"
+    },
+    {
+      "id": "func Compile",
+      "declaration": "func Compile(App) (*CompiledApp, error)"
+    },
+    {
+      "id": "func CompletionValueAs",
+      "declaration": "func CompletionValueAs[T any](CompleteContext, string) (T, bool)"
+    },
+    {
+      "id": "func CompletionValuesAs",
+      "declaration": "func CompletionValuesAs[T any](CompleteContext, string) ([]T, bool)"
+    },
+    {
+      "id": "func ConstraintValueAs",
+      "declaration": "func ConstraintValueAs[T any](ConstraintValues, string) (T, bool)"
+    },
+    {
+      "id": "func DiffContracts",
+      "declaration": "func DiffContracts(Contract, Contract) []ContractChange"
+    },
+    {
+      "id": "func DirectoryValue",
+      "declaration": "func DirectoryValue() Value"
+    },
+    {
+      "id": "func DurationValue",
+      "declaration": "func DurationValue() Value"
+    },
+    {
+      "id": "func EmailValue",
+      "declaration": "func EmailValue() Value"
+    },
+    {
+      "id": "func EnumValue",
+      "declaration": "func EnumValue(...Choice) Value"
+    },
+    {
+      "id": "func EnvProvider",
+      "declaration": "func EnvProvider(string) ResolutionProvider"
+    },
+    {
+      "id": "func ExecutableValue",
+      "declaration": "func ExecutableValue() Value"
+    },
+    {
+      "id": "func ExitCode",
+      "declaration": "func ExitCode(error) int"
+    },
+    {
+      "id": "func FileValue",
+      "declaration": "func FileValue() Value"
+    },
+    {
+      "id": "func FloatValue",
+      "declaration": "func FloatValue() Value"
+    },
+    {
+      "id": "func HostnameValue",
+      "declaration": "func HostnameValue() Value"
+    },
+    {
+      "id": "func IntValue",
+      "declaration": "func IntValue() Value"
+    },
+    {
+      "id": "func IsBrokenPipe",
+      "declaration": "func IsBrokenPipe(error) bool"
+    },
+    {
+      "id": "func NewLazy",
+      "declaration": "func NewLazy[T any](func() (T, error)) *Lazy[T]"
+    },
+    {
+      "id": "func PathValue",
+      "declaration": "func PathValue() Value"
+    },
+    {
+      "id": "func RenderDiagnostic",
+      "declaration": "func RenderDiagnostic(io.Writer, error)"
+    },
+    {
+      "id": "func RenderDiagnosticJSON",
+      "declaration": "func RenderDiagnosticJSON(io.Writer, error) error"
+    },
+    {
+      "id": "func Sensitive",
+      "declaration": "func Sensitive(Value) Value"
+    },
+    {
+      "id": "func ShellCapabilities",
+      "declaration": "func ShellCapabilities(Shell) (AdapterCapabilities, error)"
+    },
+    {
+      "id": "func SignalContext",
+      "declaration": "func SignalContext(context.Context) (context.Context, context.CancelFunc)"
+    },
+    {
+      "id": "func StringValue",
+      "declaration": "func StringValue() Value"
+    },
+    {
+      "id": "func SupportedShells",
+      "declaration": "func SupportedShells() []Shell"
+    },
+    {
+      "id": "func TerminalFromFiles",
+      "declaration": "func TerminalFromFiles(*os.File, *os.File, *os.File) Terminal"
+    },
+    {
+      "id": "func TypedValue",
+      "declaration": "func TypedValue[T any](Codec[T]) Value"
+    },
+    {
+      "id": "func URLValue",
+      "declaration": "func URLValue() Value"
+    },
+    {
+      "id": "func UintValue",
+      "declaration": "func UintValue() Value"
+    },
+    {
+      "id": "func UsernameValue",
+      "declaration": "func UsernameValue() Value"
+    },
+    {
+      "id": "func ValueAs",
+      "declaration": "func ValueAs[T any](*Invocation, string) (T, bool)"
+    },
+    {
+      "id": "func ValuesAs",
+      "declaration": "func ValuesAs[T any](*Invocation, string) ([]T, bool)"
+    },
+    {
+      "id": "method CodecFuncs.Choices",
+      "declaration": "func (CodecFuncs[T]) Choices() []Choice"
+    },
+    {
+      "id": "method CodecFuncs.Format",
+      "declaration": "func (CodecFuncs[T]) Format(T) string"
+    },
+    {
+      "id": "method CodecFuncs.Hint",
+      "declaration": "func (CodecFuncs[T]) Hint() ValueHint"
+    },
+    {
+      "id": "method CodecFuncs.Parse",
+      "declaration": "func (CodecFuncs[T]) Parse(string) (T, error)"
+    },
+    {
+      "id": "method CodecFuncs.TypeName",
+      "declaration": "func (CodecFuncs[T]) TypeName() string"
+    },
+    {
+      "id": "method CompiledApp.Complete",
+      "declaration": "func (*CompiledApp) Complete(context.Context, CompletionRequest) (CompletionResult, error)"
+    },
+    {
+      "id": "method CompiledApp.CompletionScript",
+      "declaration": "func (*CompiledApp) CompletionScript(Shell) (string, error)"
+    },
+    {
+      "id": "method CompiledApp.Contract",
+      "declaration": "func (*CompiledApp) Contract() Contract"
+    },
+    {
+      "id": "method CompiledApp.ContractJSON",
+      "declaration": "func (*CompiledApp) ContractJSON() ([]byte, error)"
+    },
+    {
+      "id": "method CompiledApp.Help",
+      "declaration": "func (*CompiledApp) Help(...string) string"
+    },
+    {
+      "id": "method CompiledApp.ManPage",
+      "declaration": "func (*CompiledApp) ManPage(int) string"
+    },
+    {
+      "id": "method CompiledApp.MarkdownReference",
+      "declaration": "func (*CompiledApp) MarkdownReference() string"
+    },
+    {
+      "id": "method CompiledApp.Run",
+      "declaration": "func (*CompiledApp) Run(context.Context, []string, IO) error"
+    },
+    {
+      "id": "method CompiledApp.Schema",
+      "declaration": "func (*CompiledApp) Schema() Schema"
+    },
+    {
+      "id": "method CompiledApp.SchemaJSON",
+      "declaration": "func (*CompiledApp) SchemaJSON() ([]byte, error)"
+    },
+    {
+      "id": "method CompiledApp.VersionInfo",
+      "declaration": "func (*CompiledApp) VersionInfo() VersionInfo"
+    },
+    {
+      "id": "method ConstraintValues.Present",
+      "declaration": "func (ConstraintValues) Present(string) bool"
+    },
+    {
+      "id": "method ConstraintValues.Values",
+      "declaration": "func (ConstraintValues) Values(string) []any"
+    },
+    {
+      "id": "method Diagnostic.Error",
+      "declaration": "func (*Diagnostic) Error() string"
+    },
+    {
+      "id": "method Diagnostic.ExitCode",
+      "declaration": "func (*Diagnostic) ExitCode() int"
+    },
+    {
+      "id": "method Diagnostic.Unwrap",
+      "declaration": "func (*Diagnostic) Unwrap() error"
+    },
+    {
+      "id": "method Invocation.Capability",
+      "declaration": "func (*Invocation) Capability(CapabilityID) (Capability, bool)"
+    },
+    {
+      "id": "method Invocation.Present",
+      "declaration": "func (*Invocation) Present(string) bool"
+    },
+    {
+      "id": "method Invocation.Values",
+      "declaration": "func (*Invocation) Values(string) []ResolvedValue"
+    },
+    {
+      "id": "method Lazy.Get",
+      "declaration": "func (*Lazy[T]) Get() (T, error)"
+    },
+    {
+      "id": "method ModuleFunc.Apply",
+      "declaration": "func (ModuleFunc) Apply(*App) error"
+    },
+    {
+      "id": "method TextInteraction.Confirm",
+      "declaration": "func (TextInteraction) Confirm(context.Context, Prompt) (bool, error)"
+    },
+    {
+      "id": "method TextInteraction.Secret",
+      "declaration": "func (TextInteraction) Secret(context.Context, Prompt) (string, error)"
+    },
+    {
+      "id": "method TextInteraction.Text",
+      "declaration": "func (TextInteraction) Text(context.Context, Prompt) (string, error)"
+    },
+    {
+      "id": "type AdapterCapabilities",
+      "declaration": "type AdapterCapabilities struct {\n\tDescriptions\tbool\t`json:\"descriptions\"`\n\tStaticMetadata\tbool\t`json:\"static_metadata\"`\n\tFileDirectives\tbool\t`json:\"file_directives\"`\n\tTypedSignatures\tbool\t`json:\"typed_signatures\"`\n\tDynamicProtocol\tbool\t`json:\"dynamic_protocol\"`\n}"
+    },
+    {
+      "id": "type App",
+      "declaration": "type App struct {\n\tID\t\tstring\n\tName\t\tstring\n\tSummary\t\tstring\n\tDescription\tstring\n\tProduct\t\tProductMetadata\n\tRoot\t\tCommand\n\tModules\t\t[]Module\n\tBuiltins\tBuiltins\n\tMiddleware\t[]Middleware\n\tCapabilities\t[]Capability\n\tInteraction\tInteraction\n\tDoctorChecks\t[]DoctorCheck\n}"
+    },
+    {
+      "id": "type Arg",
+      "declaration": "type Arg struct {\n\tID\t\tstring\n\tName\t\tstring\n\tSummary\t\tstring\n\tValue\t\tValue\n\tRequired\tbool\n\tMode\t\tArgMode\n\tMin\t\tint\n\tMax\t\tint\n\tCompleter\tCompleter\n\tHidden\t\tbool\n\tSensitive\tbool\n}"
+    },
+    {
+      "id": "type ArgMode",
+      "declaration": "type ArgMode uint8"
+    },
+    {
+      "id": "type Availability",
+      "declaration": "type Availability uint8"
+    },
+    {
+      "id": "type Builtins",
+      "declaration": "type Builtins struct {\n\tHelp\t\tbool\n\tVersion\t\tbool\n\tCompletion\tbool\n\tSchema\t\tbool\n\tDoctor\t\tbool\n}"
+    },
+    {
+      "id": "type CandidateKind",
+      "declaration": "type CandidateKind string"
+    },
+    {
+      "id": "type Capability",
+      "declaration": "type Capability struct {\n\tID\t\tCapabilityID\n\tSummary\t\tstring\n\tAvailability\tAvailability\n}"
+    },
+    {
+      "id": "type CapabilityID",
+      "declaration": "type CapabilityID string"
+    },
+    {
+      "id": "type ChangeSeverity",
+      "declaration": "type ChangeSeverity string"
+    },
+    {
+      "id": "type Choice",
+      "declaration": "type Choice struct {\n\tValue\t\tstring\n\tDescription\tstring\n}"
+    },
+    {
+      "id": "type Codec",
+      "declaration": "type Codec[T any] interface {\n\tParse(string) (T, error)\n\tFormat(T) string\n\tTypeName() string\n\tHint() ValueHint\n\tChoices() []Choice\n}"
+    },
+    {
+      "id": "type CodecFuncs",
+      "declaration": "type CodecFuncs[T any] struct {\n\tParseFunc\tfunc(string) (T, error)\n\tFormatFunc\tfunc(T) string\n\tName\t\tstring\n\tValueHint\tValueHint\n\tStaticChoices\t[]Choice\n}"
+    },
+    {
+      "id": "type Command",
+      "declaration": "type Command struct {\n\tID\t\tstring\n\tName\t\tstring\n\tAliases\t\t[]string\n\tSummary\t\tstring\n\tDescription\tstring\n\tExamples\t[]string\n\tArgs\t\t[]Arg\n\tFlags\t\t[]Flag\n\tCommands\t[]Command\n\tConstraints\t[]Constraint\n\tRequirements\t[]Requirement\n\tCapabilities\t[]CapabilityID\n\tOutputs\t\t[]OutputFormat\n\tOptionPolicy\tOptionPolicy\n\tHandler\t\tHandler\n\tHidden\t\tbool\n\tExperimental\tbool\n\tDeprecated\t*Deprecation\n}"
+    },
+    {
+      "id": "type CompiledApp",
+      "declaration": "type CompiledApp struct {\n}"
+    },
+    {
+      "id": "type CompleteContext",
+      "declaration": "type CompleteContext struct {\n\tCommandID\tstring\n\tArgID\t\tstring\n\tFlagID\t\tstring\n\tPrefix\t\tstring\n}"
+    },
+    {
+      "id": "type Completer",
+      "declaration": "type Completer func(context.Context, CompleteContext) ([]CompletionCandidate, error)"
+    },
+    {
+      "id": "type CompletionCandidate",
+      "declaration": "type CompletionCandidate struct {\n\tValue\t\tstring\t\t`json:\"value\"`\n\tLabel\t\tstring\t\t`json:\"label,omitempty\"`\n\tDescription\tstring\t\t`json:\"description,omitempty\"`\n\tKind\t\tCandidateKind\t`json:\"kind,omitempty\"`\n\tGroup\t\tstring\t\t`json:\"group,omitempty\"`\n\tID\t\tstring\t\t`json:\"id,omitempty\"`\n}"
+    },
+    {
+      "id": "type CompletionDirective",
+      "declaration": "type CompletionDirective struct {\n\tFiles\t\tbool\t`json:\"files,omitempty\"`\n\tDirectories\tbool\t`json:\"directories,omitempty\"`\n\tExecutables\tbool\t`json:\"executables,omitempty\"`\n\tNoSpace\t\tbool\t`json:\"no_space,omitempty\"`\n\tKeepOrder\tbool\t`json:\"keep_order,omitempty\"`\n}"
+    },
+    {
+      "id": "type CompletionRequest",
+      "declaration": "type CompletionRequest struct {\n\tProtocol\tint\t\t`json:\"protocol\"`\n\tArgv\t\t[]string\t`json:\"argv\"`\n\tCursorArg\tint\t\t`json:\"cursor_arg\"`\n\tCursorOffset\tint\t\t`json:\"cursor_offset\"`\n\tShell\t\tstring\t\t`json:\"shell,omitempty\"`\n}"
+    },
+    {
+      "id": "type CompletionResult",
+      "declaration": "type CompletionResult struct {\n\tProtocol\tint\t\t\t`json:\"protocol\"`\n\tCandidates\t[]CompletionCandidate\t`json:\"candidates\"`\n\tDirective\tCompletionDirective\t`json:\"directive\"`\n}"
+    },
+    {
+      "id": "type Constraint",
+      "declaration": "type Constraint struct {\n\tKind\t\tConstraintKind\n\tIDs\t\t[]string\n\tMessage\t\tstring\n\tMin\t\tint\n\tMax\t\tint\n\tPredicateID\tstring\n\tValidate\tfunc(ConstraintValues) error\n}"
+    },
+    {
+      "id": "type ConstraintKind",
+      "declaration": "type ConstraintKind string"
+    },
+    {
+      "id": "type ConstraintValues",
+      "declaration": "type ConstraintValues struct {\n}"
+    },
+    {
+      "id": "type Contract",
+      "declaration": "type Contract struct {\n\tVersion\t\t\tint\t\t`json:\"contract_version\"`\n\tSchemaVersion\t\tint\t\t`json:\"schema_version\"`\n\tCompletionProtocol\tint\t\t`json:\"completion_protocol\"`\n\tAppID\t\t\tstring\t\t`json:\"app_id\"`\n\tName\t\t\tstring\t\t`json:\"name\"`\n\tRoot\t\t\tSchemaCommand\t`json:\"root\"`\n}"
+    },
+    {
+      "id": "type ContractChange",
+      "declaration": "type ContractChange struct {\n\tSeverity\tChangeSeverity\t`json:\"severity\"`\n\tID\t\tstring\t\t`json:\"id\"`\n\tMessage\t\tstring\t\t`json:\"message\"`\n}"
+    },
+    {
+      "id": "type Deprecation",
+      "declaration": "type Deprecation struct {\n\tMessage\t\tstring\n\tReplacementID\tstring\n\tRemovalVersion\tstring\n}"
+    },
+    {
+      "id": "type Diagnostic",
+      "declaration": "type Diagnostic struct {\n\tCode\t\tDiagnosticCode\t`json:\"code\"`\n\tKind\t\tstring\t\t`json:\"kind,omitempty\"`\n\tMessage\t\tstring\t\t`json:\"message\"`\n\tHint\t\tstring\t\t`json:\"hint,omitempty\"`\n\tCommandPath\t[]string\t`json:\"command_path,omitempty\"`\n\tRelatedID\tstring\t\t`json:\"related_id,omitempty\"`\n\tClass\t\tExitClass\t`json:\"-\"`\n\tCause\t\terror\t\t`json:\"-\"`\n\tSensitive\tbool\t\t`json:\"-\"`\n}"
+    },
+    {
+      "id": "type DiagnosticCode",
+      "declaration": "type DiagnosticCode string"
+    },
+    {
+      "id": "type DoctorCheck",
+      "declaration": "type DoctorCheck struct {\n\tID\tstring\n\tSummary\tstring\n\tCheck\tfunc(context.Context) DoctorResult\n}"
+    },
+    {
+      "id": "type DoctorResult",
+      "declaration": "type DoctorResult struct {\n\tStatus\tDoctorStatus\t`json:\"status\"`\n\tMessage\tstring\t\t`json:\"message,omitempty\"`\n}"
+    },
+    {
+      "id": "type DoctorStatus",
+      "declaration": "type DoctorStatus string"
+    },
+    {
+      "id": "type ExitClass",
+      "declaration": "type ExitClass int"
+    },
+    {
+      "id": "type Flag",
+      "declaration": "type Flag struct {\n\tID\t\tstring\n\tLong\t\tstring\n\tShort\t\trune\n\tAliases\t\t[]string\n\tSummary\t\tstring\n\tValue\t\tValue\n\tAction\t\tFlagAction\n\tGlobal\t\tbool\n\tRequired\tbool\n\tDefault\t\t[]string\n\tProviders\t[]ResolutionProvider\n\tCompleter\tCompleter\n\tHidden\t\tbool\n\tSensitive\tbool\n\tDeprecated\t*Deprecation\n}"
+    },
+    {
+      "id": "type FlagAction",
+      "declaration": "type FlagAction uint8"
+    },
+    {
+      "id": "type Handler",
+      "declaration": "type Handler func(*Invocation) error"
+    },
+    {
+      "id": "type IO",
+      "declaration": "type IO struct {\n\tIn\t\tio.Reader\n\tOut\t\tio.Writer\n\tErr\t\tio.Writer\n\tTerminal\tTerminal\n}"
+    },
+    {
+      "id": "type Interaction",
+      "declaration": "type Interaction interface {\n\tConfirm(context.Context, Prompt) (bool, error)\n\tText(context.Context, Prompt) (string, error)\n\tSecret(context.Context, Prompt) (string, error)\n}"
+    },
+    {
+      "id": "type Invocation",
+      "declaration": "type Invocation struct {\n\tContext\t\tcontext.Context\n\tIO\t\tIO\n\tCommandID\tstring\n\tCommandPath\t[]string\n\tTerminal\tTerminal\n\tInteraction\tInteraction\n}"
+    },
+    {
+      "id": "type Lazy",
+      "declaration": "type Lazy[T any] struct {\n}"
+    },
+    {
+      "id": "type Middleware",
+      "declaration": "type Middleware func(Handler) Handler"
+    },
+    {
+      "id": "type Module",
+      "declaration": "type Module interface{ Apply(*App) error }"
+    },
+    {
+      "id": "type ModuleFunc",
+      "declaration": "type ModuleFunc func(*App) error"
+    },
+    {
+      "id": "type OptionPolicy",
+      "declaration": "type OptionPolicy string"
+    },
+    {
+      "id": "type OutputFormat",
+      "declaration": "type OutputFormat string"
+    },
+    {
+      "id": "type ProductMetadata",
+      "declaration": "type ProductMetadata struct {\n\tVersion\t\tstring\n\tStability\tstring\n\tSuiteVersion\tstring\n}"
+    },
+    {
+      "id": "type Prompt",
+      "declaration": "type Prompt struct {\n\tMessage\t\tstring\n\tDefault\t\tstring\n\tDangerous\tbool\n}"
+    },
+    {
+      "id": "type Requirement",
+      "declaration": "type Requirement struct {\n\tID\tstring\n\tSummary\tstring\n\tCheck\tfunc(context.Context) error\n}"
+    },
+    {
+      "id": "type ResolutionProvider",
+      "declaration": "type ResolutionProvider struct {\n\tSource\tValueSource\n\tName\tstring\n\tResolve\tfunc(context.Context) (values []string, found bool, err error)\n}"
+    },
+    {
+      "id": "type ResolvedValue",
+      "declaration": "type ResolvedValue struct {\n\tValue\t\tany\n\tSource\t\tValueSource\n\tSourceName\tstring\n}"
+    },
+    {
+      "id": "type Schema",
+      "declaration": "type Schema struct {\n\tVersion\t\tint\t\t`json:\"schema_version\"`\n\tAppID\t\tstring\t\t`json:\"app_id\"`\n\tName\t\tstring\t\t`json:\"name\"`\n\tProductVersion\tstring\t\t`json:\"product_version,omitempty\"`\n\tRoot\t\tSchemaCommand\t`json:\"root\"`\n}"
+    },
+    {
+      "id": "type SchemaArg",
+      "declaration": "type SchemaArg struct {\n\tID\t\tstring\t\t`json:\"id\"`\n\tName\t\tstring\t\t`json:\"name\"`\n\tSummary\t\tstring\t\t`json:\"summary,omitempty\"`\n\tType\t\tstring\t\t`json:\"type\"`\n\tHint\t\tstring\t\t`json:\"hint,omitempty\"`\n\tRequired\tbool\t\t`json:\"required,omitempty\"`\n\tMode\t\tstring\t\t`json:\"mode,omitempty\"`\n\tMin\t\tint\t\t`json:\"min,omitempty\"`\n\tMax\t\tint\t\t`json:\"max,omitempty\"`\n\tChoices\t\t[]Choice\t`json:\"choices,omitempty\"`\n\tHidden\t\tbool\t\t`json:\"hidden,omitempty\"`\n\tSensitive\tbool\t\t`json:\"sensitive,omitempty\"`\n}"
+    },
+    {
+      "id": "type SchemaCommand",
+      "declaration": "type SchemaCommand struct {\n\tID\t\tstring\t\t\t`json:\"id\"`\n\tName\t\tstring\t\t\t`json:\"name\"`\n\tAliases\t\t[]string\t\t`json:\"aliases,omitempty\"`\n\tSummary\t\tstring\t\t\t`json:\"summary,omitempty\"`\n\tDescription\tstring\t\t\t`json:\"description,omitempty\"`\n\tExamples\t[]string\t\t`json:\"examples,omitempty\"`\n\tArgs\t\t[]SchemaArg\t\t`json:\"args,omitempty\"`\n\tFlags\t\t[]SchemaFlag\t\t`json:\"flags,omitempty\"`\n\tConstraints\t[]SchemaConstraint\t`json:\"constraints,omitempty\"`\n\tRequirements\t[]SchemaRequirement\t`json:\"requirements,omitempty\"`\n\tCapabilities\t[]string\t\t`json:\"capabilities,omitempty\"`\n\tOutputs\t\t[]string\t\t`json:\"outputs,omitempty\"`\n\tOptionPolicy\tstring\t\t\t`json:\"option_policy\"`\n\tCommands\t[]SchemaCommand\t\t`json:\"commands,omitempty\"`\n\tHidden\t\tbool\t\t\t`json:\"hidden,omitempty\"`\n\tExperimental\tbool\t\t\t`json:\"experimental,omitempty\"`\n\tDeprecated\t*SchemaDeprecation\t`json:\"deprecated,omitempty\"`\n}"
+    },
+    {
+      "id": "type SchemaConstraint",
+      "declaration": "type SchemaConstraint struct {\n\tKind\t\tstring\t\t`json:\"kind\"`\n\tIDs\t\t[]string\t`json:\"ids\"`\n\tMessage\t\tstring\t\t`json:\"message,omitempty\"`\n\tMin\t\tint\t\t`json:\"min,omitempty\"`\n\tMax\t\tint\t\t`json:\"max,omitempty\"`\n\tPredicateID\tstring\t\t`json:\"predicate_id,omitempty\"`\n}"
+    },
+    {
+      "id": "type SchemaDeprecation",
+      "declaration": "type SchemaDeprecation struct {\n\tMessage\t\tstring\t`json:\"message,omitempty\"`\n\tReplacementID\tstring\t`json:\"replacement_id,omitempty\"`\n\tRemovalVersion\tstring\t`json:\"removal_version,omitempty\"`\n}"
+    },
+    {
+      "id": "type SchemaFlag",
+      "declaration": "type SchemaFlag struct {\n\tID\t\tstring\t\t\t`json:\"id\"`\n\tLong\t\tstring\t\t\t`json:\"long\"`\n\tSummary\t\tstring\t\t\t`json:\"summary,omitempty\"`\n\tShort\t\tstring\t\t\t`json:\"short,omitempty\"`\n\tAliases\t\t[]string\t\t`json:\"aliases,omitempty\"`\n\tType\t\tstring\t\t\t`json:\"type\"`\n\tHint\t\tstring\t\t\t`json:\"hint,omitempty\"`\n\tAction\t\tstring\t\t\t`json:\"action,omitempty\"`\n\tGlobal\t\tbool\t\t\t`json:\"global,omitempty\"`\n\tRequired\tbool\t\t\t`json:\"required,omitempty\"`\n\tDefaults\t[]string\t\t`json:\"defaults,omitempty\"`\n\tSources\t\t[]SchemaValueSource\t`json:\"sources,omitempty\"`\n\tChoices\t\t[]Choice\t\t`json:\"choices,omitempty\"`\n\tHidden\t\tbool\t\t\t`json:\"hidden,omitempty\"`\n\tSensitive\tbool\t\t\t`json:\"sensitive,omitempty\"`\n\tDeprecated\t*SchemaDeprecation\t`json:\"deprecated,omitempty\"`\n}"
+    },
+    {
+      "id": "type SchemaRequirement",
+      "declaration": "type SchemaRequirement struct {\n\tID\tstring\t`json:\"id\"`\n\tSummary\tstring\t`json:\"summary,omitempty\"`\n}"
+    },
+    {
+      "id": "type SchemaValueSource",
+      "declaration": "type SchemaValueSource struct {\n\tSource\tstring\t`json:\"source\"`\n\tName\tstring\t`json:\"name\"`\n}"
+    },
+    {
+      "id": "type Shell",
+      "declaration": "type Shell string"
+    },
+    {
+      "id": "type ShellAdapter",
+      "declaration": "type ShellAdapter interface {\n\tShell() Shell\n\tCapabilities() AdapterCapabilities\n\tGenerate(Schema) (string, error)\n}"
+    },
+    {
+      "id": "type Terminal",
+      "declaration": "type Terminal struct {\n\tStdinTTY\tbool\n\tStdoutTTY\tbool\n\tStderrTTY\tbool\n\tWidth\t\tint\n\tColor\t\tbool\n}"
+    },
+    {
+      "id": "type TextInteraction",
+      "declaration": "type TextInteraction struct {\n\tIn\t\tio.Reader\n\tOut\t\tio.Writer\n\tInteractive\tbool\n\tSecretReader\tfunc(context.Context, Prompt) (string, error)\n}"
+    },
+    {
+      "id": "type Value",
+      "declaration": "type Value interface {\n\tparse(string) (any, error)\n\tformat(any) string\n\ttypeName() string\n\thint() ValueHint\n\tchoices() []Choice\n\tsensitive() bool\n}"
+    },
+    {
+      "id": "type ValueHint",
+      "declaration": "type ValueHint string"
+    },
+    {
+      "id": "type ValueSource",
+      "declaration": "type ValueSource string"
+    },
+    {
+      "id": "type VersionInfo",
+      "declaration": "type VersionInfo struct {\n\tTool\t\t\tstring\t`json:\"tool\"`\n\tVersion\t\t\tstring\t`json:\"version\"`\n\tStability\t\tstring\t`json:\"stability,omitempty\"`\n\tSuiteVersion\t\tstring\t`json:\"suite_version,omitempty\"`\n\tRevision\t\tstring\t`json:\"revision,omitempty\"`\n\tVCSModified\t\tbool\t`json:\"vcs_modified,omitempty\"`\n\tGoVersion\t\tstring\t`json:\"go_version\"`\n\tOS\t\t\tstring\t`json:\"os\"`\n\tArch\t\t\tstring\t`json:\"arch\"`\n\tSchemaVersion\t\tint\t`json:\"cli_schema_version\"`\n\tCompletionProtocol\tint\t`json:\"completion_protocol\"`\n}"
+    }
+  ]
+}

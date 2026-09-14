@@ -6,92 +6,78 @@
 2. simplicidade antes de abstração;
 3. segurança antes de “zero dependências”;
 4. comportamento observável antes de equivalência presumida;
-5. mudanças pequenas, testáveis e rastreáveis.
+5. uma fonte de verdade para contratos derivados.
+
+## CLI Core
+
+A superfície de uma CLI é uma `cli.App` declarativa compilada uma vez. É proibido manter árvores paralelas de parser/help/completion/docs.
+
+- stable IDs representam identidade; nomes/aliases representam sintaxe;
+- compiler rejeita Spec inválida antes do runtime;
+- nomes/aliases de comandos e flags são tokens seguros para adapters: letras/dígitos Unicode mais `-`, `_` e `.`; metacaracteres de shell são rejeitados no compile;
+- `ArgMode`/`FlagAction` desconhecidos, aliases/args duplicados e defaults incompatíveis também falham no compile;
+- strict/partial usam a mesma gramática;
+- flags globais podem aparecer antes/depois do subcomando quando herdadas; `FlagSet` usa a última ocorrência e ações append/count preservam sua semântica própria;
+- short clusters (`-abc`) não são sintaxe suportada; use flags curtas separadas;
+- não existe `--no-*` implícito: negation/tri-state precisa ser declarada explicitamente;
+- posicionais numéricos tipados aceitam negativos (`-1`, `-0.5`) quando a gramática não os torna ambíguos; `--` permanece o escape explícito;
+- handlers recebem valores já tipados;
+- `ArgOpaque` impede o wrapper de reinterpretar argv de subprocesso;
+- completion dinâmica não faz prompt e deve respeitar cancelamento;
+- `cursor_arg`/`cursor_offset` são coordenadas exatas; offset é contado em Unicode scalars e posições fora do argv/token falham fechado;
+- help/version/schema/contract/completion gerada permanecem livres de I/O de domínio;
+- shell-specific behavior fica no adapter.
+- `cli/` é uma API Go pública reutilizável por outros módulos; `cli/internal/` não é contrato público;
+- `cli/api.contract.json` protege a superfície exportada: breaking exige major, adição exige atualizar o lock para passar a ser protegida;
 
 ## Evidência
 
-Classifique afirmações relevantes como:
-
-- **observado**: código/doc oficial/teste comprova;
-- **inferido**: razoável, ainda não comprovado;
-- **não verificado**: exige ambiente/capacidade fora da suíte segura.
-
-Não promover inferência a suporte confirmado.
+Classifique suporte como observado, inferido ou não verificado. Cross-build prova compilação, não runtime. Se um gate não terminou, registrar **não executado/inconclusivo**, nunca verde.
 
 ## Erros Go
 
 - preservar causa com `%w`;
-- usar `errors.Is/As` quando apropriado;
-- erro deve incluir contexto operacional sem vazar segredo;
-- não depender de comparação de texto de erro para lógica.
+- usar `errors.Is/As`;
+- diagnostics estruturados para erros de CLI previsíveis;
+- contexto sem segredo;
+- lógica nunca depende de texto renderizado do erro.
 
-## Interfaces
+## Interfaces e composição
 
-Não criar interface apenas para “boas práticas”. Use-a quando houver fronteira real para teste, plataforma ou múltiplas implementações.
-
-Clock/random/runner podem ser dependências explícitas quando determinismo exige; não transforme todo pacote em DI framework.
+Não criar interface por estética. Use-a em fronteira real de plataforma/teste/implementação. Dependências caras ou que tocam estado são lazy. Não usar registries globais mutáveis nem `init()` mágico para compor comandos.
 
 ## Plataforma
 
-Regra de negócio não seleciona SO. Quando houver diferença real de implementação, use uma capability estreita ou arquivo por build tag conforme `docs/platforms.md`; não crie interface apenas para esconder uma chamada de stdlib. `unsupported` é melhor que fallback inseguro.
+Regra de negócio não seleciona SO. Diferença semântica real vira capability estreita/build tag conforme `docs/platforms.md`; `unsupported` é melhor que fallback inseguro.
 
 ## Paths/filesystem
 
-- `filepath`, não manipulação manual de separador;
-- path absoluto/limpo não é identidade canônica: para dois objetos existentes
-  que devem ser o mesmo, usar `os.Stat` + `os.SameFile`; preservar `Lstat` quando
-  seguir o symlink mudaria a política;
-- igualdade textual só quando a grafia for parte do contrato; `/var` e
-  `/private/var` são o caso clássico de alias observado no macOS;
-- containment nunca por `strings.HasPrefix`;
-- `Lstat`/`Readlink` quando symlink importa;
-- `os.Root` quando uma operação precisa ficar confinada;
-- temporário criado com nome imprevisível e create exclusivo;
-- não usar remove-then-rename para substituir arquivo importante;
-- não alegar atomicidade/durabilidade além do que a plataforma garante.
-
-`os.Root` restringe resolução dentro de uma raiz, mas `os.OpenRoot` pode seguir symlink no path usado para abrir a própria raiz. A camada `safefs` deve fixar/revalidar a identidade dessa raiz e ainda decidir deliberadamente se symlinks internos devem ser seguidos, arquivados ou rejeitados.
+- `filepath`, não separadores manuais;
+- containment nunca por prefixo textual;
+- `os.Stat` + `os.SameFile` para identidade física quando aplicável;
+- `Lstat`/`Readlink` quando symlink é parte da política;
+- `os.Root`/`safefs` quando a operação precisa ficar confinada;
+- temporário imprevisível/create-exclusive;
+- não usar remove-then-rename para substituir estado importante;
+- não prometer atomicidade além da primitive comprovada no SO.
 
 ## Estado persistente
 
-- schema versionado;
-- decode valida estrutura e invariantes;
-- corrupção nunca vira estado vazio;
-- read-modify-write protegido contra concorrência;
-- commit seguro por plataforma;
-- backup é recuperação, não substituto de commit correto;
-- estado legado nunca é apagado automaticamente na migração.
+Schema versionado; decode valida invariantes; corrupção não vira estado vazio; read-modify-write é protegido; commit é seguro por plataforma; backup é recuperação, não substituto de commit correto.
 
 ## Processos
 
-- `exec.Command`/equivalente com argv separado;
-- sem shell para construir comandos;
-- env filho construído explicitamente quando há isolamento;
-- não registrar valores de secrets;
+- argv como slice, sem shell intermediário;
+- env filho explícito quando há isolamento;
+- secrets não aparecem em logs/schema/completion;
 - preservar exit status conforme contrato;
-- ACP não escreve nada próprio em stdout.
+- ACP reserva stdout ao protocolo filho;
+- broken pipe (`EPIPE`) é encerramento normal no composition root, não erro interno renderizado ao usuário.
 
 ## Dependências
 
-Não há meta de “zero deps” a qualquer custo. Há meta de **poucas deps justificadas**.
+Política **stdlib-first, não stdlib-only**. CLI Core atualmente não exige library externa. Antes de adicionar qualquer dependência: provar lacuna, avaliar licença/manutenção/transitivas, preferir pacote focado, registrar decisão e testar a semântica motivadora. Não adicionar Cobra/Viper por conveniência.
 
-Antes de adicionar uma:
+## Toolchain e documentação
 
-- existe lacuna real?
-- a implementação caseira seria mais frágil?
-- o projeto é mantido/licença aceitável?
-- quantas transitivas entram?
-- temos teste que prova a semântica necessária?
-
-Frameworks de CLI/config não entram enquanto o parser/config continuarem pequenos.
-
-## Toolchain
-
-- `mise.toml` fixa a toolchain usada pelo repo;
-- não executar `go env -w` em nome do usuário;
-- `GOTOOLCHAIN=local` no ambiente do repo evita download implícito de toolchain;
-- downloads de dependência pertencem ao bootstrap/CI, não ao comportamento dos testes.
-
-## Documentação
-
-Documentação ativa descreve o estado atual. Planos/migrações concluídos vão para `docs/history/` e deixam de ser leitura obrigatória.
+`mise.toml` fixa a baseline; não executar `go env -w`; testes herméticos bloqueiam download automático. Docs ativas descrevem o estado implementado; planos concluídos podem ir para histórico depois do cutover.

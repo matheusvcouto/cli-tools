@@ -1,61 +1,91 @@
-# Adicionando uma nova CLI
+# Adicionando uma CLI
 
-Use este fluxo quando a suite crescer.
+## 1. Criar o produto
 
-## 1. Defina o contrato
+Crie `cmd/<tool>/main.go` e `cmd/<tool>/tool.json`. O manifest usa schema v1 e SemVer sem prefixo `v`:
 
-Antes do código, registre sintaxe, entradas, saídas, efeitos colaterais, riscos e plataformas suportadas.
-
-## 2. Crie o mínimo
-
-```text
-cmd/<nome>/main.go
-cmd/<nome>/ADR.md
-internal/<dominio>/...
+```json
+{
+  "schema_version": 1,
+  "name": "my-tool",
+  "version": "0.1.0",
+  "stability": "beta"
+}
 ```
 
-`main.go` fino; domínio testável. O ADR local registra decisões próprias da
-ferramenta; decisões que afetam toda a suíte continuam no `ADR.md` da raiz. Se
-houver diferença por SO, o domínio define a capability e o backend específico
-fica separado conforme `docs/platforms.md`. Não espalhe `runtime.GOOS` pela
-regra de negócio.
+O entrypoint deve embutir/validar o manifest, chamar `cli.SignalContext`, compor dependências lazy e passar stdio/terminal explicitamente ao core.
 
-## 3. Não compartilhe cedo demais
+## 2. Manter domínio e CLI separados
 
-Comece local ao domínio. Extraia para `internal/<pacote-coeso>` somente quando outra CLI precisar exatamente da mesma semântica.
+Regra de negócio fica em `internal/<domain>/`. A composição da superfície fica em `internal/<domain>/cli/` e retorna um `*cli.CompiledApp`.
 
-## 4. Dependências
+Declare uma única `cli.App` com stable IDs para comandos, argumentos e flags. Não escreva parser, help, version dispatch ou scripts de completion paralelos.
 
-Aplique `docs/engineering.md`. Dependência é decisão técnica, não falha moral; mas precisa resolver problema concreto.
+## 3. Modelar o contrato
 
-## 5. Plataformas
+Use:
 
-Declare suporte por capability. Uma plataforma futura pode ficar `untested`/`unsupported` com stub explícito; não implemente Windows/Linux apenas para preencher uma matriz e não chame cross-build de suporte.
+- codecs tipados em vez de parse dentro do handler;
+- `ArgOpaque` para argv que pertence a processo filho;
+- constraints para relações entre opções;
+- `OptionPolicy` explícita quando a ordem flags/argumentos fizer parte do contrato;
+- providers ordenados para resolução `CLI > env/config > default`, preservando provenance;
+- `Sensitive` para valores que nunca podem aparecer em completion/schema/defaults/diagnostics;
+- `Capability` para disponibilidade conhecida sem I/O;
+- `Requirement` para probes seguros de runtime;
+- `Completer` somente para candidatos dinâmicos side-effect-free;
+- `Interaction` para prompts; não leia stdin diretamente em handlers interativos.
 
-## 6. Testes
+Nomes visíveis não substituem stable IDs. Não reutilize um ID para outra semântica.
 
-- unit;
-- integration isolada;
-- falhas/rollback se houver mutação;
-- runtime cross-platform quando declarar suporte.
+## 4. Gerar e travar o contrato
 
-Nunca usar dados/contas/repos reais para “provar” a nova ferramenta.
+```sh
+go run ./cmd/<tool> __cli contract > cmd/<tool>/cli.contract.json
+```
 
-## 7. Release
+Adicione teste que compare o lock byte a byte e prove que sua geração não inicializa dependências desnecessárias.
 
-Uma CLI corretamente colocada em `cmd/<nome>` deve ser descoberta pelo tooling de release automaticamente. Se for preciso editar várias listas manuais de nomes, corrija o tooling em vez de duplicar configuração.
+Schema/documentação podem ser inspecionados por:
 
-Todo binário distribuído deve aceitar `--version` e imprimir **somente** a versão compartilhada da suite injetada no build. O smoke test de release percorre `bin/*` dinamicamente e valida esse contrato; assim uma nova CLI não escapa da validação por esquecimento de uma lista manual.
+```sh
+go run ./cmd/<tool> __cli schema
+go run ./cmd/<tool> --help
+```
 
-## 8. Docs
+## 5. Completion
 
-Atualize README apenas se a ferramenta for relevante ao usuário. Adicione `AGENTS.md` aninhado somente quando aquele diretório tiver restrições materiais diferentes das regras da raiz.
+Todo tool com `Builtins.Completion` herda:
 
-## Biblioteca Go pública
+```text
+<tool> completion list
+<tool> completion generate <shell>
+<tool> completion install [shell]
+<tool> completion uninstall [shell]
+<tool> completion status [shell]
+<tool> completion doctor [shell]
+```
 
-Se “nova lib” significar pacote Go para consumo externo, não colocá-la em `internal/`. Antes:
+Adapters suportados: Fish, Nushell, Bash, Zsh e PowerShell. Não crie scripts shell específicos dentro do domínio. O adapter Nushell requer Nushell 0.114 ou superior: usa `@complete` para delegar ao planner e `commandline complete` para mesclar diretivas nativas de path/diretório sem duplicar a árvore da CLI. `completion doctor nushell` detecta uma instalação local abaixo desse piso sem transformar Nushell em dependência do runtime. Omitir `shell` em `install`/`uninstall` faz preflight de todos os adapters antes de qualquer mutação.
 
-- identificar consumidor real;
-- escolher package path estável;
-- definir API mínima;
-- registrar no ADR do escopo afetado porque a API pública passa a ter custo de compatibilidade.
+## 6. Registrar impacto
+
+Qualquer mudança relevante adiciona/ajusta `changes/*.json` para `module` e/ou o produto afetado. Em PR, CI valida cobertura dos caminhos alterados.
+
+Não edite versão do produto a cada commit. O bump é preparado por `tools/release prepare` conforme `docs/release.md`.
+
+## 7. Testar
+
+No mínimo:
+
+```sh
+gofmt -w <arquivos>
+go test ./internal/<domain>/... ./cmd/<tool>
+go test ./cli
+```
+
+Antes de considerar o trabalho pronto, use os gates herméticos de `docs/testing.md`. Testes de completion install/uninstall sempre usam HOME/XDG sintéticos.
+
+## Pacote público novo
+
+`cli/` é a exceção pública arquitetural já aceita. Outro package fora de `internal/` exige consumidor real, API mínima e decisão no ADR porque passa a carregar custo de compatibilidade.

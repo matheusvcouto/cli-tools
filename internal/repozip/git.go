@@ -2,6 +2,7 @@ package repozip
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +15,23 @@ import (
 
 type Git struct {
 	env []string
+	ctx context.Context
+}
+
+func (g Git) withContext(ctx context.Context) Git {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	g.ctx = ctx
+	return g
+}
+
+func (g Git) command(name string, args ...string) *exec.Cmd {
+	ctx := g.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return exec.CommandContext(ctx, name, args...)
 }
 
 func (g Git) environment() []string {
@@ -31,7 +49,7 @@ type commandResult struct {
 
 func (g Git) run(repo string, args ...string) (commandResult, error) {
 	argv := append([]string{"-C", repo}, args...)
-	cmd := exec.Command("git", argv...)
+	cmd := g.command("git", argv...)
 	cmd.Env = g.environment()
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
@@ -39,6 +57,9 @@ func (g Git) run(repo string, args ...string) (commandResult, error) {
 	res := commandResult{stdout: stdout.Bytes(), stderr: stderr.Bytes(), code: 0}
 	if err == nil {
 		return res, nil
+	}
+	if g.ctx != nil && g.ctx.Err() != nil {
+		return res, g.ctx.Err()
 	}
 	var exit *exec.ExitError
 	if errors.As(err, &exit) {
@@ -238,13 +259,16 @@ func (g Git) TrackedGuard(repo, rel string) error {
 	if slash == ".git" || strings.HasPrefix(slash, ".git/") {
 		return fmt.Errorf("output cannot be inside .git")
 	}
-	cmd := exec.Command("git", "--literal-pathspecs", "-C", repo, "ls-files", "--error-unmatch", "--", slash)
+	cmd := g.command("git", "--literal-pathspecs", "-C", repo, "ls-files", "--error-unmatch", "--", slash)
 	cmd.Env = g.environment()
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err == nil {
 		return fmt.Errorf("output %q is tracked by Git; refusing to overwrite repository content", rel)
+	}
+	if g.ctx != nil && g.ctx.Err() != nil {
+		return g.ctx.Err()
 	}
 	var exit *exec.ExitError
 	if errors.As(err, &exit) && exit.ExitCode() == 1 {
@@ -348,12 +372,15 @@ func (g Git) SnapshotMetadata(repo string, excludes []string) (GitSnapshotMetada
 
 func (g Git) WriteBundle(repo string, dst io.Writer) error {
 	argv := []string{"-C", repo, "bundle", "create", "-", "--all"}
-	cmd := exec.Command("git", argv...)
+	cmd := g.command("git", argv...)
 	cmd.Env = g.environment()
 	cmd.Stdout = dst
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
+		if g.ctx != nil && g.ctx.Err() != nil {
+			return g.ctx.Err()
+		}
 		return fmt.Errorf("create Git bundle: %w: %s", err, strings.TrimSpace(stderr.String()))
 	}
 	return nil

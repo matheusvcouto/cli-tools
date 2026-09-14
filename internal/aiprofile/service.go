@@ -1,15 +1,12 @@
 package aiprofile
 
 import (
-	"bufio"
 	"context"
 	"crypto/rand"
-	"embed"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,9 +14,6 @@ import (
 
 	"github.com/matheusvcouto/cli-tools/internal/safefs"
 )
-
-//go:embed templates/*.json
-var builtinTemplates embed.FS
 
 type ProcessIO struct {
 	In  *os.File
@@ -32,12 +26,11 @@ type ProcessRunner interface {
 }
 
 type Service struct {
-	Store       Store
-	Runner      ProcessRunner
-	HomeDir     string
-	TemplateDir string
-	Now         func() time.Time
-	Env         func() []string
+	Store   Store
+	Runner  ProcessRunner
+	HomeDir string
+	Now     func() time.Time
+	Env     func() []string
 }
 
 func NewService(store Store, runner ProcessRunner) (*Service, error) {
@@ -45,7 +38,7 @@ func NewService(store Store, runner ProcessRunner) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{Store: store, Runner: runner, HomeDir: home, TemplateDir: os.Getenv("AI_PROFILE_TEMPLATES_DIR"), Now: time.Now, Env: os.Environ}, nil
+	return &Service{Store: store, Runner: runner, HomeDir: home, Now: time.Now, Env: os.Environ}, nil
 }
 
 func (s *Service) List(tool string) ([]Profile, ToolSpec, error) {
@@ -138,30 +131,6 @@ func (s *Service) DeleteConfirmed(tool, alias string) (string, error) {
 		return "", fmt.Errorf("unknown tool %q", tool)
 	}
 	return s.Store.deleteProfile(tool, alias)
-}
-
-func (s *Service) ConfirmDelete(in io.Reader, out io.Writer, profile Profile) error {
-	reader := bufio.NewReader(in)
-	fmt.Fprintf(out, "This permanently deletes the profile directory:\n  %s\n", profile.Dir)
-	fmt.Fprintf(out, "Type %q to confirm: ", profile.Alias)
-	typed, err := reader.ReadString('\n')
-	if err != nil && !errors.Is(err, io.EOF) {
-		return err
-	}
-	if strings.TrimSpace(typed) != profile.Alias {
-		return fmt.Errorf("confirmation did not match profile name")
-	}
-	fmt.Fprint(out, "Delete permanently? [y/N]: ")
-	answer, err := reader.ReadString('\n')
-	if err != nil && !errors.Is(err, io.EOF) {
-		return err
-	}
-	switch strings.ToLower(strings.TrimSpace(answer)) {
-	case "y", "yes":
-		return nil
-	default:
-		return fmt.Errorf("deletion cancelled")
-	}
 }
 
 func (s *Service) Run(ctx context.Context, tool, alias string, args []string, io ProcessIO) error {
@@ -323,72 +292,6 @@ func (s *Service) ensureClaudeContextIsolation(profileDir string) error {
 	}
 	raw = append(raw, '\n')
 	return writeAtomicRoot(root, "settings.json", raw, 0o600, ".settings-")
-}
-
-func (s *Service) ApplyStatusline(tool, alias, template string) error {
-	if tool != "claude" {
-		return fmt.Errorf("apply-statusline is only supported for Claude profiles")
-	}
-	profile, _, err := s.Profile(tool, alias)
-	if err != nil {
-		return err
-	}
-	if err := s.ensureProfileDirectory(profile); err != nil {
-		return err
-	}
-	statusline, err := s.loadTemplate(template)
-	if err != nil {
-		return err
-	}
-	root, err := safefs.Open(profile.Dir)
-	if err != nil {
-		return fmt.Errorf("open profile directory safely: %w", err)
-	}
-	defer root.Close()
-
-	settings := map[string]json.RawMessage{}
-	if raw, err := readStableRegularRoot(root, "settings.json"); err == nil {
-		if err := json.Unmarshal(raw, &settings); err != nil {
-			return fmt.Errorf("decode existing settings.json: %w", err)
-		}
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-	settings["statusLine"] = statusline
-	raw, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return err
-	}
-	raw = append(raw, '\n')
-	return writeAtomicRoot(root, "settings.json", raw, 0o600, ".settings-")
-}
-
-func (s *Service) loadTemplate(name string) (json.RawMessage, error) {
-	if name == "" {
-		name = "default"
-	}
-	if strings.ContainsAny(name, `/\\`) || name == "." || name == ".." {
-		return nil, fmt.Errorf("invalid template name %q", name)
-	}
-	if s.TemplateDir != "" {
-		path := filepath.Join(s.TemplateDir, name+".json")
-		if raw, err := os.ReadFile(path); err == nil {
-			if !json.Valid(raw) {
-				return nil, fmt.Errorf("template %q is not valid JSON", name)
-			}
-			return json.RawMessage(raw), nil
-		} else if !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
-	}
-	raw, err := builtinTemplates.ReadFile("templates/" + name + ".json")
-	if err != nil {
-		return nil, fmt.Errorf("template %q not found", name)
-	}
-	if !json.Valid(raw) {
-		return nil, fmt.Errorf("built-in template %q is invalid", name)
-	}
-	return json.RawMessage(raw), nil
 }
 
 func randomHex(bytesN int) (string, error) {

@@ -76,7 +76,7 @@ Isso comprova fronteiras de build, **não** suporte de runtime Windows/macOS.
 - API `os.Root` usada por `safefs` foi conferida contra a documentação oficial atual;
 - release e CI descobrem `cmd/*` em vez de manter lista de CLIs distribuídas;
 - `repo-zip .` foi testado com o próprio repositório como cwd, evitando regressão no output automático;
-- `ai-profile --version`, `--help` e `completion <shell>` foram testados sem HOME/store;
+- `ai-profile --version`, `--help` e `completion generate <shell>` foram testados sem HOME/store;
 - criação de diretórios sensíveis usa `safefs.EnsureDir`, com teste provando que parent symlink não cria conteúdo fora;
 - `repo-zip --git` foi migrado de cópia bruta de `.git` para `git bundle`; linked worktree real passou em teste de pacote e E2E do binário compilado;
 - o bundle gerado é verificado com `git bundle verify` e o teste de worktree também prova clone/restauração do HEAD;

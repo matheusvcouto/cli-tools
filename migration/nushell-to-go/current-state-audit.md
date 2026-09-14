@@ -187,7 +187,7 @@ use modules/ai_profiles [ai-profile]
 use modules/repo_zip [repo-zip]
 ```
 
-No cutover, esses imports devem ser removidos somente depois que os binários Go estiverem instalados e validados no PATH. **Decisão posterior:** completions são geradas pelo próprio binário para Bash/Fish/Zsh; não existe camada Nushell obrigatória.
+No cutover, esses imports devem ser removidos somente depois que os binários Go estiverem instalados e validados no PATH. **Decisão posterior:** completions são geradas pelo próprio binário para Fish/Nushell 0.114+/Bash/Zsh/PowerShell; não existe camada Nushell obrigatória para o runtime.
 
 ---
 
@@ -230,7 +230,7 @@ Além dos comandos, o módulo atual oferece comportamento interativo que não po
 - templates são extensíveis por arquivo no módulo atual;
 - `agy` continua fora por decisão explícita de segurança.
 
-Como executável standalone não devolve automaticamente valores tipados ao pipeline Nushell, a implementação oferece `list --json` como interface machine-readable. **Decisão posterior:** não há integração Nushell obrigatória para completions/estrutura; o shell não faz parte do contrato.
+Como executável standalone não devolve automaticamente valores tipados ao pipeline Nushell, a implementação oferece `list --json` como interface machine-readable. **Decisão posterior:** não há integração Nushell obrigatória para o runtime/estrutura; a completion Nushell é opcional e requer Nu 0.114+.
 
 ### Suporte atual por SO
 

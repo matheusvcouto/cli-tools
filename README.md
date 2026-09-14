@@ -52,19 +52,25 @@ Cross-build comprova compilação, não suporte de runtime.
 
 ## Desenvolvimento
 
+As CLIs usam o `cli/` Core declarativo comum: parsing tipado, help, completion, schema, contracts e documentação são derivados do mesmo grafo compilado.
+
 ```sh
-mise run check
+./scripts/check-safe.sh all
 ```
+
+`mise run check` continua disponível como atalho interativo.
 
 Documentação técnica:
 
-- [Arquitetura](docs/architecture.md)
+- [Arquitetura e CLI Core](docs/architecture.md)
+- [Adicionando ferramentas](docs/adding-tools.md)
 - [Testes](docs/testing.md)
 - [Plataformas](docs/platforms.md)
 - [Portabilidade de paths e testes](docs/portability.md)
 - [Release, changelog e mise](docs/release.md)
 - [Histórico de mudanças](CHANGELOG.md)
 - [Engenharia](docs/engineering.md)
+- [API Go pública e compatibilidade v1](docs/cli-api.md)
 - [Decisões arquiteturais da suíte](ADR.md)
 - [`ai-profile` ADR](cmd/ai-profile/ADR.md)
 - [`repo-zip` ADR](cmd/repo-zip/ADR.md)

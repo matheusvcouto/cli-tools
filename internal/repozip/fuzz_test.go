@@ -2,6 +2,7 @@ package repozip
 
 import (
 	"bytes"
+	"context"
 	"strings"
 	"testing"
 )
@@ -32,6 +33,6 @@ func FuzzVerifyZipNeverPanics(f *testing.F) {
 	f.Add([]byte{})
 	f.Fuzz(func(t *testing.T, raw []byte) {
 		reader := bytes.NewReader(raw)
-		_ = (Archiver{}).Verify(reader, int64(len(raw)))
+		_ = (Archiver{}).Verify(context.Background(), reader, int64(len(raw)))
 	})
 }

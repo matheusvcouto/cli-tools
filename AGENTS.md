@@ -19,7 +19,7 @@ Ao trabalhar em uma CLI existente, leia também o ADR específico:
 - `cmd/ai-profile/ADR.md`;
 - `cmd/repo-zip/ADR.md`.
 
-Se `migration/` contiver uma migração ativa relacionada à tarefa, leia o `README.md` daquela migração e siga a ordem indicada lá.
+Se `plans/` contiver um plano ativo relacionado à tarefa, leia o `README.md` dele e siga sua ordem/checklist.
 
 `docs/history/` é histórico: não deve ser carregado por padrão. Consulte apenas para regressão, auditoria ou decisão antiga específica.
 
@@ -38,15 +38,19 @@ Se `migration/` contiver uma migração ativa relacionada à tarefa, leia o `REA
 ## 3. Arquitetura da suite
 
 - Um único módulo Go.
-- Todo binário distribuído fica em `cmd/<nome>/` e deve implementar `--version` usando a versão compartilhada da suite.
+- Todo binário distribuído fica em `cmd/<nome>/`, possui `tool.json` próprio e usa o CLI Core declarativo em `cli/`.
+- `--version` mostra a versão individual do produto; a tag da suíte/módulo é independente e aparece em `version --json`.
+- Parsing, help, completion, schema, docs e contract devem derivar do mesmo `CompiledApp`; não manter command trees paralelas.
+- Comandos, flags e argumentos usam stable IDs. `__cli` é namespace reservado do core.
+- Help/version/schema/contract/completion estática não podem inicializar store/HOME/dependências de domínio.
 - Regra de negócio de cada CLI fica em `internal/<dominio>/`.
 - Regra de negócio não pode depender de `runtime.GOOS`, build tags, Win32/POSIX ou utilitário específico do SO; use ports/backends conforme `docs/platforms.md`.
 - Plataforma/capability não implementada deve retornar erro explícito; é proibido fallback silencioso menos seguro.
 - `cmd/*` contém apenas entrypoints distribuíveis. Ferramentas internas de build ficam em `tools/`, nunca em `cmd/`.
 - Não criar `utils`, `helpers`, `common` ou `shared` genéricos.
 - Só extrair pacote reutilizável quando houver semântica comum comprovada, não apenas chamadas parecidas à stdlib.
-- Novo utilitário deve seguir `docs/adding-tools.md`.
-- Pacote Go público fora de `internal/` exige consumidor externo real e registro no ADR do escopo afetado.
+- Nova CLI deve seguir `docs/adding-tools.md`.
+- `cli/` é a exceção pública aceita. Outro pacote Go público fora de `internal/` exige consumidor externo real e registro no ADR do escopo afetado.
 
 ## 4. Segurança e filesystem
 
@@ -92,23 +96,19 @@ Dependência externa só entra quando torna a implementação comprovadamente ma
 
 ## 7. Release e versionamento
 
-- Tags estáveis usam exatamente `vX.Y.Z`, sem reutilizar ou mover uma tag já
-  publicada.
-- Antes da tag, `CHANGELOG.md` deve conter `## [X.Y.Z] - YYYY-MM-DD` e ao menos
-  um item Markdown (`- ...`) sob categorias pertinentes como `Adicionado`,
-  `Alterado`, `Corrigido`, `Segurança` ou `Removido`.
-- A descrição da GitHub Release vem dessa seção versionada; não publicar notas
-  vazias nem usar notas geradas automaticamente como fonte canônica.
-- A tag deve apontar para um commit que já contenha changelog, código e workflow
-  correspondentes e cujo CI de branch esteja verde.
-- O tooling de release deve recusar versão/changelog inválidos e diretório de
-  saída não vazio. Nunca limpar recursivamente um caminho fornecido ao comando.
-- Entradas de `SHA256SUMS` são relativas ao diretório do manifesto. Validar com
-  cwd nesse diretório (por exemplo, `cd dist && sha256sum -c SHA256SUMS`), não
-  passando apenas `dist/SHA256SUMS` a partir do diretório pai.
-- Assets instaláveis pelo mise mantêm tag SemVer, nomes com OS/arquitetura e
-  executáveis em `bin/`. Após publicar, validar instalação em HOME/MISE_*
-  isolados antes de declarar a release pronta.
+- Há três contratos: tag da suíte/módulo, versão individual em `cmd/<tool>/tool.json` e inteiros de protocol/schema/contract. Não os sincronizar artificialmente.
+- Mudança relevante recebe `changes/*.json`; CI valida cobertura por componente. Não fazer bump manual por commit.
+- `go run ./tools/release prepare --suite-version X.Y.Z` é preview; `--write` materializa manifests/changelogs/contracts e arquiva records.
+- `cli/` é API Go pública reutilizável; `cli/api.contract.json` protege a superfície exportada e `go run ./tools/release api check` é gate obrigatório antes de release.
+- API aditiva exige `api write` para passar a ser protegida; `api write --allow-breaking` só é aceitável em major deliberado com change record de `module`.
+- Produto que cruza para `1.x` precisa declarar `stability: "stable"` no change record; estabilidade nunca pode regredir.
+- `release prepare --write` deve preservar rollback do conjunto em qualquer erro retornado; não reintroduzir mutações parciais sem teste de restauração.
+- Tags estáveis usam exatamente `vX.Y.Z`, nunca são reutilizadas/movidas e só apontam para commit já preparado com CI verde.
+- GitHub Release usa a seção versionada do `CHANGELOG.md`; release notes automáticas não substituem o histórico canônico.
+- Tooling recusa versão/changelog inválidos e output não vazio; nunca limpa recursivamente caminho fornecido ao comando.
+- `SHA256SUMS` é relativo ao seu diretório e deve ser verificado com cwd nele.
+- Smoke de release compara `--version` com `tool.json` e `version --json .suite_version` com a tag.
+- Assets mise são validados em HOME/MISE_*/GH_CONFIG_DIR isolados antes de declarar a release pronta.
 
 ## 8. Qualidade
 

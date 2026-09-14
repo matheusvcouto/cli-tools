@@ -1,0 +1,15 @@
+golden-cli
+
+Usage:
+  golden-cli <command> [options]
+
+Commands:
+  completion         manage generated shell completions
+  help               show help for a command
+  serve              serve a target
+  version            show product and build version information
+
+Options:
+  -v, --verbose            increase verbosity
+  -h, --help               Show help
+  --version                Show version

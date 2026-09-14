@@ -37,6 +37,29 @@ Veja todas as opções com:
 repo-zip --help
 ```
 
+## Versão e completions
+
+`--version` é reservado à versão do produto. O sufixo do nome do archive usa somente `--suffix`:
+
+```sh
+repo-zip --version
+repo-zip version --json
+repo-zip . --suffix v1.0.0
+```
+
+Completions para Fish, Nushell, Bash, Zsh e PowerShell:
+
+```sh
+repo-zip completion list
+repo-zip completion generate bash
+repo-zip completion install bash
+repo-zip completion status bash
+repo-zip completion doctor bash
+repo-zip completion uninstall bash
+```
+
+`completion install` não altera silenciosamente rc/profile do shell.
+
 ## Snapshot Git
 
 Com `--git`, o archive inclui:

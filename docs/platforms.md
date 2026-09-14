@@ -2,26 +2,29 @@
 
 ## Regra
 
-Separar implementação por SO somente quando a garantia realmente muda.
+Separar implementação por SO somente quando a garantia realmente muda. O CLI Core modela **capability** e **requirement**, não booleans de SO espalhados pelo domínio.
 
 ```text
-domínio
-  ├── stdlib portátil
-  └── capability nativa → arquivo/build tag específico
+Spec declara necessidade
+      ↓
+availability conhecida sem I/O
+      ↓
+requirement/probe seguro
+      ↓
+handler somente se preflight passou
 ```
 
-Não espalhar `runtime.GOOS` pela regra de negócio.
+Capability ausente falha antes de efeito de domínio.
 
-## Portátil hoje
+## Portável hoje
 
-- parsing e UX;
-- JSON store/schema;
-- registry de Claude/Codex;
+- CLI Core: compile/parser/binding/help/schema/contract/docs;
+- completion engine e geração Fish/Nushell 0.114+/Bash/Zsh/PowerShell;
+- JSON store/schema e naming;
 - seleção/guards Git;
 - `archive/zip` create/verify;
-- statusline JSON merge;
-- naming/path rules;
-- completions Bash/Fish/Zsh.
+
+Completion **gerada** ser portátil não significa que cada shell foi executado em todo SO. Native E2E é evidência separada.
 
 ## Específico hoje
 
@@ -30,36 +33,29 @@ Não espalhar `runtime.GOOS` pela regra de negócio.
 - process replacement do `ai-profile`;
 - publicação final do `repo-zip`.
 
+Essas primitivas permanecem fora de `cli/`.
+
 ## macOS e Linux
 
-Compartilham as implementações Unix quando a semântica é a mesma:
-
-- `flock` no lock do store;
-- rename dentro da mesma safety root para replace;
-- `exec` para `run/acp`;
-- hard-link + remoção do temp para publicação no-clobber do `repo-zip`;
-- rename para `--force`.
-
-Linux possui testes runtime sintéticos executados localmente. macOS executa os mesmos testes no GitHub Actions e o workflow de release exige o job macOS antes de publicar.
+Compartilham implementações Unix quando a semântica é igual: lock/replace apropriados, `exec` para `run/acp` e primitives de publicação do `repo-zip`. Linux possui runtime tests locais; macOS é validado em runner nativo de CI.
 
 ## Windows
 
-Windows permanece compile-only. Stubs explícitos impedem fallback inseguro onde ainda faltam garantias equivalentes.
+Windows continua compile-only para o produto quando falta primitive equivalente de runtime. Stubs/capabilities devem retornar erro explícito antes de tocar estado. Para promover suporte, são necessários runtime tests nativos de lock, replace, processo/stdio/exit e publicação force/no-clobber.
 
-O desenho permite implementar Windows depois sem reescrever domínio. Para promover a suporte real, implementar e testar ao menos:
+PowerShell completion é um adapter independente dessa declaração: geração/conformance não prova os demais casos de uso do produto no Windows.
 
-- lock do store;
-- replace do store/settings;
-- execução/preservação de stdio/exit do `ai-profile`;
-- publicação `force` e `no-clobber` do `repo-zip`.
+## Terminal
+
+O composition root detecta stdio como character device usando stdlib e passa `cli.Terminal`. Interaction padrão não faz prompt quando stdin não é TTY. Largura/cor são capabilities separadas e não são inferidas artificialmente.
 
 ## `os.Root`
 
-Releases usam Go 1.27.1; portanto `internal/safefs` usa `os.Root`. O fallback para toolchains antigas existe somente para desenvolvimento/bootstrap e é mais conservador, recusando traversal por symlink.
+Releases usam Go 1.27.1 e `internal/safefs` usa `os.Root`; fallback de toolchain antiga existe apenas para bootstrap/desenvolvimento e é mais conservador.
 
 ## Estados de suporte
 
-- `supported`: implementação + runtime tests no SO;
+- `supported`: implementação + runtime tests nativos;
 - `partial`: só parte das capabilities;
-- `untested`: implementação existe, evidência ainda insuficiente;
-- `unsupported`: garantia necessária ainda não implementada.
+- `untested`: implementação existe, evidência insuficiente;
+- `unsupported`: garantia necessária não implementada.

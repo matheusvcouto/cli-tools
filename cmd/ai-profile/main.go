@@ -1,60 +1,46 @@
 package main
 
 import (
-	"context"
+	_ "embed"
 	"os"
 
+	core "github.com/matheusvcouto/cli-tools/cli"
 	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
+	profilecli "github.com/matheusvcouto/cli-tools/internal/aiprofile/cli"
 	"github.com/matheusvcouto/cli-tools/internal/aiprofile/platform"
-	"github.com/matheusvcouto/cli-tools/internal/cliapp"
 	"github.com/matheusvcouto/cli-tools/internal/version"
 )
 
+//go:embed tool.json
+var toolManifestJSON []byte
+
 func main() {
-	args := os.Args[1:]
-	appIO := aiprofile.AppIO{
-		In: os.Stdin, Out: os.Stdout, Err: os.Stderr,
-		Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr,
-	}
+	ctx, stop := core.SignalContext(nil)
+	defer stop()
 
-	// Static commands must stay independent from HOME/profile-store health.
-	// This keeps --help/--version/completion usable even while diagnosing a
-	// broken or not-yet-configured profile environment.
-	if isStaticInvocation(args) {
-		exitOnError(aiprofile.App{Version: version.Version}.Run(context.Background(), args, appIO))
-		return
-	}
-
-	root, err := aiprofile.DefaultRoot()
+	manifest, err := version.ParseToolManifest(toolManifestJSON, "ai-profile")
 	if err != nil {
-		exitOnError(err)
-		return
+		core.RenderDiagnostic(os.Stderr, err)
+		os.Exit(core.ExitCode(err))
 	}
-	service, err := aiprofile.NewService(aiprofile.Store{Root: root}, platform.Runner{})
-	if err != nil {
-		exitOnError(err)
-		return
-	}
-	app := aiprofile.App{Service: service, Version: version.Version}
-	exitOnError(app.Run(context.Background(), args, appIO))
-}
+	product := core.ProductMetadata{Version: manifest.Version, Stability: manifest.Stability, SuiteVersion: version.SuiteVersion}
 
-func isStaticInvocation(args []string) bool {
-	if len(args) == 0 {
-		return true
-	}
-	switch args[0] {
-	case "--help", "-h", "help", "--version", "version", "completion":
-		return true
-	default:
-		return false
-	}
-}
-
-func exitOnError(err error) {
+	service := core.NewLazy(func() (*aiprofile.Service, error) {
+		root, err := aiprofile.DefaultRoot()
+		if err != nil {
+			return nil, err
+		}
+		return aiprofile.NewService(aiprofile.Store{Root: root}, platform.Runner{})
+	})
+	app, err := profilecli.New(service, aiprofile.ProcessIO{In: os.Stdin, Out: os.Stdout, Err: os.Stderr}, product)
 	if err == nil {
-		return
+		err = app.Run(ctx, os.Args[1:], core.IO{In: os.Stdin, Out: os.Stdout, Err: os.Stderr, Terminal: core.TerminalFromFiles(os.Stdin, os.Stdout, os.Stderr)})
 	}
-	cliapp.RenderError(os.Stderr, err)
-	os.Exit(cliapp.ExitCode(err))
+	if err != nil {
+		if core.IsBrokenPipe(err) {
+			return
+		}
+		core.RenderDiagnostic(os.Stderr, err)
+		os.Exit(core.ExitCode(err))
+	}
 }

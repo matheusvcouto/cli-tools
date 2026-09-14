@@ -11,8 +11,10 @@ ai-profile <claude|codex> rename <alias> <novo-alias>
 ai-profile <claude|codex> delete <alias>
 ai-profile <claude|codex> run <alias> [...args]
 ai-profile <claude|codex> acp <alias> [...args]
-ai-profile <claude|codex> apply-statusline <alias> [template]
-ai-profile completion <bash|fish|zsh>
+ai-profile claude apply-statusline <alias> [template]
+ai-profile completion list
+ai-profile completion generate <fish|nushell|bash|zsh|powershell>
+ai-profile completion install [fish|nushell|bash|zsh|powershell]
 ```
 
 `list` é a ação default. `--json` é a interface estável para automação; a saída humana pode evoluir.
@@ -69,7 +71,7 @@ Guidance global é **profile-native**: `AGENTS.override.md` ou `AGENTS.md` deve 
 
 ## Shells e automação
 
-O runtime não depende de Nushell. O binário funciona igualmente quando chamado por Bash, Fish, Zsh, Nu, IDE, launcher ou outro processo. Completions opcionais são geradas para Bash/Fish/Zsh; nenhuma delas lê o store diretamente.
+O runtime não depende de Nushell. O binário funciona igualmente quando chamado por Bash, Fish, Zsh, Nu, IDE, launcher ou outro processo. Completions opcionais são geradas para Fish, Nushell, Bash, Zsh e PowerShell; nenhuma delas lê o store diretamente. O adapter de completion Nushell exige Nu 0.114+ porque usa `commandline complete`; isso é requisito apenas da integração de completion, não do runtime de `ai-profile`.
 
 ## Segurança e testes
 

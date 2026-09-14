@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -68,19 +67,18 @@ func service(t *testing.T) Service {
 	return Service{Git: Git{env: sandboxEnv(t)}, Archiver: Archiver{}}
 }
 
-func TestParseArgsFlagsCanAppearAroundSource(t *testing.T) {
-	opts, err := ParseArgs([]string{"--git", "-n", "snap", "repo", "-v", "v1"})
-	if err != nil {
-		t.Fatal(err)
+func TestCanceledContextStopsBeforeSnapshotWork(t *testing.T) {
+	repo := initRepo(t)
+	writeFile(t, filepath.Join(repo, "file.txt"), "data")
+	output := filepath.Join(t.TempDir(), "snapshot.zip")
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := service(t).Run(ctx, Options{Source: repo, Output: output})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("err=%v want context.Canceled", err)
 	}
-	if opts.Source != "repo" || !opts.Git || opts.Name != "snap" || opts.Version != "v1" {
-		t.Fatalf("bad options: %+v", opts)
-	}
-	if _, err := ParseArgs([]string{"-o", "x.zip", "-n", "x"}); err == nil {
-		t.Fatal("expected output/name conflict")
-	}
-	if _, err := ParseArgs([]string{"-o", "x.zip", "-v", "v1"}); err == nil {
-		t.Fatal("expected output/suffix conflict")
+	if _, statErr := os.Stat(output); !errors.Is(statErr, os.ErrNotExist) {
+		t.Fatalf("canceled snapshot published output: %v", statErr)
 	}
 }
 
@@ -390,8 +388,8 @@ type callbackArchiver struct {
 	afterCreate func()
 }
 
-func (a callbackArchiver) Create(repo string, dst io.Writer, files []string, gitMeta *GitSnapshotMetadata) error {
-	if err := a.base.Create(repo, dst, files, gitMeta); err != nil {
+func (a callbackArchiver) Create(ctx context.Context, repo string, dst io.Writer, files []string, gitMeta *GitSnapshotMetadata, git Git) error {
+	if err := a.base.Create(ctx, repo, dst, files, gitMeta, git); err != nil {
 		return err
 	}
 	if a.afterCreate != nil {
@@ -399,7 +397,9 @@ func (a callbackArchiver) Create(repo string, dst io.Writer, files []string, git
 	}
 	return nil
 }
-func (a callbackArchiver) Verify(src io.ReaderAt, size int64) error { return a.base.Verify(src, size) }
+func (a callbackArchiver) Verify(ctx context.Context, src io.ReaderAt, size int64) error {
+	return a.base.Verify(ctx, src, size)
+}
 
 func TestGitSnapshotAbortsIfRepositoryChanges(t *testing.T) {
 	repo := initRepo(t)
@@ -637,12 +637,6 @@ func extractZipEntry(t *testing.T, path, name string) []byte {
 	}
 	t.Fatalf("ZIP entry not found: %s", name)
 	return nil
-}
-
-func ExampleParseArgs() {
-	opts, _ := ParseArgs([]string{".", "--git", "--version", "v2"})
-	fmt.Println(opts.Source, opts.Git, opts.Version)
-	// Output: . true v2
 }
 
 func TestSnapshotAbortsIfEligibleFileSetChangesWithoutGitMetadata(t *testing.T) {

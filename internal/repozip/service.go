@@ -16,8 +16,8 @@ import (
 )
 
 type ArchiveBackend interface {
-	Create(repo string, out io.Writer, files []string, gitMeta *GitSnapshotMetadata) error
-	Verify(src io.ReaderAt, size int64) error
+	Create(context.Context, string, io.Writer, []string, *GitSnapshotMetadata, Git) error
+	Verify(context.Context, io.ReaderAt, int64) error
 }
 
 type Service struct {
@@ -29,10 +29,17 @@ type Result struct {
 	Output string
 }
 
-func (s Service) Run(_ context.Context, opts Options) (Result, error) {
+func (s Service) Run(ctx context.Context, opts Options) (Result, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return Result{}, err
+	}
 	if err := ensurePublicationSupported(); err != nil {
 		return Result{}, err
 	}
+	git := s.Git.withContext(ctx)
 
 	sourceAbs, err := filepath.Abs(opts.Source)
 	if err != nil {
@@ -46,23 +53,20 @@ func (s Service) Run(_ context.Context, opts Options) (Result, error) {
 		return Result{}, fmt.Errorf("source must be a directory: %s", sourceAbs)
 	}
 
-	repo, err := s.Git.RepoRoot(sourceAbs)
+	repo, err := git.RepoRoot(sourceAbs)
 	if err != nil {
 		return Result{}, err
 	}
-	if err := s.Git.AssertNoSubmodules(repo); err != nil {
+	if err := git.AssertNoSubmodules(repo); err != nil {
 		return Result{}, err
 	}
-	if err := s.Git.AssertNoSparse(repo); err != nil {
+	if err := git.AssertNoSparse(repo); err != nil {
 		return Result{}, err
 	}
 
 	suffix := ""
 	if opts.Suffix != "" {
 		suffix, err = validateSuffix(opts.Suffix, "--suffix")
-	}
-	if opts.Version != "" {
-		suffix, err = validateSuffix(opts.Version, "--version")
 	}
 	if err != nil {
 		return Result{}, err
@@ -105,12 +109,12 @@ func (s Service) Run(_ context.Context, opts Options) (Result, error) {
 	var head string
 	var dirty bool
 	if opts.Git {
-		head, err = s.Git.HeadLabel(repo)
+		head, err = git.HeadLabel(repo)
 		if err != nil {
 			return Result{}, err
 		}
 		if opts.Output == "" {
-			dirty, err = s.Git.IsDirty(repo, nil)
+			dirty, err = git.IsDirty(repo, nil)
 			if err != nil {
 				return Result{}, err
 			}
@@ -131,7 +135,7 @@ func (s Service) Run(_ context.Context, opts Options) (Result, error) {
 		outputPath = filepath.Join(outputParent, strings.Join(parts, "-")+".zip")
 		outputRel = relativeIfInside(outputPath, repo)
 	}
-	if err := s.Git.TrackedGuard(repo, outputRel); err != nil {
+	if err := git.TrackedGuard(repo, outputRel); err != nil {
 		return Result{}, err
 	}
 
@@ -148,18 +152,18 @@ func (s Service) Run(_ context.Context, opts Options) (Result, error) {
 	var initialToken []byte
 	var gitMeta *GitSnapshotMetadata
 	if opts.Git {
-		initialToken, err = s.Git.StatusToken(repo, []string{outputRel})
+		initialToken, err = git.StatusToken(repo, []string{outputRel})
 		if err != nil {
 			return Result{}, err
 		}
-		meta, metaErr := s.Git.SnapshotMetadata(repo, []string{outputRel})
+		meta, metaErr := git.SnapshotMetadata(repo, []string{outputRel})
 		if metaErr != nil {
 			return Result{}, metaErr
 		}
 		gitMeta = &meta
 	}
 
-	files, err := s.Git.ListFiles(repo, outputRel)
+	files, err := git.ListFiles(repo, outputRel)
 	if err != nil {
 		return Result{}, err
 	}
@@ -194,7 +198,7 @@ func (s Service) Run(_ context.Context, opts Options) (Result, error) {
 		}
 	}()
 
-	if err := s.Archiver.Create(repo, temp, files, gitMeta); err != nil {
+	if err := s.Archiver.Create(ctx, repo, temp, files, gitMeta, git); err != nil {
 		return Result{}, err
 	}
 	if err := temp.Sync(); err != nil {
@@ -204,12 +208,12 @@ func (s Service) Run(_ context.Context, opts Options) (Result, error) {
 	if err != nil {
 		return Result{}, fmt.Errorf("inspect temporary ZIP: %w", err)
 	}
-	if err := s.Archiver.Verify(temp, stat.Size()); err != nil {
+	if err := s.Archiver.Verify(ctx, temp, stat.Size()); err != nil {
 		return Result{}, fmt.Errorf("generated ZIP failed verification: %w", err)
 	}
 
 	if opts.Git {
-		finalToken, err := s.Git.StatusToken(repo, []string{outputRel, tempRel})
+		finalToken, err := git.StatusToken(repo, []string{outputRel, tempRel})
 		if err != nil {
 			return Result{}, err
 		}
@@ -218,7 +222,7 @@ func (s Service) Run(_ context.Context, opts Options) (Result, error) {
 		}
 	}
 
-	finalFiles, err := s.Git.ListFiles(repo, outputRel, tempRel)
+	finalFiles, err := git.ListFiles(repo, outputRel, tempRel)
 	if err != nil {
 		return Result{}, err
 	}
@@ -226,7 +230,10 @@ func (s Service) Run(_ context.Context, opts Options) (Result, error) {
 		return Result{}, fmt.Errorf("repository file set changed during snapshot; temporary ZIP discarded")
 	}
 
-	if err := s.Git.TrackedGuard(repo, outputRel); err != nil {
+	if err := git.TrackedGuard(repo, outputRel); err != nil {
+		return Result{}, err
+	}
+	if err := ctx.Err(); err != nil {
 		return Result{}, err
 	}
 	if err := validateDestinationRoot(outputRoot, finalName, opts.Force); err != nil {

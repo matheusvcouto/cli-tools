@@ -35,12 +35,6 @@ ai-profile claude acp personal
 ai-profile codex acp work
 ```
 
-Também é possível aplicar uma statusline a um perfil Claude:
-
-```sh
-ai-profile claude apply-statusline personal
-```
-
 Veja todos os comandos disponíveis com:
 
 ```sh
@@ -69,12 +63,26 @@ Para Claude, cada profile contém tanto o `CLAUDE_CONFIG_DIR` quanto um
 profile é o seu `CODEX_HOME`. Consulte a documentação detalhada em
 [`docs/ai-profile.md`](../../docs/ai-profile.md).
 
-## Completions
-
-Scripts de completion podem ser gerados para Bash, Fish ou Zsh:
+## Versão
 
 ```sh
-ai-profile completion bash
-ai-profile completion fish
-ai-profile completion zsh
+ai-profile --version
+ai-profile version --json
 ```
+
+`--version` mostra a versão do produto; `version --json` também informa a versão da suíte/build.
+
+## Completions
+
+Fish, Nushell, Bash, Zsh e PowerShell são gerados do mesmo grafo da CLI:
+
+```sh
+ai-profile completion list
+ai-profile completion generate fish
+ai-profile completion install fish
+ai-profile completion status fish
+ai-profile completion doctor fish
+ai-profile completion uninstall fish
+```
+
+`install` nunca edita silenciosamente arquivos de configuração/profile do shell.

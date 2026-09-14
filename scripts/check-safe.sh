@@ -3,6 +3,12 @@ set -eu
 
 ROOT=$(CDPATH= cd "$(dirname "$0")/.." && pwd)
 MODE=${1:-all}
+if [ "$#" -gt 0 ]; then
+  shift
+fi
+if [ "$#" -eq 0 ]; then
+  set -- ./...
+fi
 BASE_TMP=$(CDPATH= cd "${TMPDIR:-/tmp}" && pwd -P)
 SANDBOX=$(mktemp -d "$BASE_TMP/cli-tools-test.XXXXXX")
 SAFE_PATH=$PATH
@@ -80,16 +86,16 @@ case "$MODE" in
     fmt_check
     ;;
   test)
-    run_clean go test ./...
+    run_clean go test "$@"
     ;;
   shuffle)
-    run_clean go test -shuffle=on -count=3 ./...
+    run_clean go test -shuffle=on -count=3 "$@"
     ;;
   race)
-    run_clean go test -race ./...
+    run_clean go test -race "$@"
     ;;
   vet)
-    run_clean go vet ./...
+    run_clean go vet "$@"
     ;;
   fuzz)
     FUZZ_ROOT="$SANDBOX/source"
@@ -102,6 +108,10 @@ case "$MODE" in
       cp -R "$item" "$FUZZ_ROOT/"
     done
     cd "$FUZZ_ROOT"
+    run_clean go test ./cli -run='^$' -fuzz=FuzzStrictAndPartialNeverPanic -fuzztime=5s
+    run_clean go test ./cli -run='^$' -fuzz=FuzzCompletionProtocolDecoderNeverPanics -fuzztime=5s
+    run_clean go test ./cli -run='^$' -fuzz=FuzzSchemaAndContractJSONRoundTrip -fuzztime=5s
+    run_clean go test ./cli -run='^$' -fuzz=FuzzShellEscapersNeverPanic -fuzztime=5s
     run_clean go test ./internal/aiprofile -run='^$' -fuzz=FuzzValidateAlias -fuzztime=5s
     run_clean go test ./internal/repozip -run='^$' -fuzz=FuzzValidateSuffix -fuzztime=5s
     run_clean go test ./internal/repozip -run='^$' -fuzz=FuzzVerifyZipNeverPanics -fuzztime=5s
@@ -113,6 +123,9 @@ case "$MODE" in
     run_clean go vet ./...
     run_clean go test -shuffle=on -count=3 ./...
     run_clean go test -race ./...
+    run_clean go run ./tools/release api check
+    run_clean go run ./tools/release contracts check
+    run_clean go run ./tools/release changes validate
     ;;
   *)
     echo "usage: $0 [all|fmt|test|shuffle|race|vet|fuzz]" >&2

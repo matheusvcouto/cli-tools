@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "module",
+      "impact": "minor",
+      "breaking": false,
+      "summary": "Introduce the public declarative CLI Core with shared parsing, completion, schema, contracts, diagnostics and runtime infrastructure"
+    },
+    {
+      "component": "ai-profile",
+      "impact": "minor",
+      "breaking": false,
+      "summary": "Migrate to CLI Core with generated shell completion and introspection"
+    },
+    {
+      "component": "repo-zip",
+      "impact": "minor",
+      "breaking": true,
+      "summary": "Migrate to CLI Core and reserve --version for product version; use --suffix for archive suffixes"
+    },
+    {
+      "component": "module",
+      "impact": "minor",
+      "breaking": false,
+      "summary": "Add a compatibility lock and external-consumer tests for the reusable public Go CLI API"
+    },
+    {
+      "component": "module",
+      "impact": "minor",
+      "breaking": false,
+      "summary": "Harden release preparation with rollback and explicit product stability promotion for v1"
+    },
+    {
+      "component": "ai-profile",
+      "impact": "minor",
+      "breaking": true,
+      "summary": "Expose ACP only when the tool registry declares it and retire apply-statusline from the active ai-profile implementation while preserving the historical Nushell reference"
+    }
+  ]
+}

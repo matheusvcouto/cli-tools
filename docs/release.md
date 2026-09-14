@@ -1,190 +1,138 @@
-# Release e mise
+# Release, versões e change records
 
-## Suite
+## Três versões independentes
 
-Uma tag versiona todos os binários em `cmd/*`. Releases estáveis usam Semantic
-Versioning no formato exato `vX.Y.Z`; o prefixo `v` é aceito nativamente pelo
-backend GitHub do mise.
+1. **suíte/módulo:** tag Git `vX.Y.Z`, que também versiona a API pública de `cli/`;
+2. **produto:** `cmd/<tool>/tool.json`, exibido por `<tool> --version`;
+3. **protocolos:** inteiros próprios para completion/schema/contract.
 
-Não há arquivo de versão para editar. Um push de tag no formato `vX.Y.Z`
-dispara `.github/workflows/release.yml`; a tag é injetada em todos os binários
-e também nomeia a GitHub Release. A primeira entrega pública instalável desta
-suíte é `v0.1.1`; a tag `v0.1.0` é histórica e não possui GitHub Release porque
-seu smoke-test falhou antes da publicação.
+`version --json` expõe versão do produto, suíte, revision/VCS, Go, OS/arch e versões de protocolo/schema. Não force esses números a permanecer iguais.
 
-## Changelog e descrição obrigatória
+## Registrar uma mudança
 
-`CHANGELOG.md` é a fonte canônica das notas. Antes de criar `vX.Y.Z`, mover os
-itens pertinentes de `Unreleased` para:
+Mudança relevante adiciona um JSON em `changes/`:
 
-```markdown
-## [X.Y.Z] - YYYY-MM-DD
-
-### Adicionado
-
-- Capacidade nova descrita objetivamente.
-
-### Corrigido
-
-- Correção relevante descrita objetivamente.
-```
-
-Use somente as categorias que fizerem sentido: `Adicionado`, `Alterado`,
-`Corrigido`, `Segurança`, `Descontinuado` e `Removido`. Cada categoria presente
-deve ter itens em lista. Não criar seção vazia nem depender de release notes
-geradas automaticamente como histórico canônico.
-
-O tooling recusa:
-
-- tag fora do formato `vX.Y.Z` ou com zeros à esquerda;
-- seção ausente ou duplicada;
-- data fora de `YYYY-MM-DD`;
-- seção sem item Markdown;
-- diretório de output não vazio, arquivo ou symlink.
-
-O workflow extrai somente a seção da versão e a publica como descrição da
-GitHub Release, com título `CLI Tools vX.Y.Z`.
-
-## Tooling
-
-`tools/release`:
-
-1. descobre diretórios imediatos de `cmd/`;
-2. exige `package main`;
-3. rejeita colisão por case-folding;
-4. exige Go >= 1.27.1;
-5. builda todos os binários para cada target publicado;
-6. cria archive com `bin/`;
-7. gera `SHA256SUMS`.
-
-O gerador nunca limpa o diretório informado por `--out`. Ele cria um diretório
-ausente com filesystem confinado ou aceita um diretório vazio; qualquer conteúdo
-preexistente causa erro sem ser alterado.
-
-`SHA256SUMS` contém nomes portáveis relativos ao diretório em que o manifesto
-fica. Ferramentas como `sha256sum -c` resolvem esses nomes contra o cwd, não
-contra o path do manifesto. Portanto a verificação correta é:
-
-```sh
-(cd dist && sha256sum -c SHA256SUMS)
-```
-
-Executar `sha256sum -c dist/SHA256SUMS` a partir do diretório pai procura os
-assets no lugar errado e falha mesmo quando os hashes e arquivos estão corretos.
-
-## Targets publicados
-
-```text
-macOS (GOOS=darwin)/amd64
-macOS (GOOS=darwin)/arm64
-linux/amd64
-linux/arm64
-```
-
-Windows é compile-only até implementação + runtime tests das capabilities nativas restantes.
-
-## Artifact
-
-```text
-cli-tools_<version>_<os>_<arch>.tar.gz
-└── bin/
-    ├── ai-profile
-    └── repo-zip
-```
-
-## Gate de release
-
-A própria workflow de tag executa testes nativos em Ubuntu e macOS antes de
-`publish`. Depois de gerar os artifacts, extrai o Linux amd64, percorre
-dinamicamente todos os executáveis em `bin/*`, exige que cada um responda
-`--version` com a versão da tag e valida `SHA256SUMS`.
-
-Ordem obrigatória:
-
-1. atualizar e revisar `CHANGELOG.md`;
-2. executar os gates locais isolados;
-3. commitar código, docs, changelog e workflow juntos;
-4. enviar o commit e aguardar o CI de `main` ficar verde;
-5. criar a tag no commit aprovado e enviá-la sem mover/reutilizar tag antiga;
-6. aguardar `verify` e `publish` da workflow de release;
-7. conferir título, descrição, assets, checksums e attestation;
-8. instalar a release via mise em HOME/MISE_* isolados e executar `--version`
-   de todos os binários.
-
-## mise
-
-Instalação:
-
-```sh
-mise use -g github:matheusvcouto/cli-tools@latest
-```
-
-Versão específica:
-
-```sh
-mise use -g github:matheusvcouto/cli-tools@0.1.1
-```
-
-Configuração equivalente:
-
-```toml
-[tools]
-"github:matheusvcouto/cli-tools" = "latest"
-```
-
-Atualização quando a configuração usa `latest`:
-
-```sh
-mise upgrade github:matheusvcouto/cli-tools
-```
-
-Os assets usam `macos` no nome (embora o GOOS de build seja `darwin`) e
-`linux`, combinados com `amd64` ou `arm64`, para a autodetecção do backend
-GitHub do mise. Cada archive contém `bin/`, que o mise procura automaticamente
-quando `bin_path` não é configurado. Releases sem assets não são instaláveis
-pelo backend GitHub.
-
-Testes de instalação mise devem desabilitar discovery de configuração com
-`MISE_NO_CONFIG=1`/`--no-config`, redirecionar HOME, `GH_CONFIG_DIR` e todos os
-diretórios `MISE_*`, e desativar fallbacks de tokens do gh/Git. Redirecionar
-somente os diretórios não é evidência suficiente de isolamento.
-
-
-Exemplo de gate isolado após existir uma release real:
-
-```sh
-sandbox="<diretório-descartável-confirmado>"
-mkdir -p "$sandbox"/{home,data,cache,state,config,tmp,gh}
-
-mise_sandbox() {
-  env -i \
-    PATH="<diretório-do-mise>:/usr/bin:/bin" \
-    HOME="$sandbox/home" USERPROFILE="$sandbox/home" \
-    GH_CONFIG_DIR="$sandbox/gh" \
-    MISE_NO_CONFIG=1 \
-    MISE_DATA_DIR="$sandbox/data" \
-    MISE_CACHE_DIR="$sandbox/cache" \
-    MISE_STATE_DIR="$sandbox/state" \
-    MISE_CONFIG_DIR="$sandbox/config" \
-    MISE_GLOBAL_CONFIG_FILE="$sandbox/config/global.toml" \
-    MISE_GLOBAL_CONFIG_ROOT="$sandbox/home" \
-    MISE_SYSTEM_CONFIG_DIR="$sandbox/system-config" \
-    MISE_TMP_DIR="$sandbox/tmp" \
-    MISE_GITHUB_GH_CLI_TOKENS=false \
-    MISE_GITHUB_USE_GIT_CREDENTIALS=false \
-    "<caminho-absoluto-do-mise>" --no-config "$@"
+```json
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "repo-zip",
+      "impact": "minor",
+      "breaking": true,
+      "summary": "Reserve --version for product version"
+    }
+  ]
 }
-
-mise_sandbox install github:matheusvcouto/cli-tools@<versão>
-mise_sandbox exec github:matheusvcouto/cli-tools@<versão> -- \
-  ai-profile --version
-mise_sandbox exec github:matheusvcouto/cli-tools@<versão> -- \
-  repo-zip --version
 ```
 
-Listar e remover o sandbox regenerável somente depois da validação. Esse
-procedimento não deve ler nem alterar a configuração mise real do usuário.
+Componentes válidos são `module` e cada tool com `tool.json`. Impactos: `none`, `patch`, `minor`, `major`; `none` exige justificativa. Produto >=1.0 com breaking change exige `major`.
 
-## Proveniência
+Em PR, CI compara os caminhos alterados com os records: mudança em `cli/` exige impacto de `module` **e** dos tools consumidores; mudança específica exige o produto correspondente.
 
-Em repositório público, o workflow de release gera GitHub Artifact Attestation/SLSA provenance para todos os archives listados em `SHA256SUMS`. Em repositório privado comum essa etapa é ignorada para não depender de um recurso que pode exigir Enterprise Cloud. Checksums continuam obrigatórios em todos os casos.
+Validação manual:
+
+```sh
+go run ./tools/release changes validate
+go run ./tools/release contracts check
+go run ./tools/release api check
+```
+
+`api check` protege a API Go pública de `cli/`. Adições são compatíveis, mas precisam ser gravadas no lock com `api write` para também ficarem protegidas nas releases seguintes. Remoção/mudança de assinatura existente é breaking; `api write --allow-breaking` só deve ser usado durante uma mudança major deliberada.
+
+`contracts check` regenera os contratos em HOME/XDG/TMP sintéticos, com rede e
+VCS de módulos desabilitados, e falha se algum `cli.contract.json` estiver fora
+de sincronia. O CI executa esse gate independentemente do preparo da release.
+
+Em checkout Git, também é possível validar cobertura:
+
+```sh
+go run ./tools/release changes validate --base <sha> --head <sha>
+```
+
+## Preparar a release
+
+O prepare é preview por padrão:
+
+```sh
+go run ./tools/release prepare --suite-version 0.2.0
+```
+
+Ele lê o último release do `CHANGELOG.md`, change records e `tool.json`; calcula bump da suíte e de cada produto e recusa versão pedida incompatível.
+
+Somente após revisar o preview:
+
+```sh
+go run ./tools/release prepare --suite-version 0.2.0 --write
+```
+
+O modo write atualiza manifests/changelogs, regenera `cli.contract.json` e arquiva records consumidos sob `changes/archive/<suite-version>/`. Antes de mutar, o tooling snapshotta todos os arquivos envolvidos; qualquer erro retornado durante a operação dispara rollback do conjunto, além das escritas individuais permanecerem atômicas. Isso protege contra falhas normais do comando, embora nenhum filesystem ofereça commit atômico multi-arquivo contra encerramento abrupto/power loss. O commit resultante deve passar todos os gates antes da tag.
+
+Nunca edite versões de `tool.json` manualmente como substituto desse fluxo.
+
+
+### Promoção para stable / v1
+
+A estabilidade do produto é parte do `tool.json`, mas a promoção não é feita por edição manual. Um change record pode declarar:
+
+```json
+{
+  "component": "repo-zip",
+  "impact": "major",
+  "breaking": true,
+  "summary": "Freeze the v1 product contract",
+  "stability": "stable"
+}
+```
+
+O tooling permite apenas progressão `experimental -> alpha -> beta -> stable`, nunca downgrade. Quando um produto cruza de `<1.0.0` para `1.x`, `stability: "stable"` é obrigatório e aparece no preview de `release prepare`. O componente `module` não aceita `stability`; a estabilidade da API Go do módulo é representada pelo próprio SemVer e pelo `cli/api.contract.json`.
+
+## Criar a tag
+
+A tag estável usa exatamente `vX.Y.Z`, nunca é movida/reutilizada, e deve apontar para o commit **já preparado** e verde:
+
+```sh
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+O workflow valida Linux/macOS e só então publica.
+
+## Build de artifacts
+
+O workflow executa, conceitualmente:
+
+```sh
+go run ./tools/release build \
+  --version v0.2.0 \
+  --changelog CHANGELOG.md \
+  --notes-out /tmp/release-notes.md \
+  --out dist
+```
+
+O alias legado sem `build` continua aceito pelo tooling. Release builds usam `CGO_ENABLED=0`; race é gate separado.
+
+Cada archive contém todos os executáveis descobertos em `cmd/*`. A versão da suíte é injetada por linker em `internal/version.SuiteVersion`; a versão individual vem do `tool.json` embutido.
+
+Completions e man pages **não são empacotadas nos artifacts desta fase**. Essa conveniência de distribuição foi deliberadamente adiada: `completion generate/install` continua sendo o caminho canônico para integrações de shell, e referências/man pages continuam derivadas deterministicamente do mesmo grafo. Adicionar esses arquivos aos archives no futuro é mudança de packaging, não requisito do CLI Core.
+
+Smoke test exige para cada binário:
+
+```text
+<tool> --version             == <tool> <product-version>
+<tool> version --json       .suite_version == tag da release
+```
+
+`SHA256SUMS` é verificado com cwd em `dist/`. Output de build deve estar vazio; tooling não apaga recursivamente conteúdo fornecido pelo usuário.
+
+## Changelog e GitHub Release
+
+`release prepare --write` materializa a seção versionada em `CHANGELOG.md`. O builder recusa tag/formato/seção inválidos e extrai apenas a seção correspondente para a descrição da GitHub Release; notas automáticas não são a fonte canônica.
+
+## Targets e suporte
+
+Artifacts atuais: darwin/linux amd64+arm64. Cross-build de Windows em CI é compile-only e não muda o estado de suporte descrito em `docs/platforms.md`.
+
+## mise e proveniência
+
+Instalação mise deve ser validada em HOME/MISE_*/GH_CONFIG_DIR sintéticos, com discovery de config/tokens desabilitado. Repositório público recebe artifact attestation para archives listados em `SHA256SUMS`; checksums permanecem obrigatórios sempre.

@@ -5,77 +5,91 @@
 ```text
 cmd/<tool>/main.go
       ↓
-internal/<tool>/app.go       # parsing/UX
+internal/<tool>/cli/      # composição declarativa da superfície pública
       ↓
-internal/<tool>/service.go   # casos de uso e invariantes
+cli.Compile(App)          # grafo privado, validado e imutável
       ↓
-stdlib + capabilities pequenas quando a semântica muda por SO
+parser/runtime/help/completion/schema/contracts/docs
+      ↓
+internal/<tool>/...       # casos de uso e invariantes de domínio
+      ↓
+stdlib + capabilities específicas quando a semântica muda por SO
 ```
 
-A suite não possui framework de CLI próprio.
+`cli/` é o único pacote público deliberadamente compartilhado. O domínio não conhece shell, parser ou renderer; adapters de shell não conhecem regra de negócio.
 
-Decisões compartilhadas ficam no [`ADR.md`](../ADR.md). Decisões próprias de
-cada CLI ficam em [`cmd/ai-profile/ADR.md`](../cmd/ai-profile/ADR.md) e
-[`cmd/repo-zip/ADR.md`](../cmd/repo-zip/ADR.md), evitando misturar contratos
-independentes no registro da suíte.
+## CLI Core
+
+Cada executável declara uma única `cli.App` composta por `Command`, `Arg`, `Flag`, codecs tipados, constraints, capabilities e requirements. `cli.Compile` rejeita Specs ambíguas antes da execução e constrói uma vez os lookups usados por:
+
+- strict parse e partial parse pela mesma máquina de estados;
+- binding tipado, diagnostics e exit classes;
+- help, versão e doctor como comandos gerados no próprio grafo;
+- runtime, middleware, interaction e preflight;
+- completion shell-neutral;
+- Fish, Nushell, Bash, Zsh e PowerShell;
+- schema v1, contract lock v1, Markdown e man page.
+
+Comandos/flags/args possuem **stable IDs** distintos do texto visível. O namespace `__cli` é reservado a endpoints de máquina versionados.
 
 ## Estrutura
 
 ```text
-cmd/                  # binários distribuídos
+cli/                         # API pública + implementação do CLI Core
+cmd/<tool>/
+├── main.go                  # composition root
+├── tool.json                # versão individual do produto
+└── cli.contract.json        # lock derivado do contrato público
 internal/
-├── aiprofile/        # domínio ai-profile
-├── repozip/          # domínio repo-zip
-├── cliapp/           # render de erro + exit code mínimo
-├── filelock/         # lock cross-process específico de plataforma
-├── fscommit/         # replace confinado específico de plataforma
-├── safefs/           # operações confinadas a uma raiz
-└── version/          # metadata de build
-tools/                # tooling/migração; nunca release
-docs/                 # estado atual
-migration/            # trabalho transitório ainda aberto
+├── aiprofile/               # domínio ai-profile
+│   └── cli/                 # Spec/composição da CLI
+├── repozip/                 # domínio repo-zip
+│   └── cli/                 # Spec/composição da CLI
+├── filelock/                # primitive de plataforma focada
+├── fscommit/                # commit/replace confinado
+├── safefs/                  # operações confinadas a uma raiz
+└── version/                 # manifest/version metadata
+changes/                     # change records pendentes
+plans/                       # planos ativos
+scripts/                     # gates herméticos
+tools/                       # tooling interno, inclusive release
+docs/                        # documentação do estado implementado
 ```
+
+Não existe mais `internal/cliapp` nem árvore manual paralela de help/completion.
+
+## Runtime e lazy initialization
+
+O composition root passa `context.Context` e stdio explicitamente. `cli.SignalContext` é chamado explicitamente pelo entrypoint e encapsula os sinais suportados por plataforma (SIGINT e, em Unix, SIGTERM); o pacote `cli` não lê `os.Args` nem chama `os.Exit`.
+
+Dependências de domínio podem usar `cli.Lazy[T]`. Help, versão, schema, contract e completion gerada não devem abrir HOME/store nem executar probes de domínio. Capability/requirement é verificada antes do handler.
+
+## Completion
+
+```text
+argv + cursor
+   ↓
+partial parse
+   ↓
+completion planner neutro
+   ↓
+CompletionResult protocol v1
+   ↓
+adapter Fish/Nu/Bash/Zsh/PowerShell
+```
+
+O protocolo usa offsets em Unicode scalars, candidatos estruturados e limite de candidatos; coordenadas fora do argv/token são rejeitadas. Scripts instalados carregam somente o nome da ferramenta e o adapter do protocolo: comandos, aliases, flags, choices, disponibilidade e completers vêm sempre do planner em runtime, portanto mudar a Spec não deixa metadata shell desatualizada. Completers podem ler valores anteriores por stable ID com `CompletionValueAs`/`CompletionValuesAs`; valores `Sensitive` são omitidos. Cada adapter deriva o prefixo do mecanismo de cursor nativo do shell, inclusive completion no meio da linha. `completion install [shell]` grava somente no diretório de integração do shell; sem `shell`, faz preflight de todos os targets e aplica com rollback. Nunca edita silenciosamente `.bashrc`, `.zshrc`, `config.nu` ou profiles do PowerShell.
+
+## Contrato e versionamento
+
+Há três versões independentes:
+
+1. tag `vX.Y.Z`: módulo/suíte e API pública de `cli/`;
+2. `cmd/<tool>/tool.json`: produto individual;
+3. inteiros de schema/contract/completion protocol.
+
+`cmd/<tool>/cli.contract.json` é gerado do mesmo grafo e testado byte a byte. Mudanças recebem registros em `changes/*.json`; `tools/release prepare` calcula os bumps e materializa a release.
 
 ## Compartilhamento
 
-Extraia código somente quando duas partes precisam da **mesma semântica/invariante**.
-
-Compartilhamentos atuais:
-
-- `cliapp`: erro/exit mínimos;
-- `safefs`: “esta operação não pode escapar desta raiz”;
-- `filelock`: exclusão mútua do store;
-- `fscommit`: replace do store/settings dentro de uma raiz já aberta;
-- `version`: versão injetada no build.
-
-Não criar `utils`, `helpers`, `common`, `shared` ou parser genérico de comandos.
-
-## Plataforma
-
-Código portátil permanece único. Hoje `archive/zip`, Git orchestration, naming e parsing não têm backend por SO. O modo `repo-zip --git` delega serialização do histórico ao próprio `git bundle`, em vez de interpretar/copiar internals de `.git`; isso mantém a mesma lógica para repositório principal e linked worktree.
-
-Separação nativa existe somente para:
-
-- lock de arquivo;
-- replace atômico do store/settings;
-- process replacement do `ai-profile`;
-- publicação final do `repo-zip`.
-
-Uma plataforma pode compilar com stub explícito sem ser considerada suportada.
-
-## Shell
-
-O shell não faz parte da arquitetura. `argv`, environment e stdio chegam diretamente ao binário.
-
-Completions são adapters opcionais gerados pelo próprio `ai-profile` e consultam endpoints internos machine-readable; não leem o store diretamente.
-
-## Novas CLIs
-
-Comece com:
-
-```text
-cmd/<nome>/main.go
-internal/<nome>/...
-```
-
-Uma nova CLI em `cmd/*` deve ser descoberta automaticamente por CI/release. Compartilhamento só é extraído depois de necessidade real.
+Extraia código apenas quando existe a mesma semântica/invariante. Não criar `utils`, `helpers`, `common` ou `shared` genéricos. Plataforma fica em packages focados; não criar um `cli/platform` que absorva invariantes de filesystem/processo do domínio.

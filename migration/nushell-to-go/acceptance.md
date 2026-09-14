@@ -29,7 +29,7 @@ Evidência detalhada da última execução local: [`validation.md`](validation.m
 - [x] ACP sem output do wrapper;
 - [x] context isolation atual: Codex profile-native `AGENTS*`, Claude profile-native `CLAUDE.md`/rules + cwd de projeto;
 - [x] statusline merge;
-- [x] Bash/Fish/Zsh completion;
+- [x] Fish/Nushell 0.114+/Bash/Zsh/PowerShell completion;
 - [x] nenhum teste usa CLI/credencial real;
 - [x] macOS CI real verde.
 

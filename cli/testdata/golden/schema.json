@@ -1,0 +1,320 @@
+{
+  "schema_version": 1,
+  "app_id": "golden",
+  "name": "golden-cli",
+  "product_version": "1.2.3",
+  "root": {
+    "id": "root",
+    "name": "golden-cli",
+    "flags": [
+      {
+        "id": "verbose",
+        "long": "verbose",
+        "summary": "increase verbosity",
+        "short": "v",
+        "type": "int",
+        "action": "count",
+        "global": true
+      }
+    ],
+    "option_policy": "interspersed",
+    "commands": [
+      {
+        "id": "cli.builtin.completion",
+        "name": "completion",
+        "summary": "manage generated shell completions",
+        "option_policy": "interspersed",
+        "commands": [
+          {
+            "id": "cli.builtin.completion.doctor",
+            "name": "doctor",
+            "summary": "diagnose completion installation",
+            "args": [
+              {
+                "id": "cli.builtin.completion.doctor.shell",
+                "name": "shell",
+                "summary": "target shell; omit to check all",
+                "type": "enum",
+                "hint": "enum",
+                "max": 1,
+                "choices": [
+                  {
+                    "Value": "fish",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "nushell",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "bash",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "zsh",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "powershell",
+                    "Description": ""
+                  }
+                ]
+              }
+            ],
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "cli.builtin.completion.generate",
+            "name": "generate",
+            "summary": "generate completion code",
+            "args": [
+              {
+                "id": "cli.builtin.completion.generate.shell",
+                "name": "shell",
+                "summary": "target shell",
+                "type": "enum",
+                "hint": "enum",
+                "required": true,
+                "min": 1,
+                "max": 1,
+                "choices": [
+                  {
+                    "Value": "fish",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "nushell",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "bash",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "zsh",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "powershell",
+                    "Description": ""
+                  }
+                ]
+              }
+            ],
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "cli.builtin.completion.install",
+            "name": "install",
+            "summary": "install generated completion",
+            "args": [
+              {
+                "id": "cli.builtin.completion.install.shell",
+                "name": "shell",
+                "summary": "target shell; omit to install all",
+                "type": "enum",
+                "hint": "enum",
+                "max": 1,
+                "choices": [
+                  {
+                    "Value": "fish",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "nushell",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "bash",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "zsh",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "powershell",
+                    "Description": ""
+                  }
+                ]
+              }
+            ],
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "cli.builtin.completion.list",
+            "name": "list",
+            "summary": "list supported shells",
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "cli.builtin.completion.status",
+            "name": "status",
+            "summary": "show completion installation status",
+            "args": [
+              {
+                "id": "cli.builtin.completion.status.shell",
+                "name": "shell",
+                "summary": "target shell; omit to show all",
+                "type": "enum",
+                "hint": "enum",
+                "max": 1,
+                "choices": [
+                  {
+                    "Value": "fish",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "nushell",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "bash",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "zsh",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "powershell",
+                    "Description": ""
+                  }
+                ]
+              }
+            ],
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "cli.builtin.completion.uninstall",
+            "name": "uninstall",
+            "summary": "uninstall generated completion",
+            "args": [
+              {
+                "id": "cli.builtin.completion.uninstall.shell",
+                "name": "shell",
+                "summary": "target shell; omit to uninstall all",
+                "type": "enum",
+                "hint": "enum",
+                "max": 1,
+                "choices": [
+                  {
+                    "Value": "fish",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "nushell",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "bash",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "zsh",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "powershell",
+                    "Description": ""
+                  }
+                ]
+              }
+            ],
+            "option_policy": "interspersed"
+          }
+        ]
+      },
+      {
+        "id": "cli.builtin.help",
+        "name": "help",
+        "summary": "show help for a command",
+        "args": [
+          {
+            "id": "cli.builtin.help.path",
+            "name": "command",
+            "type": "string",
+            "mode": "variadic",
+            "max": -1
+          }
+        ],
+        "option_policy": "interspersed"
+      },
+      {
+        "id": "serve",
+        "name": "serve",
+        "aliases": [
+          "s"
+        ],
+        "summary": "serve a target",
+        "description": "Serve one target using the selected format.",
+        "args": [
+          {
+            "id": "serve.target",
+            "name": "target",
+            "summary": "target name",
+            "type": "enum",
+            "hint": "enum",
+            "required": true,
+            "min": 1,
+            "max": 1,
+            "choices": [
+              {
+                "Value": "alpha",
+                "Description": "first target"
+              },
+              {
+                "Value": "two words",
+                "Description": "spaced target"
+              }
+            ]
+          }
+        ],
+        "flags": [
+          {
+            "id": "serve.format",
+            "long": "format",
+            "summary": "output format",
+            "short": "f",
+            "type": "enum",
+            "hint": "enum",
+            "action": "set",
+            "defaults": [
+              "text"
+            ],
+            "choices": [
+              {
+                "Value": "json",
+                "Description": ""
+              },
+              {
+                "Value": "text",
+                "Description": ""
+              }
+            ]
+          }
+        ],
+        "option_policy": "interspersed"
+      },
+      {
+        "id": "cli.builtin.version",
+        "name": "version",
+        "summary": "show product and build version information",
+        "flags": [
+          {
+            "id": "cli.builtin.version.json",
+            "long": "json",
+            "summary": "emit structured version information",
+            "type": "bool",
+            "action": "switch"
+          }
+        ],
+        "outputs": [
+          "human",
+          "json"
+        ],
+        "option_policy": "interspersed"
+      }
+    ]
+  }
+}

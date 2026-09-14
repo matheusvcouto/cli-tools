@@ -27,9 +27,49 @@ jobs:
       - run: go vet ./...
       - run: go test -shuffle=on -count=3 ./...
       - run: go test -race ./...
+      - name: Verify public Go API compatibility lock
+        run: go run ./tools/release api check
+      - name: Verify CLI contract locks
+        run: go run ./tools/release contracts check
+
+  native-shell-completion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27.1'
+          check-latest: false
+      - name: Install Fish and Zsh test shells
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fish zsh
+      - name: Install pinned Nushell test binary
+        shell: bash
+        env:
+          NU_VERSION: '0.114.1'
+          NU_SHA256: 'ce3a1c5a07c784098b5675224a165e73a45f0f720a8392791d7c3a5b4720255e'
+        run: |
+          set -euo pipefail
+          asset="nu-${NU_VERSION}-x86_64-unknown-linux-musl.tar.gz"
+          url="https://github.com/nushell/nushell/releases/download/${NU_VERSION}/${asset}"
+          curl --fail --location --proto '=https' --tlsv1.2 --output "/tmp/${asset}" "$url"
+          printf '%s  %s\n' "$NU_SHA256" "/tmp/${asset}" | sha256sum -c -
+          tar -xzf "/tmp/${asset}" -C /tmp
+          install -m 0755 "/tmp/nu-${NU_VERSION}-x86_64-unknown-linux-musl/nu" /usr/local/bin/nu
+      - name: Verify native shell completion behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          for shell in bash fish nu zsh pwsh; do
+            command -v "$shell"
+          done
+          go test ./cli -count=1 -v -run 'Test(BashAdapterSyntaxAndNULTransport|FishNativeCompletionBehaviorWhereAvailable|NushellNativeCompletionBehaviorWhereAvailable|ZshNativeCompletionBehaviorWhereAvailable|PowerShellNativeCompletionBehaviorWhereAvailable|NativeShellSyntaxWhereAvailable)$'
 
   publish:
-    needs: verify
+    needs: [verify, native-shell-completion]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -64,7 +104,10 @@ jobs:
           for binary in "$tmp"/bin/*; do
             test -f "$binary"
             test -x "$binary"
-            test "$("$binary" --version)" = "$version"
+            name="$(basename "$binary")"
+            product_version="$(jq -r .version "cmd/$name/tool.json")"
+            test "$("$binary" --version)" = "$name $product_version"
+            test "$("$binary" version --json | jq -r .suite_version)" = "$version"
             count=$((count + 1))
           done
           test "$count" -gt 0

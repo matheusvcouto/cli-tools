@@ -1,7 +1,6 @@
 package aiprofile
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -474,96 +473,6 @@ func TestACPUsesSameIsolationAsRun(t *testing.T) {
 	}
 }
 
-func TestACPUsesAdapterAndNoWrapperOutput(t *testing.T) {
-	s, r := testService(t)
-	if _, err := s.Create("claude", "p"); err != nil {
-		t.Fatal(err)
-	}
-	var out, errOut bytes.Buffer
-	app := App{Service: s, Version: "test"}
-	err := app.Run(context.Background(), []string{"claude", "acp", "p", "--flag"}, AppIO{In: strings.NewReader(""), Out: &out, Err: &errOut})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if out.Len() != 0 {
-		t.Fatalf("wrapper contaminated ACP stdout: %q", out.String())
-	}
-	if errOut.Len() != 0 {
-		t.Fatalf("unexpected ACP stderr: %q", errOut.String())
-	}
-	if r.binary != "claude-agent-acp" || strings.Join(r.args, "|") != "--flag" {
-		t.Fatalf("bad ACP call: %s %#v", r.binary, r.args)
-	}
-}
-
-func TestApplyStatuslinePreservesOtherSettings(t *testing.T) {
-	s, _ := testService(t)
-	p, err := s.Create("claude", "p")
-	if err != nil {
-		t.Fatal(err)
-	}
-	settings := []byte(`{"model":"example","theme":"dark","statusLine":{"old":true}}`)
-	if err := os.WriteFile(filepath.Join(p.Dir, "settings.json"), settings, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := s.ApplyStatusline("claude", "p", "default"); err != nil {
-		t.Fatal(err)
-	}
-	var got map[string]any
-	raw, err := os.ReadFile(filepath.Join(p.Dir, "settings.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := jsonUnmarshal(raw, &got); err != nil {
-		t.Fatal(err)
-	}
-	if got["model"] != "example" || got["theme"] != "dark" {
-		t.Fatalf("settings lost: %#v", got)
-	}
-	status, ok := got["statusLine"].(map[string]any)
-	if !ok || status["type"] != "command" {
-		t.Fatalf("bad statusLine: %#v", got["statusLine"])
-	}
-}
-
-func TestDeleteRequiresBothConfirmations(t *testing.T) {
-	s, _ := testService(t)
-	p, err := s.Create("claude", "profile")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := s.ConfirmDelete(strings.NewReader("wrong\ny\n"), ioDiscard{}, p); err == nil {
-		t.Fatal("expected first confirmation failure")
-	}
-	if err := s.ConfirmDelete(strings.NewReader("profile\nn\n"), ioDiscard{}, p); err == nil {
-		t.Fatal("expected final confirmation cancellation")
-	}
-	if err := s.ConfirmDelete(strings.NewReader("profile\nyes\n"), ioDiscard{}, p); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestListJSONStableAndSorted(t *testing.T) {
-	s, _ := testService(t)
-	if _, err := s.Create("claude", "z"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := s.Create("claude", "a"); err != nil {
-		t.Fatal(err)
-	}
-	var out bytes.Buffer
-	app := App{Service: s, Version: "test"}
-	if err := app.Run(context.Background(), []string{"claude", "list", "--json"}, AppIO{Out: &out}); err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(out.String(), `"profile": "a"`) {
-		t.Fatalf("missing JSON: %s", out.String())
-	}
-	if strings.Index(out.String(), `"profile": "a"`) > strings.Index(out.String(), `"profile": "z"`) {
-		t.Fatalf("not sorted: %s", out.String())
-	}
-}
-
 func envMap(items []string) map[string]string {
 	m := map[string]string{}
 	for _, item := range items {
@@ -577,8 +486,6 @@ func envMap(items []string) map[string]string {
 type ioDiscard struct{}
 
 func (ioDiscard) Write(p []byte) (int, error) { return len(p), nil }
-
-func jsonUnmarshal(raw []byte, v any) error { return json.Unmarshal(raw, v) }
 
 func TestStoreRejectsSymlinkIndex(t *testing.T) {
 	s, _ := testService(t)
@@ -645,29 +552,6 @@ func TestStoreRejectsSymlinkBackup(t *testing.T) {
 	}
 }
 
-func TestApplyStatuslineRejectsSymlinkSettings(t *testing.T) {
-	s, _ := testService(t)
-	p, err := s.Create("claude", "p")
-	if err != nil {
-		t.Fatal(err)
-	}
-	external := filepath.Join(t.TempDir(), "external-settings.json")
-	original := []byte(`{"sentinel":true}`)
-	if err := os.WriteFile(external, original, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Symlink(external, filepath.Join(p.Dir, "settings.json")); err != nil {
-		t.Fatal(err)
-	}
-	if err := s.ApplyStatusline("claude", "p", "default"); err == nil {
-		t.Fatal("expected symlink settings rejection")
-	}
-	raw, _ := os.ReadFile(external)
-	if !bytes.Equal(raw, original) {
-		t.Fatalf("external settings changed: %s", raw)
-	}
-}
-
 func TestRunRejectsProfileDirectoryReplacedBySymlink(t *testing.T) {
 	s, r := testService(t)
 	p, err := s.Create("codex", "p")
@@ -717,32 +601,5 @@ func TestDeleteRollsBackDirectoryWhenStoreCommitFails(t *testing.T) {
 	}
 	if len(profiles) != 1 || profiles[0].Alias != "p" {
 		t.Fatalf("profile index changed despite failed delete: %+v", profiles)
-	}
-}
-
-func TestCompletionScriptsExposeExpectedDynamicSources(t *testing.T) {
-	for _, shell := range []string{"bash", "fish", "zsh"} {
-		script, err := completionScript(shell)
-		if err != nil {
-			t.Fatalf("completion %s: %v", shell, err)
-		}
-		for _, want := range []string{"__complete tools", "__complete actions", "__complete profiles", "__complete templates"} {
-			if !strings.Contains(script, want) {
-				t.Fatalf("%s completion missing %q", shell, want)
-			}
-		}
-	}
-	if _, err := completionScript("unsupported"); err == nil {
-		t.Fatal("unsupported shell should fail")
-	}
-}
-
-func TestApplyStatuslineRejectsCodex(t *testing.T) {
-	s, _ := testService(t)
-	if _, err := s.Create("codex", "p"); err != nil {
-		t.Fatal(err)
-	}
-	if err := s.ApplyStatusline("codex", "p", "default"); err == nil || !strings.Contains(err.Error(), "Claude") {
-		t.Fatalf("expected Claude-only error, got %v", err)
 	}
 }

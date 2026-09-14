@@ -18,7 +18,7 @@ O objetivo não é copiar a aparência antiga; é preservar capacidades e dados 
 | passthrough argv | implementado | tests |
 | Codex profile-native AGENTS | `CODEX_HOME/AGENTS.override.md` ou `AGENTS.md`; sem herança do default | tests + E2E |
 | statusline Claude-only | built-in + custom dir | tests |
-| shell completion | Bash/Fish/Zsh | generation tests |
+| shell completion | Fish/Nushell 0.114+/Bash/Zsh/PowerShell | generation + native conditional tests |
 | schema legado | conversor transitório | tests |
 | Windows | parcial/compile-only | cross-build |
 
@@ -36,7 +36,7 @@ Rename nunca move o diretório físico.
 - mensagens/help/tabelas são UX nova;
 - timestamps novos usam RFC3339 UTC;
 - store final é JSON versionado;
-- completions não dependem de Nushell;
+- o runtime não depende de Nushell; a completion Nushell opcional requer Nu 0.114+;
 - implementação Go pode ser chamada por qualquer shell/processo;
 - context discovery nativo é preservado via cwd; profiles não copiam guidance do profile default;
 - diretório físico novo continua opaco, sem obrigação de reproduzir formato histórico do ID.

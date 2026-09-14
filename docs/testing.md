@@ -2,82 +2,75 @@
 
 ## Regra central
 
-Nenhum teste usa estado real do usuário.
+Nenhum teste usa estado real do usuário. HOME/USERPROFILE/XDG/TMP/caches são sintéticos; Git real somente em repo temporário; Claude/Codex/ACP reais, credentials e config Git global/sistema são proibidos.
 
-- `t.TempDir()` para profiles/repos/outputs;
-- HOME/USERPROFILE/XDG/TMP e caches Go redirecionados;
-- secrets, SSH agent, editors, GOFLAGS e overrides Git do usuário não são copiados para subprocessos de teste;
-- Git system/global config, templates e hooks do usuário são desabilitados;
-- Claude/Codex/ACP reais nunca são executados;
-- subprocess tests usam executáveis/processos sintéticos;
-- Git real roda somente em repositório temporário criado pelo teste;
-- Go usa `GOTOOLCHAIN=local`, `GOPROXY=off` e `GOVCS=*:off`: sem rede nem download automático.
+## CLI Core
 
-## Camadas
+A suíte cobre:
 
-### Unit/domain
+- compiler invariants e stable IDs;
+- strict/partial parse pela mesma máquina;
+- codecs, constraints, diagnostics e help;
+- lazy initialization, capability/requirement e interaction;
+- protocol completion v1, Unicode, NUL safety e limite de candidatos;
+- conformance dos cinco adapters;
+- install/uninstall/status/doctor apenas em HOME/XDG temporários;
+- schema/contract diff e locks;
+- goldens de help, schema, contract, Fish/Nu/Bash/Zsh/PowerShell, Markdown e man;
+- fuzz de parser/protocolo;
+- benchmarks de compile, parse, completion, help e schema/contract.
 
-Parsing, schema, naming, environment, store, archive e guards.
-
-### Processos
-
-O runner Unix substitui um processo de teste por outro processo de teste, provando `exec` e exit status sem chamar ferramentas do usuário.
-
-### Git integration
-
-Cobrir tracked/untracked/ignored, symlink, submodule/gitlink, skip-worktree, dirty state e mudança durante snapshot. Para `--git`, cobrir também linked worktree real, bundle verificável/restaurável, mudança de refs durante o snapshot, namespace `.repo-zip/` reservado e ausência de `.git` bruto no archive.
-
-### Filesystem adversarial
-
-Cobrir symlink em store/lock/backup/settings/profile/output, parent symlink durante criação de diretório, no-clobber, force replace, rollback e escapes.
-
-Regressões de CLI incluem `repo-zip .` executado com cwd no próprio repo e comandos estáticos do `ai-profile` sem HOME/store.
-
-### Fuzz
-
-Fuzz tests focam superfícies pequenas expostas a entrada não confiável: alias, suffix/ZIP verification e o parser NUON transitório. Os seeds rodam em todo `go test`; sessões fuzz contínuas não fazem parte do gate padrão para manter CI determinística. Para smoke manual limitado e sandboxed (executado em cópia temporária do source, para que um crasher não grave `testdata/fuzz` no checkout):
+Regenerar goldens é deliberado:
 
 ```sh
-mise run fuzz-smoke
-# ou
+go test ./cli -run TestGeneratedArtifactsGolden -args -update-golden
+```
+
+Inspecione o diff antes de aceitar.
+
+## Shell E2E
+
+A conformance roda sempre. Testes nativos executam o adapter quando o shell existe no runner e fazem skip explícito caso contrário. O CI possui um job dedicado que disponibiliza Bash, Fish, Nushell, Zsh e PowerShell e executa probes comportamentais de todos os adapters; Nushell é fixado e validado por SHA-256. Localmente, shells ausentes continuam sendo skip explícito. Não chamar cross-build ou comparação de strings de “native E2E”.
+
+## Domínio/processos/Git/filesystem
+
+Mantêm as camadas existentes: runner sintético para subprocessos, repos Git temporários, adversarial filesystem/symlink, rollback/no-clobber e E2E externo com executáveis falsos. `ai-profile delete` também prova que input não interativo falha antes da mutação.
+
+## Fuzz
+
+Seeds rodam no teste normal. Smoke limitado e hermético:
+
+```sh
 ./scripts/check-safe.sh fuzz
 ```
 
-## E2E
+Crashers nunca devem ser gravados em estado real do usuário.
 
-`integration/e2e_unix_test.go` compila os dois binários e valida o caminho externo completo usando apenas HOME/profile root/repositório Git temporários e executáveis `codex`/`codex-acp` falsos. Nenhum teste chama contas, credentials ou CLIs reais.
+## Gates
 
-## Gates locais/CI
-
-No computador do usuário, use:
+Preferência para o runner sandboxed:
 
 ```sh
+./scripts/check-safe.sh fmt
+./scripts/check-safe.sh test
+./scripts/check-safe.sh vet
+./scripts/check-safe.sh shuffle
+./scripts/check-safe.sh race
+./scripts/check-safe.sh fuzz
+# ou tudo:
 ./scripts/check-safe.sh all
 ```
 
-`mise run check` executa a mesma task e continua disponível como conveniência
-interativa. Para uma auditoria de isolamento, agentes usam o script diretamente:
-o mise pode fazer discovery/resolução de configuração global antes de iniciar a
-task, mesmo quando o processo Go chamado depois está isolado.
+Ele usa ambiente mínimo, caches temporários, `GOTOOLCHAIN=local`, `GOPROXY=off` e `GOVCS=*:off`. `mise run check` é conveniência, mas não substitui o runner quando é necessário provar isolamento.
 
-O runner cria um diretório temporário exclusivo e executa format check, testes, vet, shuffle e race com ambiente mínimo. Ele só preserva `PATH` para localizar as toolchains instaladas. Ao terminar, remove apenas o diretório retornado por `mktemp`, com validação de prefixo antes do `rm -rf`.
+Se algum gate exceder a janela do runner ou não puder ser executado, registrar como inconclusivo/não executado.
 
-### Git e streams no macOS
+## CI e plataforma
 
-Sob um ambiente mínimo, `/usr/bin/git` no macOS pode acionar o shim do Xcode e
-emitir diagnósticos enquanto localiza as Command Line Tools. O runner seguro
-prioriza `/Library/Developer/CommandLineTools/usr/bin/git` quando esse binário
-real existe, sem alterar o PATH global.
+CI Linux/macOS executa format, test, vet, shuffle e race. Cross-build Windows continua compile-only. Tests de shell adicionais rodam automaticamente quando o shell está instalado no runner. Suporte de runtime só é promovido com evidência nativa.
 
-Isso não substitui a separação correta de streams. Helpers e código que esperam
-stdout estruturado de Git — hash, ref, lista NUL-delimited ou status — devem
-capturar stdout e stderr separadamente. `CombinedOutput` serve para diagnóstico
-de falha, não como entrada de parser: um warning legítimo em stderr não pode se
-tornar parte de um hash válido.
+## Contract locks
 
-`go test ./...` direto continua usando dados sintéticos dentro dos testes, mas o próprio comando Go pode usar os caches/configuração normais da sua conta. Por isso o runner sandboxed é a opção recomendada.
-
-O projeto fixa Go 1.27.1 em `mise.toml`; o runner exige que a toolchain adequada
-já esteja no PATH e impede download automático com `GOTOOLCHAIN=local`.
-
-Cross-build é compile-only. O workflow de release repete testes nativos em Linux e macOS antes da publicação.
+`go run ./tools/release contracts check` é um gate dedicado: gera cada contrato
+por `__cli contract` em ambiente sintético/offline e compara byte a byte com o
+lock versionado. Drift não é corrigido silenciosamente pelo CI.

@@ -1,0 +1,324 @@
+{
+  "contract_version": 1,
+  "schema_version": 1,
+  "completion_protocol": 1,
+  "app_id": "repo-zip",
+  "name": "repo-zip",
+  "root": {
+    "id": "repozip.root",
+    "name": "repo-zip",
+    "args": [
+      {
+        "id": "repozip.source",
+        "name": "source",
+        "summary": "repository directory",
+        "type": "directory",
+        "hint": "directory",
+        "max": 1
+      }
+    ],
+    "flags": [
+      {
+        "id": "repozip.force",
+        "long": "force",
+        "summary": "atomically replace an existing regular output file",
+        "short": "f",
+        "type": "bool",
+        "action": "switch"
+      },
+      {
+        "id": "repozip.git",
+        "long": "git",
+        "summary": "include restorable Git bundle and Git state in automatic name",
+        "type": "bool",
+        "action": "switch"
+      },
+      {
+        "id": "repozip.name",
+        "long": "name",
+        "summary": "base name for automatic output",
+        "short": "n",
+        "type": "string",
+        "action": "set"
+      },
+      {
+        "id": "repozip.output",
+        "long": "output",
+        "summary": "exact output path (.zip)",
+        "short": "o",
+        "type": "file",
+        "hint": "file",
+        "action": "set"
+      },
+      {
+        "id": "repozip.suffix",
+        "long": "suffix",
+        "summary": "append suffix to automatic name",
+        "short": "s",
+        "type": "string",
+        "action": "set"
+      }
+    ],
+    "constraints": [
+      {
+        "kind": "conflicts",
+        "ids": [
+          "repozip.output",
+          "repozip.name"
+        ],
+        "message": "use --output or --name, not both"
+      },
+      {
+        "kind": "conflicts",
+        "ids": [
+          "repozip.output",
+          "repozip.suffix"
+        ],
+        "message": "--output defines the exact filename; include any suffix in that path"
+      }
+    ],
+    "option_policy": "interspersed",
+    "commands": [
+      {
+        "id": "cli.builtin.completion",
+        "name": "completion",
+        "summary": "manage generated shell completions",
+        "option_policy": "interspersed",
+        "commands": [
+          {
+            "id": "cli.builtin.completion.doctor",
+            "name": "doctor",
+            "summary": "diagnose completion installation",
+            "args": [
+              {
+                "id": "cli.builtin.completion.doctor.shell",
+                "name": "shell",
+                "summary": "target shell; omit to check all",
+                "type": "enum",
+                "hint": "enum",
+                "max": 1,
+                "choices": [
+                  {
+                    "Value": "fish",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "nushell",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "bash",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "zsh",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "powershell",
+                    "Description": ""
+                  }
+                ]
+              }
+            ],
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "cli.builtin.completion.generate",
+            "name": "generate",
+            "summary": "generate completion code",
+            "args": [
+              {
+                "id": "cli.builtin.completion.generate.shell",
+                "name": "shell",
+                "summary": "target shell",
+                "type": "enum",
+                "hint": "enum",
+                "required": true,
+                "min": 1,
+                "max": 1,
+                "choices": [
+                  {
+                    "Value": "fish",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "nushell",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "bash",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "zsh",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "powershell",
+                    "Description": ""
+                  }
+                ]
+              }
+            ],
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "cli.builtin.completion.install",
+            "name": "install",
+            "summary": "install generated completion",
+            "args": [
+              {
+                "id": "cli.builtin.completion.install.shell",
+                "name": "shell",
+                "summary": "target shell; omit to install all",
+                "type": "enum",
+                "hint": "enum",
+                "max": 1,
+                "choices": [
+                  {
+                    "Value": "fish",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "nushell",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "bash",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "zsh",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "powershell",
+                    "Description": ""
+                  }
+                ]
+              }
+            ],
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "cli.builtin.completion.list",
+            "name": "list",
+            "summary": "list supported shells",
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "cli.builtin.completion.status",
+            "name": "status",
+            "summary": "show completion installation status",
+            "args": [
+              {
+                "id": "cli.builtin.completion.status.shell",
+                "name": "shell",
+                "summary": "target shell; omit to show all",
+                "type": "enum",
+                "hint": "enum",
+                "max": 1,
+                "choices": [
+                  {
+                    "Value": "fish",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "nushell",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "bash",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "zsh",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "powershell",
+                    "Description": ""
+                  }
+                ]
+              }
+            ],
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "cli.builtin.completion.uninstall",
+            "name": "uninstall",
+            "summary": "uninstall generated completion",
+            "args": [
+              {
+                "id": "cli.builtin.completion.uninstall.shell",
+                "name": "shell",
+                "summary": "target shell; omit to uninstall all",
+                "type": "enum",
+                "hint": "enum",
+                "max": 1,
+                "choices": [
+                  {
+                    "Value": "fish",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "nushell",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "bash",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "zsh",
+                    "Description": ""
+                  },
+                  {
+                    "Value": "powershell",
+                    "Description": ""
+                  }
+                ]
+              }
+            ],
+            "option_policy": "interspersed"
+          }
+        ]
+      },
+      {
+        "id": "cli.builtin.help",
+        "name": "help",
+        "summary": "show help for a command",
+        "args": [
+          {
+            "id": "cli.builtin.help.path",
+            "name": "command",
+            "type": "string",
+            "mode": "variadic",
+            "max": -1
+          }
+        ],
+        "option_policy": "interspersed"
+      },
+      {
+        "id": "cli.builtin.version",
+        "name": "version",
+        "summary": "show product and build version information",
+        "flags": [
+          {
+            "id": "cli.builtin.version.json",
+            "long": "json",
+            "summary": "emit structured version information",
+            "type": "bool",
+            "action": "switch"
+          }
+        ],
+        "outputs": [
+          "human",
+          "json"
+        ],
+        "option_policy": "interspersed"
+      }
+    ]
+  }
+}

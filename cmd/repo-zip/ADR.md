@@ -43,3 +43,10 @@ reutilizar a grafia de um ancestral real fornecido pelo chamador somente quando
 `os.SameFile` comprova a identidade e o ancestral final não é symlink. Guards
 de containment continuam baseados em paths relativos e APIs confinadas, nunca
 em prefixo textual.
+
+## RZ007 — `--version` é versão do produto; sufixo é `--suffix` — Accepted
+
+O antigo uso `-v/--version TEXT` para sufixo foi removido deliberadamente.
+`--version` pertence ao contrato comum do CLI Core e mostra a versão individual
+do produto; nomeação de archive usa apenas `--suffix`. A quebra é registrada no
+contract/change record.

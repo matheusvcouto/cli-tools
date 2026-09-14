@@ -60,14 +60,21 @@ exit status pertencem ao processo final. Em ACP, o wrapper não escreve em
 stdout porque o stream é reservado ao protocolo. Plataforma sem primitiva
 equivalente segura retorna erro explícito.
 
-## AP006 — Statusline é mutação Claude-only e confinada — Accepted
+## AP006 — Statusline integrada foi retirada da superfície ativa — Retired
 
-`apply-statusline` aceita somente profiles Claude, mescla apenas `statusLine`
-em `settings.json`, preserva as demais chaves e usa commit dentro da safety
-root já validada do profile.
+`apply-statusline` não faz parte da CLI, do domínio nem dos artifacts ativos.
+A implementação anterior permanece somente na referência histórica da migração
+Nushell para eventual consulta; reintrodução futura exige nova decisão e testes.
 
 ## AP007 — Migração NUON é transitória — Accepted
 
 `tools/migrate-ai-profile-index` lê somente o schema legado necessário, nunca
 executa Nushell e não entra nos artifacts. Após o cutover autorizado, a
 ferramenta e os documentos da migração devem ser arquivados juntos.
+
+## AP008 — Superfície de CLI deriva do CLI Core — Accepted
+
+Comandos Claude/Codex, help, schema, contract e completions derivam de uma única
+Spec compilada. `run/acp` usam argumento trailing `opaque`, portanto opções do
+processo filho nunca são reinterpretadas pelo wrapper. Exclusão usa a policy de
+`Interaction` do core: stdin não interativo é recusado antes da mutação.

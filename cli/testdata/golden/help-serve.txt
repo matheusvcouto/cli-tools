@@ -1,0 +1,11 @@
+serve — serve a target
+
+Usage:
+  golden-cli serve <target> [options]
+
+Serve one target using the selected format.
+
+Options:
+  -f, --format <enum>      output format
+  -v, --verbose            increase verbosity
+  -h, --help               Show help

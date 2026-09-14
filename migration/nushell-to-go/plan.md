@@ -6,7 +6,7 @@ Monorepo Go, módulo único, `cmd/*` para binários e `internal/*` para domínio
 
 ## 2. Independência de shell — concluído
 
-Os binários recebem argv/env/stdio diretamente. Nenhuma regra de negócio executa ou parseia Nushell. Completions opcionais existem para Bash/Fish/Zsh.
+Os binários recebem argv/env/stdio diretamente. Nenhuma regra de negócio executa ou parseia Nushell. Completions opcionais existem para Fish/Nushell 0.114+/Bash/Zsh/PowerShell.
 
 ## 3. `ai-profile` — implementação concluída
 

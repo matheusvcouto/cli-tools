@@ -5,18 +5,37 @@ package integration
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
+	core "github.com/matheusvcouto/cli-tools/cli"
+	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
+	profilecli "github.com/matheusvcouto/cli-tools/internal/aiprofile/cli"
+	"github.com/matheusvcouto/cli-tools/internal/aiprofile/platform"
+	"github.com/matheusvcouto/cli-tools/internal/repozip"
+	repocli "github.com/matheusvcouto/cli-tools/internal/repozip/cli"
 	"github.com/matheusvcouto/cli-tools/internal/testenv"
 )
+
+func TestMain(m *testing.M) {
+	switch filepath.Base(os.Args[0]) {
+	case "ai-profile":
+		os.Exit(runAIProfileHelper(os.Args[1:]))
+	case "repo-zip":
+		os.Exit(runRepoZipHelper(os.Args[1:]))
+	case "codex", "codex-acp", "claude", "claude-agent-acp":
+		os.Exit(runFakeAIHelper())
+	default:
+		os.Exit(m.Run())
+	}
+}
 
 type fakeReport struct {
 	Executable              string   `json:"executable"`
@@ -51,16 +70,24 @@ type fakeReport struct {
 }
 
 func TestCLIEndToEndWithSyntheticState(t *testing.T) {
-	root := moduleRoot(t)
 	binDir := t.TempDir()
 	aiBin := filepath.Join(binDir, "ai-profile")
 	repoZipBin := filepath.Join(binDir, "repo-zip")
-	buildGo(t, root, aiBin, "./cmd/ai-profile")
-	buildGo(t, root, repoZipBin, "./cmd/repo-zip")
-	buildFakeAI(t, binDir)
+	installSelfAs(t, aiBin)
+	installSelfAs(t, repoZipBin)
+	for _, name := range []string{"codex", "codex-acp", "claude", "claude-agent-acp"} {
+		installSelfAs(t, filepath.Join(binDir, name))
+	}
 
 	sandbox := t.TempDir()
 	baseEnv := safeTestEnvAt(t, sandbox)
+	if testing.CoverMode() != "" {
+		coverDir := filepath.Join(sandbox, "cover")
+		if err := os.MkdirAll(coverDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		baseEnv = setEnv(baseEnv, "GOCOVERDIR", coverDir)
+	}
 	home := filepath.Join(sandbox, "home")
 	profileRoot := filepath.Join(home, "profiles")
 	if err := os.MkdirAll(filepath.Join(home, ".codex"), 0o755); err != nil {
@@ -385,102 +412,113 @@ func testRepoZipWorktreeBundleBinary(t *testing.T, repoZipBin string) {
 	git(t, env, worktree, "bundle", "verify", bundlePath)
 }
 
-func buildFakeAI(t *testing.T, binDir string) {
+func installSelfAs(t *testing.T, dst string) {
 	t.Helper()
-	srcDir := t.TempDir()
-	src := `package main
-import (
-  "encoding/json"
-  "os"
-  "path/filepath"
-  "strings"
-)
-func main() {
-  exe := filepath.Base(os.Args[0])
-  profileRoot := os.Getenv("CODEX_HOME")
-  profileFile := "AGENTS.md"
-  projectFile := "AGENTS.md"
-  if strings.HasPrefix(exe, "claude") {
-    profileRoot = os.Getenv("CLAUDE_CONFIG_DIR")
-    profileFile = "CLAUDE.md"
-    projectFile = "CLAUDE.md"
-  }
-  profileGuidance, _ := os.ReadFile(filepath.Join(profileRoot, profileFile))
-	activeAnthropicProfile, _ := os.ReadFile(filepath.Join(os.Getenv("ANTHROPIC_CONFIG_DIR"), "active_config"))
-  cwd, _ := os.Getwd()
-  projectGuidance, _ := os.ReadFile(filepath.Join(cwd, projectFile))
-  _ = json.NewEncoder(os.Stdout).Encode(map[string]any{
-    "executable": exe,
-    "args": os.Args[1:],
-    "codex_home": os.Getenv("CODEX_HOME"),
-    "claude_config_dir": os.Getenv("CLAUDE_CONFIG_DIR"),
-    "api_key": os.Getenv("OPENAI_API_KEY"),
-    "openai_base_url": os.Getenv("OPENAI_BASE_URL"),
-    "codex_api_key": os.Getenv("CODEX_API_KEY"),
-    "codex_access_token": os.Getenv("CODEX_ACCESS_TOKEN"),
-    "codex_sqlite_home": os.Getenv("CODEX_SQLITE_HOME"),
-	"openai_federation_rule_id": os.Getenv("OPENAI_FEDERATION_RULE_ID"),
-	"openai_identity_token_file": os.Getenv("OPENAI_IDENTITY_TOKEN_FILE"),
-	"openai_workload_identity_context": os.Getenv("OPENAI_WORKLOAD_IDENTITY_CONTEXT"),
-    "anthropic_api_key": os.Getenv("ANTHROPIC_API_KEY"),
-    "anthropic_auth_token": os.Getenv("ANTHROPIC_AUTH_TOKEN"),
-	"anthropic_config_dir": os.Getenv("ANTHROPIC_CONFIG_DIR"),
-	"anthropic_active_profile": string(activeAnthropicProfile),
-    "anthropic_profile": os.Getenv("ANTHROPIC_PROFILE"),
-	"anthropic_federation_rule_id": os.Getenv("ANTHROPIC_FEDERATION_RULE_ID"),
-	"anthropic_identity_token": os.Getenv("ANTHROPIC_IDENTITY_TOKEN"),
-	"anthropic_identity_token_file": os.Getenv("ANTHROPIC_IDENTITY_TOKEN_FILE"),
-	"anthropic_service_account_id": os.Getenv("ANTHROPIC_SERVICE_ACCOUNT_ID"),
-    "claude_use_bedrock": os.Getenv("CLAUDE_CODE_USE_BEDROCK"),
-    "foundry_auth_token": os.Getenv("ANTHROPIC_FOUNDRY_AUTH_TOKEN"),
-    "anthropic_custom_headers": os.Getenv("ANTHROPIC_CUSTOM_HEADERS"),
-    "secure_storage_dir": os.Getenv("CLAUDE_SECURESTORAGE_CONFIG_DIR"),
-    "plugin_cache_dir": os.Getenv("CLAUDE_CODE_PLUGIN_CACHE_DIR"),
-    "profile_guidance": string(profileGuidance),
-    "project_guidance": string(projectGuidance),
-    "cwd": cwd,
-  })
-  if strings.Contains(exe, "acp") { os.Exit(23) }
-  os.Exit(17)
-}`
-	if err := os.WriteFile(filepath.Join(srcDir, "main.go"), []byte(src), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	base := filepath.Join(binDir, "fake-ai")
-	cmd := exec.Command("go", "build", "-o", base, "main.go")
-	cmd.Dir = srcDir
-	cmd.Env = safeTestEnv(t)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("build fake AI: %v\n%s", err, out)
-	}
-	raw, err := os.ReadFile(base)
+	src, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"codex", "codex-acp", "claude", "claude-agent-acp"} {
-		if err := os.WriteFile(filepath.Join(binDir, name), raw, 0o755); err != nil {
-			t.Fatal(err)
+	if err := os.Link(src, dst); err == nil {
+		return
+	}
+	in, err := os.Open(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer in.Close()
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o755)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		_ = out.Close()
+		t.Fatal(err)
+	}
+	if err := out.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func runAIProfileHelper(args []string) int {
+	service := core.NewLazy(func() (*aiprofile.Service, error) {
+		root, err := aiprofile.DefaultRoot()
+		if err != nil {
+			return nil, err
 		}
+		return aiprofile.NewService(aiprofile.Store{Root: root}, platform.Runner{})
+	})
+	app, err := profilecli.New(service, aiprofile.ProcessIO{In: os.Stdin, Out: os.Stdout, Err: os.Stderr}, core.ProductMetadata{Version: "test", SuiteVersion: "test"})
+	if err == nil {
+		err = app.Run(context.Background(), args, core.IO{In: os.Stdin, Out: os.Stdout, Err: os.Stderr, Terminal: core.TerminalFromFiles(os.Stdin, os.Stdout, os.Stderr)})
 	}
+	if err != nil {
+		core.RenderDiagnostic(os.Stderr, err)
+		return core.ExitCode(err)
+	}
+	return 0
 }
 
-func buildGo(t *testing.T, root, out, pkg string) {
-	t.Helper()
-	cmd := exec.Command("go", "build", "-trimpath", "-o", out, pkg)
-	cmd.Dir = root
-	cmd.Env = safeTestEnv(t)
-	if raw, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("build %s: %v\n%s", pkg, err, raw)
+func runRepoZipHelper(args []string) int {
+	app, err := repocli.New(repozip.Service{Git: repozip.Git{}, Archiver: repozip.Archiver{}}, core.ProductMetadata{Version: "test", SuiteVersion: "test"})
+	if err == nil {
+		err = app.Run(context.Background(), args, core.IO{In: os.Stdin, Out: os.Stdout, Err: os.Stderr, Terminal: core.TerminalFromFiles(os.Stdin, os.Stdout, os.Stderr)})
 	}
+	if err != nil {
+		core.RenderDiagnostic(os.Stderr, err)
+		return core.ExitCode(err)
+	}
+	return 0
 }
 
-func moduleRoot(t *testing.T) string {
-	t.Helper()
-	_, file, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller failed")
+func runFakeAIHelper() int {
+	exe := filepath.Base(os.Args[0])
+	profileRoot := os.Getenv("CODEX_HOME")
+	profileFile := "AGENTS.md"
+	projectFile := "AGENTS.md"
+	if strings.HasPrefix(exe, "claude") {
+		profileRoot = os.Getenv("CLAUDE_CONFIG_DIR")
+		profileFile = "CLAUDE.md"
+		projectFile = "CLAUDE.md"
 	}
-	return filepath.Dir(filepath.Dir(file))
+	profileGuidance, _ := os.ReadFile(filepath.Join(profileRoot, profileFile))
+	activeAnthropicProfile, _ := os.ReadFile(filepath.Join(os.Getenv("ANTHROPIC_CONFIG_DIR"), "active_config"))
+	cwd, _ := os.Getwd()
+	projectGuidance, _ := os.ReadFile(filepath.Join(cwd, projectFile))
+	_ = json.NewEncoder(os.Stdout).Encode(map[string]any{
+		"executable":                       exe,
+		"args":                             os.Args[1:],
+		"codex_home":                       os.Getenv("CODEX_HOME"),
+		"claude_config_dir":                os.Getenv("CLAUDE_CONFIG_DIR"),
+		"api_key":                          os.Getenv("OPENAI_API_KEY"),
+		"openai_base_url":                  os.Getenv("OPENAI_BASE_URL"),
+		"codex_api_key":                    os.Getenv("CODEX_API_KEY"),
+		"codex_access_token":               os.Getenv("CODEX_ACCESS_TOKEN"),
+		"codex_sqlite_home":                os.Getenv("CODEX_SQLITE_HOME"),
+		"openai_federation_rule_id":        os.Getenv("OPENAI_FEDERATION_RULE_ID"),
+		"openai_identity_token_file":       os.Getenv("OPENAI_IDENTITY_TOKEN_FILE"),
+		"openai_workload_identity_context": os.Getenv("OPENAI_WORKLOAD_IDENTITY_CONTEXT"),
+		"anthropic_api_key":                os.Getenv("ANTHROPIC_API_KEY"),
+		"anthropic_auth_token":             os.Getenv("ANTHROPIC_AUTH_TOKEN"),
+		"anthropic_config_dir":             os.Getenv("ANTHROPIC_CONFIG_DIR"),
+		"anthropic_active_profile":         string(activeAnthropicProfile),
+		"anthropic_profile":                os.Getenv("ANTHROPIC_PROFILE"),
+		"anthropic_federation_rule_id":     os.Getenv("ANTHROPIC_FEDERATION_RULE_ID"),
+		"anthropic_identity_token":         os.Getenv("ANTHROPIC_IDENTITY_TOKEN"),
+		"anthropic_identity_token_file":    os.Getenv("ANTHROPIC_IDENTITY_TOKEN_FILE"),
+		"anthropic_service_account_id":     os.Getenv("ANTHROPIC_SERVICE_ACCOUNT_ID"),
+		"claude_use_bedrock":               os.Getenv("CLAUDE_CODE_USE_BEDROCK"),
+		"foundry_auth_token":               os.Getenv("ANTHROPIC_FOUNDRY_AUTH_TOKEN"),
+		"anthropic_custom_headers":         os.Getenv("ANTHROPIC_CUSTOM_HEADERS"),
+		"secure_storage_dir":               os.Getenv("CLAUDE_SECURESTORAGE_CONFIG_DIR"),
+		"plugin_cache_dir":                 os.Getenv("CLAUDE_CODE_PLUGIN_CACHE_DIR"),
+		"profile_guidance":                 string(profileGuidance),
+		"project_guidance":                 string(projectGuidance),
+		"cwd":                              cwd,
+	})
+	if strings.Contains(exe, "acp") {
+		return 23
+	}
+	return 17
 }
 
 func safeTestEnv(t *testing.T) []string {
@@ -548,9 +586,8 @@ func write(t *testing.T, path, content string) {
 }
 
 func TestAIProfileStaticCommandsDoNotRequireHomeOrStore(t *testing.T) {
-	root := moduleRoot(t)
 	bin := filepath.Join(t.TempDir(), "ai-profile")
-	buildGo(t, root, bin, "./cmd/ai-profile")
+	installSelfAs(t, bin)
 
 	env := unsetEnv(safeTestEnv(t), "HOME", "USERPROFILE", "AI_PROFILE_ROOT")
 	for _, tc := range []struct {
@@ -559,7 +596,7 @@ func TestAIProfileStaticCommandsDoNotRequireHomeOrStore(t *testing.T) {
 	}{
 		{name: "version", args: []string{"--version"}},
 		{name: "help", args: []string{"--help"}},
-		{name: "completion", args: []string{"completion", "bash"}},
+		{name: "completion", args: []string{"completion", "generate", "bash"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			cmd := exec.Command(bin, tc.args...)

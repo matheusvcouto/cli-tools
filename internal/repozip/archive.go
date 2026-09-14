@@ -2,6 +2,7 @@ package repozip
 
 import (
 	"archive/zip"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,13 +15,17 @@ import (
 	"github.com/matheusvcouto/cli-tools/internal/safefs"
 )
 
-type Archiver struct {
-	Git Git
-}
+type Archiver struct{}
 
 // Create writes a complete ZIP to out. The caller owns out and is responsible
 // for syncing/closing it. Paths read from repo are confined by safefs.Root.
-func (a Archiver) Create(repo string, out io.Writer, files []string, gitMeta *GitSnapshotMetadata) error {
+func (a Archiver) Create(ctx context.Context, repo string, out io.Writer, files []string, gitMeta *GitSnapshotMetadata, git Git) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	root, err := safefs.Open(repo)
 	if err != nil {
 		return fmt.Errorf("open repository safety root: %w", err)
@@ -30,13 +35,17 @@ func (a Archiver) Create(repo string, out io.Writer, files []string, gitMeta *Gi
 	zw := zip.NewWriter(out)
 	sort.Strings(files)
 	for _, rel := range files {
-		if err := addPathToZip(zw, root, rel, rel); err != nil {
+		if err := ctx.Err(); err != nil {
+			_ = zw.Close()
+			return err
+		}
+		if err := addPathToZip(ctx, zw, root, rel, rel); err != nil {
 			_ = zw.Close()
 			return err
 		}
 	}
 	if gitMeta != nil {
-		if err := addGitBundle(zw, repo, a.Git, *gitMeta); err != nil {
+		if err := addGitBundle(ctx, zw, repo, git.withContext(ctx), *gitMeta); err != nil {
 			_ = zw.Close()
 			return err
 		}
@@ -47,7 +56,10 @@ func (a Archiver) Create(repo string, out io.Writer, files []string, gitMeta *Gi
 	return nil
 }
 
-func addPathToZip(zw *zip.Writer, root *safefs.Root, rel, archiveName string) error {
+func addPathToZip(ctx context.Context, zw *zip.Writer, root *safefs.Root, rel, archiveName string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	rel = filepath.ToSlash(rel)
 	before, err := root.Lstat(rel)
 	if err != nil {
@@ -108,7 +120,7 @@ func addPathToZip(zw *zip.Writer, root *safefs.Root, rel, archiveName string) er
 	if err != nil {
 		return err
 	}
-	if _, err := io.Copy(w, f); err != nil {
+	if _, err := io.Copy(w, contextReader{ctx: ctx, r: f}); err != nil {
 		return fmt.Errorf("archive %q: %w", rel, err)
 	}
 	afterRead, err := f.Stat()
@@ -134,7 +146,10 @@ const (
 	gitMetadataEntry = ".repo-zip/metadata.json"
 )
 
-func addGitBundle(zw *zip.Writer, repo string, git Git, meta GitSnapshotMetadata) error {
+func addGitBundle(ctx context.Context, zw *zip.Writer, repo string, git Git, meta GitSnapshotMetadata) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	metaRaw, err := json.MarshalIndent(meta, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode Git snapshot metadata: %w", err)
@@ -180,7 +195,7 @@ func addGitBundle(zw *zip.Writer, repo string, git Git, meta GitSnapshotMetadata
 	if err != nil {
 		return fmt.Errorf("create Git bundle ZIP entry: %w", err)
 	}
-	if _, err := io.Copy(bw, tmp); err != nil {
+	if _, err := io.Copy(bw, contextReader{ctx: ctx, r: tmp}); err != nil {
 		return fmt.Errorf("write Git bundle ZIP entry: %w", err)
 	}
 	return nil
@@ -188,13 +203,22 @@ func addGitBundle(zw *zip.Writer, repo string, git Git, meta GitSnapshotMetadata
 
 // Verify validates every entry from a ReaderAt. This lets the service verify
 // the exact temporary file descriptor it created instead of reopening a path.
-func (Archiver) Verify(src io.ReaderAt, size int64) error {
+func (Archiver) Verify(ctx context.Context, src io.ReaderAt, size int64) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	zr, err := zip.NewReader(src, size)
 	if err != nil {
 		return fmt.Errorf("open generated zip: %w", err)
 	}
 	seen := make(map[string]struct{}, len(zr.File))
 	for _, f := range zr.File {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		name := f.Name
 		if name == "" || strings.HasPrefix(name, "/") || name == ".." || strings.HasPrefix(name, "../") || strings.Contains(name, "\\") {
 			return fmt.Errorf("unsafe entry in generated zip: %q", name)
@@ -211,7 +235,7 @@ func (Archiver) Verify(src io.ReaderAt, size int64) error {
 		if err != nil {
 			return fmt.Errorf("open zip entry %q: %w", name, err)
 		}
-		_, copyErr := io.Copy(io.Discard, r)
+		_, copyErr := io.Copy(io.Discard, contextReader{ctx: ctx, r: r})
 		closeErr := r.Close()
 		if copyErr != nil {
 			return fmt.Errorf("verify zip entry %q: %w", name, copyErr)
@@ -238,5 +262,17 @@ func (a Archiver) VerifyPath(path string) error {
 	if err != nil {
 		return err
 	}
-	return a.Verify(f, info.Size())
+	return a.Verify(context.Background(), f, info.Size())
+}
+
+type contextReader struct {
+	ctx context.Context
+	r   io.Reader
+}
+
+func (r contextReader) Read(p []byte) (int, error) {
+	if err := r.ctx.Err(); err != nil {
+		return 0, err
+	}
+	return r.r.Read(p)
 }

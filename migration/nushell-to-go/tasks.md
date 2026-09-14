@@ -28,7 +28,7 @@ Marcar apenas com evidência.
 - [x] ACP stdout limpo;
 - [x] guidance Codex;
 - [x] statusline embutida + merge seguro;
-- [x] completions Bash/Fish/Zsh;
+- [x] completions Fish/Nushell 0.114+/Bash/Zsh/PowerShell;
 - [x] conversor transitório NUON→JSON sem executar Nushell;
 - [x] E2E do binário cobre `new → list → run → acp` com executáveis falsos e exit codes reais;
 - [x] runtime macOS confirmado pelo CI do repositório real.
