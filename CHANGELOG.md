@@ -6,6 +6,24 @@ versões seguem [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-27
+
+### Adicionado
+
+- **ai-profile:** Add and harden Grok Build profiles: isolated GROK_HOME, documented Codex skills/hooks defaults, inherited auth/compat override filtering that preserves administrative security restrictions, safe config identity checks, bounded profile metadata reads and writes, rejection of duplicate profile directories and orphaned profile state, safe feedback/trace routing, native ACP, and bounded fail-closed Windows npm resolution; fix invalid Claude settings causing panic
+- **ai-profile:** Implement Windows locking, safe profile commits, and Job Object-contained native process execution
+- **module:** Keep the v1 module path and raise the suite baseline to Go 1.27.1 with confined os.Root-only storage; build once, native-test all six published targets, and harden GitHub Actions provenance
+- **repo-zip:** Implement confined Windows force and no-clobber archive publication
+
+### Corrigido
+
+- **ai-profile:** Prevent interactive profile deletion from removing an alias reassigned during confirmation by checking the originally displayed profile under the store lock; reject canceled launches before exec on Unix and process startup on Windows
+- **ai-profile:** Reject all residual profile-root entries when index.json is missing, add validated explicit import of legacy NUON directories (including original index.nuon in the target root), bound and revalidate migration source, and preserve Windows PATH order when resolving official npm shims
+- **module:** Check out text as LF so Windows CI gofmt does not treat autocrlf CRLF conversions as unformatted Go sources
+- **module:** Declare the GitHub-hosted windows-11-vs2026-arm runner to actionlint 1.7.12 so workflow lint accepts the published Windows ARM64 label
+- **module:** Fail closed on invalid or unprepared release tags before the six-platform native matrix; align shell tag validation with the stable Go release builder and test pending change-record rejection
+- **repo-zip:** Open Windows Git bundle temp files with WRITE_DAC before applying the protected DACL
+
 ## [1.0.1] - 2026-09-14
 
 ### Corrigido

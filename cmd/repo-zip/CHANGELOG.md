@@ -11,3 +11,13 @@
 ### Corrigido
 
 - **repo-zip:** Fix generated Nushell completions
+
+## [1.1.0] - 2026-09-27
+
+### Adicionado
+
+- **repo-zip:** Implement confined Windows force and no-clobber archive publication
+
+### Corrigido
+
+- **repo-zip:** Open Windows Git bundle temp files with WRITE_DAC before applying the protected DACL
