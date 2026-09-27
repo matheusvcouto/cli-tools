@@ -1,0 +1,3 @@
+# Git for Windows defaults to core.autocrlf=true. Checking Go sources out as
+# CRLF makes gofmt -l report every file. Store and check out text as LF.
+* text=auto eol=lf

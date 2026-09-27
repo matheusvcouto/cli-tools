@@ -917,7 +917,7 @@ func requiredChangeComponents(paths []string, tools map[string]toolManifestAtPat
 			}
 		}
 		if strings.HasPrefix(p, "tools/release/") || strings.HasPrefix(p, "internal/version/") ||
-			strings.HasPrefix(p, "scripts/") || strings.HasPrefix(p, ".github/") {
+			strings.HasPrefix(p, "scripts/") || strings.HasPrefix(p, ".github/") || p == ".gitattributes" {
 			required["module"] = struct{}{}
 		}
 	}

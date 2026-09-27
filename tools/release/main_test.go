@@ -303,6 +303,7 @@ func TestCIWorkflowCoversMergeQueueAndPublishedArchitectures(t *testing.T) {
 		"os: macos-15\n            arch: arm64",
 		"os: windows-2025\n            arch: amd64",
 		"os: windows-11-vs2026-arm\n            arch: arm64",
+		"$listed = ($unformatted | ForEach-Object { \"unformatted: $_\" }) -join [Environment]::NewLine",
 		"go test -race ./...",
 	} {
 		if !strings.Contains(workflow, required) {

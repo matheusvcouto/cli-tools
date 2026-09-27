@@ -133,8 +133,11 @@ jobs:
           $unformatted = @(gofmt -l .)
           if ($LASTEXITCODE -ne 0) { throw "gofmt failed with $LASTEXITCODE" }
           if ($unformatted.Count -ne 0) {
-            $unformatted | ForEach-Object { Write-Error "unformatted: $_" }
-            exit 1
+            # Write-Error is terminating under ErrorAction Stop, so list every
+            # path first and fail once. A checkout rewritten to CRLF otherwise
+            # hides every file after the first.
+            $listed = ($unformatted | ForEach-Object { "unformatted: $_" }) -join [Environment]::NewLine
+            throw $listed
           }
       - run: go test ./...
       - run: go vet ./...

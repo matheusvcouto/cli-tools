@@ -22,6 +22,10 @@ Portanto:
   `os.SameFile`; usar `os.Lstat` quando o objeto link, e não seu alvo, faz parte
   da decisão de segurança.
 
+Texto versionado fica em LF. `.gitattributes` fixa `eol=lf` porque o Git for
+Windows, com `core.autocrlf=true`, reescreve o worktree para CRLF e o `gofmt -l`
+passa a acusar todos os arquivos `.go`.
+
 Exemplo para diretórios existentes:
 
 ```go
