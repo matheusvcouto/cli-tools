@@ -471,8 +471,12 @@ func TestForceReplacesExistingRegularFile(t *testing.T) {
 	if res.Output != output {
 		t.Fatalf("unexpected output %s", res.Output)
 	}
-	if _, err := zip.OpenReader(output); err != nil {
+	zr, err := zip.OpenReader(output)
+	if err != nil {
 		t.Fatalf("replacement is not a zip: %v", err)
+	}
+	if err := zr.Close(); err != nil {
+		t.Fatal(err)
 	}
 }
 
