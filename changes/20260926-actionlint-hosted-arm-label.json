@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "module",
+      "impact": "patch",
+      "breaking": false,
+      "summary": "Declare the GitHub-hosted windows-11-vs2026-arm runner to actionlint 1.7.12 so workflow lint accepts the published Windows ARM64 label"
+    }
+  ]
+}

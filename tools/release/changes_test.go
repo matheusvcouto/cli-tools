@@ -145,6 +145,7 @@ func TestChangeCoverageRequiresModuleRecordForCIAndWorkflowScripts(t *testing.T)
 		".github/workflows/ci.yml",
 		".github/workflows/release.yml",
 		".github/dependabot.yml",
+		".github/actionlint.yaml",
 		"scripts/check-workflows.sh",
 		"scripts/install-test-shells.sh",
 	} {

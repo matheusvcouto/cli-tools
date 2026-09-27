@@ -1,0 +1,9 @@
+# actionlint 1.7.12 does not know the GitHub-hosted label windows-11-vs2026-arm.
+# GitHub documents that label for Windows 11 arm64 with Visual Studio 2026.
+# self-hosted-runner.labels is the linter's only extension point for a label
+# newer than its built-in catalog. This repository does not use self-hosted runners.
+# https://docs.github.com/en/actions/reference/runners/github-hosted-runners
+# https://github.blog/changelog/2026-08-20-windows-11-arm64-vs2026-image-generally-available/
+self-hosted-runner:
+  labels:
+    - windows-11-vs2026-arm

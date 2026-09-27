@@ -23,4 +23,7 @@ curl --fail --location --retry 3 --proto '=https' --proto-redir '=https' --tlsv1
 printf '%s  %s\n' "$sha256" "$tmp/$asset" | sha256sum --check --strict
 tar -xzf "$tmp/$asset" -C "$tmp" actionlint
 "$tmp/actionlint" -version
-"$tmp/actionlint" -color .github/workflows/ci.yml .github/workflows/release.yml
+# Pass the config explicitly. Auto-discovery would also read it from .github/,
+# but a missing file must fail the gate instead of linting with the stale catalog.
+"$tmp/actionlint" -color -config-file .github/actionlint.yaml \
+  .github/workflows/ci.yml .github/workflows/release.yml

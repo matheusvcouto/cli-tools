@@ -311,6 +311,23 @@ func TestCIWorkflowCoversMergeQueueAndPublishedArchitectures(t *testing.T) {
 	}
 }
 
+func TestActionlintConfigDeclaresHostedWindowsARMLabel(t *testing.T) {
+	config, err := os.ReadFile("../../.github/actionlint.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(config), "\n    - windows-11-vs2026-arm\n") {
+		t.Fatal("actionlint config must declare the GitHub-hosted windows-11-vs2026-arm label")
+	}
+	script, err := os.ReadFile("../../scripts/check-workflows.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(script), "-config-file .github/actionlint.yaml") {
+		t.Fatal("workflow lint must pass the actionlint config explicitly")
+	}
+}
+
 func TestGitHubActionsArePinnedToImmutableCommits(t *testing.T) {
 	workflowDir := filepath.Join("..", "..", ".github", "workflows")
 	entries, err := os.ReadDir(workflowDir)
