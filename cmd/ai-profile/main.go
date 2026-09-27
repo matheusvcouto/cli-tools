@@ -4,11 +4,11 @@ import (
 	_ "embed"
 	"os"
 
-	core "github.com/matheusvcouto/cli-tools/cli"
-	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
-	profilecli "github.com/matheusvcouto/cli-tools/internal/aiprofile/cli"
-	"github.com/matheusvcouto/cli-tools/internal/aiprofile/platform"
-	"github.com/matheusvcouto/cli-tools/internal/version"
+	core "github.com/matheusvcouto/cli-tools/v2/cli"
+	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
+	profilecli "github.com/matheusvcouto/cli-tools/v2/internal/aiprofile/cli"
+	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile/platform"
+	"github.com/matheusvcouto/cli-tools/v2/internal/version"
 )
 
 //go:embed tool.json
@@ -37,6 +37,9 @@ func main() {
 		err = app.Run(ctx, os.Args[1:], core.IO{In: os.Stdin, Out: os.Stdout, Err: os.Stderr, Terminal: core.TerminalFromFiles(os.Stdin, os.Stdout, os.Stderr)})
 	}
 	if err != nil {
+		if code, ok := platform.ChildExitCode(err); ok {
+			os.Exit(code)
+		}
 		if core.IsBrokenPipe(err) {
 			return
 		}

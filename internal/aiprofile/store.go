@@ -13,13 +13,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/matheusvcouto/cli-tools/internal/filelock"
-	"github.com/matheusvcouto/cli-tools/internal/safefs"
+	"github.com/matheusvcouto/cli-tools/v2/internal/filelock"
+	"github.com/matheusvcouto/cli-tools/v2/internal/safefs"
 )
 
 type Store struct {
 	Root string
 }
+
+// The profile index and Claude settings are small JSON documents. Read them
+// with a hard cap: a corrupt or hostile file must not exhaust the process's
+// memory during an ordinary list/run/new operation. The cap applies to the
+// package's recovery helper too, so it cannot silently bypass this boundary.
+const maxProfileMetadataBytes int64 = 8 << 20
 
 func DefaultRoot() (string, error) {
 	if override := strings.TrimSpace(os.Getenv("AI_PROFILE_ROOT")); override != "" {
@@ -53,14 +59,22 @@ func (s Store) EnsureRoot() error {
 	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
 		return fmt.Errorf("profile root must be a real directory: %s", rootPath)
 	}
+	return secureOpenedProfileRoot(root, rootPath)
+}
+
+func secureOpenedProfileRoot(root *safefs.Root, rootPath string) error {
+	absRoot, err := filepath.Abs(rootPath)
+	if err != nil {
+		return fmt.Errorf("resolve profile root path: %w", err)
+	}
 	f, err := root.Open(".")
 	if err != nil {
 		return fmt.Errorf("open profile root directory: %w", err)
 	}
-	chmodErr := f.Chmod(0o700)
+	secureErr := secureProfileRoot(f, absRoot)
 	closeErr := f.Close()
-	if chmodErr != nil {
-		return fmt.Errorf("secure profile root permissions: %w", chmodErr)
+	if secureErr != nil {
+		return fmt.Errorf("secure profile root permissions: %w", secureErr)
 	}
 	if closeErr != nil {
 		return fmt.Errorf("close profile root directory: %w", closeErr)
@@ -84,6 +98,12 @@ func (s Store) Load() (StoreData, error) {
 		return StoreData{}, fmt.Errorf("open profile safety root: %w", err)
 	}
 	defer root.Close()
+	// Loading an existing store also enforces the current platform security
+	// policy. This upgrades trees created by older versions before profile data
+	// or credentials are consumed, rather than waiting for the next mutation.
+	if err := secureOpenedProfileRoot(root, s.Root); err != nil {
+		return StoreData{}, err
+	}
 	return s.loadRootOrEmpty(root)
 }
 
@@ -94,9 +114,95 @@ func emptyStore() StoreData {
 func (s Store) loadRootOrEmpty(root *safefs.Root) (StoreData, error) {
 	data, _, err := s.loadRootPathRaw(root, "index.json")
 	if errors.Is(err, fs.ErrNotExist) {
+		// A missing index is not necessarily an empty store. A previous index,
+		// an imported legacy directory, or an interrupted quarantine may leave
+		// credentials behind. Never reconstruct an empty index over residual state.
+		// Recovery and migration are explicit operations.
+		if err := refuseOrphanedProfileState(root); err != nil {
+			return StoreData{}, err
+		}
 		return emptyStore(), nil
 	}
 	return data, err
+}
+
+func refuseOrphanedProfileState(root *safefs.Root) error {
+	if _, err := root.Lstat("index.json.bak"); err == nil {
+		return fmt.Errorf("profile index is missing while index.json.bak exists; restore the index explicitly before continuing")
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("inspect missing-index backup: %w", err)
+	}
+
+	dir, err := root.Open(".")
+	if err != nil {
+		return fmt.Errorf("inspect missing-index profile root: %w", err)
+	}
+	defer dir.Close()
+	for {
+		// Bounded batches avoid loading an arbitrarily large directory into
+		// memory. Entries are inspected even if their type cannot be read.
+		entries, readErr := dir.ReadDir(128)
+		for _, entry := range entries {
+			// The lock can legitimately predate the first index: a failed first
+			// transaction creates it. Every other entry is ambiguous without an
+			// index. In particular, legacy NUON migrations allow arbitrary leaf
+			// directory names, and failed deletion may leave .deleted-* behind.
+			if isStoreLockEntry(entry.Name()) {
+				info, err := root.Lstat(entry.Name())
+				if err != nil {
+					return fmt.Errorf("inspect existing index lock: %w", err)
+				}
+				if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+					return fmt.Errorf("existing index lock is not a regular file")
+				}
+				continue
+			}
+			if looksLikeManagedProfileDir(entry.Name()) {
+				return fmt.Errorf("profile index is missing but managed profile state %q remains; recover the index explicitly", entry.Name())
+			}
+			return fmt.Errorf("profile index is missing but residual entry %q remains; inspect and recover the index explicitly", entry.Name())
+		}
+		if errors.Is(readErr, io.EOF) {
+			return nil
+		}
+		if readErr != nil {
+			return fmt.Errorf("inspect missing-index profile entries: %w", readErr)
+		}
+	}
+}
+
+// The lock filename uses the same platform filename matching as profile
+// directory identity. On Windows an existing .INDEX.LOCK is the same leaf as
+// .index.lock, even when ReadDir preserves its original casing.
+func isStoreLockEntry(name string) bool {
+	return profileDirIdentity(name) == profileDirIdentity(".index.lock")
+}
+
+func looksLikeManagedProfileDir(name string) bool {
+	for _, tool := range Tools {
+		prefix := tool.Name + "-"
+		if !strings.HasPrefix(name, prefix) {
+			continue
+		}
+		// The allocator creates TOOL-YYYYMMDDhhmmss-8-hex filenames.
+		suffix := strings.TrimPrefix(name, prefix)
+		if len(suffix) != 23 || suffix[14] != '-' {
+			continue
+		}
+		valid := true
+		for i, char := range suffix {
+			switch {
+			case i < 14 && (char < '0' || char > '9'):
+				valid = false
+			case i > 14 && !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f')):
+				valid = false
+			}
+		}
+		if valid {
+			return true
+		}
+	}
+	return false
 }
 
 // loadPath is kept as a package-level test/recovery helper. Production store
@@ -158,6 +264,9 @@ func readStableRegularRoot(root *safefs.Root, name string) ([]byte, error) {
 	if before.Mode()&os.ModeSymlink != 0 || !before.Mode().IsRegular() {
 		return nil, fmt.Errorf("refuse non-regular or symbolic-link file: %s", name)
 	}
+	if before.Size() > maxProfileMetadataBytes {
+		return nil, fmt.Errorf("profile metadata file %s exceeds %d bytes", name, maxProfileMetadataBytes)
+	}
 	f, err := root.Open(name)
 	if err != nil {
 		return nil, err
@@ -174,7 +283,7 @@ func readStableRegularRoot(root *safefs.Root, name string) ([]byte, error) {
 	if after.Mode()&os.ModeSymlink != 0 || !after.Mode().IsRegular() || !os.SameFile(before, opened) || !os.SameFile(opened, after) {
 		return nil, fmt.Errorf("file changed identity while opening: %s", name)
 	}
-	return io.ReadAll(f)
+	return readBoundedProfileMetadata(f, name)
 }
 
 func readStableRegularFile(path string) ([]byte, error) {
@@ -184,6 +293,9 @@ func readStableRegularFile(path string) ([]byte, error) {
 	}
 	if before.Mode()&os.ModeSymlink != 0 || !before.Mode().IsRegular() {
 		return nil, fmt.Errorf("refuse non-regular or symbolic-link file: %s", path)
+	}
+	if before.Size() > maxProfileMetadataBytes {
+		return nil, fmt.Errorf("profile metadata file %s exceeds %d bytes", path, maxProfileMetadataBytes)
 	}
 	f, err := os.Open(path)
 	if err != nil {
@@ -201,7 +313,20 @@ func readStableRegularFile(path string) ([]byte, error) {
 	if after.Mode()&os.ModeSymlink != 0 || !after.Mode().IsRegular() || !os.SameFile(before, opened) || !os.SameFile(opened, after) {
 		return nil, fmt.Errorf("file changed identity while opening: %s", path)
 	}
-	return io.ReadAll(f)
+	return readBoundedProfileMetadata(f, path)
+}
+
+func readBoundedProfileMetadata(f *os.File, name string) ([]byte, error) {
+	// A second check during reading closes the gap where another process grows
+	// the file after our initial Lstat. Never decode a truncated JSON document.
+	raw, err := io.ReadAll(io.LimitReader(f, maxProfileMetadataBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("read profile metadata %s: %w", name, err)
+	}
+	if int64(len(raw)) > maxProfileMetadataBytes {
+		return nil, fmt.Errorf("profile metadata file %s exceeds %d bytes", name, maxProfileMetadataBytes)
+	}
+	return raw, nil
 }
 
 func (s Store) validate(data StoreData) error {
@@ -209,6 +334,7 @@ func (s Store) validate(data StoreData) error {
 		return fmt.Errorf("unsupported schema_version %d (expected %d)", data.SchemaVersion, StoreSchemaVersion)
 	}
 	seen := make(map[string]struct{}, len(data.Profiles))
+	seenDirs := make(map[string]string, len(data.Profiles))
 	for i, p := range data.Profiles {
 		if _, ok := LookupTool(p.Tool); !ok {
 			return fmt.Errorf("profile %d references unknown tool %q", i, p.Tool)
@@ -222,6 +348,14 @@ func (s Store) validate(data StoreData) error {
 		if err := s.validateProfileDir(p.Dir); err != nil {
 			return fmt.Errorf("profile %d: %w", i, err)
 		}
+		// Two aliases must never refer to the same on-disk directory: deleting
+		// either alias would otherwise erase the other's credentials/sessions.
+		// Windows paths are case-insensitive even though JSON strings are not.
+		dirKey := profileDirIdentity(p.Dir)
+		if owner, exists := seenDirs[dirKey]; exists {
+			return fmt.Errorf("profile %s/%s reuses directory of %s", p.Tool, p.Alias, owner)
+		}
+		seenDirs[dirKey] = p.Tool + "/" + p.Alias
 		key := p.Tool + "\x00" + p.Alias
 		if _, exists := seen[key]; exists {
 			return fmt.Errorf("duplicate profile %s/%s", p.Tool, p.Alias)
@@ -304,7 +438,7 @@ func (s Store) openLockedRoot() (*safefs.Root, filelock.Lock, error) {
 	return root, lock, nil
 }
 
-func (s Store) createProfile(tool, alias string, now time.Time) (Profile, error) {
+func (s Store) createProfile(tool, alias string, now time.Time, initialize func(*safefs.Root, string, string) error) (Profile, error) {
 	root, lock, err := s.openLockedRoot()
 	if err != nil {
 		return Profile{}, err
@@ -357,6 +491,14 @@ func (s Store) createProfile(tool, alias string, now time.Time) (Profile, error)
 		return Profile{}, cause
 	}
 
+	// Provider initialization is performed while holding the store lock and
+	// before committing index.json. A failure rolls back the entire new
+	// directory; clients cannot observe a published but uninitialized profile.
+	if initialize != nil {
+		if err := initialize(root, dirName, profile.Dir); err != nil {
+			return fail(fmt.Errorf("initialize %s profile: %w", tool, err))
+		}
+	}
 	current.Profiles = append(current.Profiles, profile)
 	if err := s.validate(current); err != nil {
 		return fail(fmt.Errorf("refuse invalid profile store update: %w", err))
@@ -399,12 +541,128 @@ func (s Store) Update(fn func(*StoreData) error) error {
 	return s.commitRoot(root, current)
 }
 
+// ImportLegacy is the only supported way to adopt pre-existing profile
+// directories when no JSON index exists. Unlike Update, this intentionally
+// handles an occupied root, but refuses missing, unexpected, non-directory,
+// or aliased paths. It does not repair corrupt or missing indexes silently.
+// The source migration file is not modified. If it resides inside the
+// destination root (the original Nushell layout), it is an explicitly
+// permitted regular file only after confirming its contents did not change
+// between parsing and the locked commit.
+func (s Store) ImportLegacy(profiles []Profile, sourcePath string, sourceContents []byte) error {
+	root, lock, err := s.openLockedRoot()
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	defer lock.Close()
+
+	for _, name := range []string{"index.json", "index.json.bak"} {
+		if _, err := root.Lstat(name); err == nil {
+			return fmt.Errorf("refuse legacy import: %s already exists", name)
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("inspect legacy import destination %s: %w", name, err)
+		}
+	}
+
+	data := emptyStore()
+	data.Profiles = append(data.Profiles, profiles...)
+	if err := s.validate(data); err != nil {
+		return fmt.Errorf("invalid legacy profile index: %w", err)
+	}
+
+	// The legacy index itself normally lives in ~/.ai-profiles/index.nuon.
+	// Allow exactly the source file explicitly read by the migration tool, not
+	// arbitrary unknown root files, and reject concurrent source replacement.
+	var sourceName string
+	if sourcePath != "" {
+		absSource, err := filepath.Abs(sourcePath)
+		if err != nil {
+			return fmt.Errorf("resolve legacy source: %w", err)
+		}
+		absRoot, err := filepath.Abs(s.Root)
+		if err != nil {
+			return fmt.Errorf("resolve legacy destination: %w", err)
+		}
+		var actual []byte
+		if profileDirIdentity(filepath.Dir(absSource)) == profileDirIdentity(absRoot) {
+			sourceName = filepath.Base(absSource)
+			if profileDirIdentity(sourceName) == profileDirIdentity("index.json") ||
+				profileDirIdentity(sourceName) == profileDirIdentity("index.json.bak") || isStoreLockEntry(sourceName) {
+				return fmt.Errorf("legacy import source %q conflicts with the store's own files", sourceName)
+			}
+			actual, err = readStableRegularRoot(root, sourceName)
+		} else {
+			// External source files can also change while the user approves an
+			// explicit import. Re-read them instead of committing stale aliases.
+			actual, err = readStableRegularFile(absSource)
+		}
+		if err != nil {
+			return fmt.Errorf("verify legacy index before commit: %w", err)
+		}
+		if !bytes.Equal(actual, sourceContents) {
+			return fmt.Errorf("legacy source %q changed since parsing; refusing stale import", absSource)
+		}
+	}
+
+	// All other entries in an explicit legacy import must correspond to the
+	// supplied profiles. Do not silently absorb orphaned credentials, failed
+	// temporary writes, or an interrupted deletion into a new index.
+	expected := make(map[string]struct{}, len(profiles))
+	for _, profile := range profiles {
+		name := filepath.Base(profile.Dir)
+		info, err := root.Lstat(name)
+		if err != nil {
+			return fmt.Errorf("inspect legacy profile %s/%s directory: %w", profile.Tool, profile.Alias, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return fmt.Errorf("legacy profile %s/%s is not a real directory", profile.Tool, profile.Alias)
+		}
+		expected[profileDirIdentity(name)] = struct{}{}
+	}
+
+	dir, err := root.Open(".")
+	if err != nil {
+		return fmt.Errorf("inspect legacy import root: %w", err)
+	}
+	for {
+		entries, readErr := dir.ReadDir(128)
+		for _, entry := range entries {
+			if isStoreLockEntry(entry.Name()) || (sourceName != "" && profileDirIdentity(entry.Name()) == profileDirIdentity(sourceName)) {
+				continue
+			}
+			if _, ok := expected[profileDirIdentity(entry.Name())]; !ok {
+				_ = dir.Close()
+				return fmt.Errorf("refuse legacy import: unreferenced root entry %q", entry.Name())
+			}
+		}
+		if errors.Is(readErr, io.EOF) {
+			break
+		}
+		if readErr != nil {
+			_ = dir.Close()
+			return fmt.Errorf("inspect legacy import entries: %w", readErr)
+		}
+	}
+	if err := dir.Close(); err != nil {
+		return fmt.Errorf("close legacy import directory: %w", err)
+	}
+
+	sortProfiles(data.Profiles)
+	return s.commitRoot(root, data)
+}
+
 func (s Store) commitRoot(root *safefs.Root, data StoreData) error {
 	raw, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode profile store: %w", err)
 	}
 	raw = append(raw, '\n')
+	// A successful commit must produce an index the very next Load can read.
+	// Reject an oversized update before touching index.json.bak or index.json.
+	if int64(len(raw)) > maxProfileMetadataBytes {
+		return fmt.Errorf("encoded profile index exceeds %d bytes", maxProfileMetadataBytes)
+	}
 
 	if _, current, err := s.loadRootPathRaw(root, "index.json"); err == nil {
 		if err := s.writeCommittedFileRoot(root, "index.json.bak", current); err != nil {
@@ -421,7 +679,16 @@ func (s Store) commitRoot(root *safefs.Root, data StoreData) error {
 }
 
 func (s Store) writeCommittedFileRoot(root *safefs.Root, dst string, content []byte) error {
-	return writeAtomicRoot(root, dst, content, 0o600, ".index-")
+	return writeBoundedProfileMetadataRoot(root, dst, content, 0o600, ".index-")
+}
+
+// This write boundary mirrors the read boundary. Callers must not commit a
+// metadata document that would become unreadable on their next operation.
+func writeBoundedProfileMetadataRoot(root *safefs.Root, dst string, content []byte, perm os.FileMode, prefix string) error {
+	if int64(len(content)) > maxProfileMetadataBytes {
+		return fmt.Errorf("profile metadata file %s exceeds %d bytes", dst, maxProfileMetadataBytes)
+	}
+	return writeAtomicRoot(root, dst, content, perm, prefix)
 }
 
 func (s Store) BackupValid() bool {
@@ -435,6 +702,14 @@ func (s Store) BackupValid() bool {
 }
 
 func (s Store) deleteProfile(tool, alias string) (string, error) {
+	return s.deleteProfileIfUnchanged(tool, alias, nil)
+}
+
+// deleteProfileIfUnchanged protects the interactive confirmation against a
+// second ai-profile process renaming/deleting the displayed profile and
+// reusing its alias before confirmation completes. The identity check must
+// happen under the same lock as the subsequent quarantine and index commit.
+func (s Store) deleteProfileIfUnchanged(tool, alias string, expected *Profile) (string, error) {
 	root, lock, err := s.openLockedRoot()
 	if err != nil {
 		return "", err
@@ -449,6 +724,9 @@ func (s Store) deleteProfile(tool, alias string) (string, error) {
 	profile, ok := FindProfile(data, tool, alias)
 	if !ok {
 		return "", fmt.Errorf("profile %s/%s does not exist", tool, alias)
+	}
+	if expected != nil && profile != *expected {
+		return "", fmt.Errorf("profile %s/%s changed after deletion confirmation; inspect and confirm again", tool, alias)
 	}
 	if err := s.validateProfileDir(profile.Dir); err != nil {
 		return "", err

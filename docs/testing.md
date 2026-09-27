@@ -2,7 +2,7 @@
 
 ## Regra central
 
-Nenhum teste usa estado real do usuário. HOME/USERPROFILE/XDG/TMP/caches são sintéticos; Git real somente em repo temporário; Claude/Codex/ACP reais, credentials e config Git global/sistema são proibidos.
+Nenhum teste usa estado real do usuário. HOME/USERPROFILE/XDG/TMP/caches são sintéticos; Git real somente em repo temporário; Claude/Codex/Grok/ACP reais, credentials e config Git global/sistema são proibidos.
 
 ## CLI Core
 
@@ -67,7 +67,7 @@ Se algum gate exceder a janela do runner ou não puder ser executado, registrar 
 
 ## CI e plataforma
 
-CI Linux/macOS executa format, test, vet, shuffle e race. Cross-build Windows continua compile-only. Tests de shell adicionais rodam automaticamente quando o shell está instalado no runner. Suporte de runtime só é promovido com evidência nativa.
+CI executa testes nativos em Linux, macOS, Windows x64 (`windows-2025`) e Windows ARM64 (`windows-11-vs2026-arm`). Windows roda `go test ./...`, vet, shuffle, primitives específicas, lock entre processos, Job Object com encerramento real de descendentes e PowerShell completion; race permanece nos runners onde é suportado pelo projeto. Cross-build das seis combinações darwin/linux/windows × amd64/arm64 continua como evidência separada de compilação. Suporte de runtime só é promovido com evidência nativa observada.
 
 ## Contract locks
 

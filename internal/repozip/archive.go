@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/matheusvcouto/cli-tools/internal/safefs"
+	"github.com/matheusvcouto/cli-tools/v2/internal/safefs"
 )
 
 type Archiver struct{}
@@ -174,7 +174,7 @@ func addGitBundle(ctx context.Context, zw *zip.Writer, repo string, git Git, met
 		_ = tmp.Close()
 		_ = os.Remove(tmpPath)
 	}()
-	if err := tmp.Chmod(0o600); err != nil {
+	if err := securePrivateTempFile(tmp); err != nil {
 		return fmt.Errorf("secure temporary Git bundle: %w", err)
 	}
 	if err := git.WriteBundle(repo, tmp); err != nil {

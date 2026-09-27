@@ -81,12 +81,45 @@ func TestStableBreakingToolRequiresMajorImpact(t *testing.T) {
 	}
 }
 
+func TestStableBreakingModuleRequiresMajorImpact(t *testing.T) {
+	root := t.TempDir()
+	cmdRoot := filepath.Join(root, "cmd", "tool")
+	if err := os.MkdirAll(cmdRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(cmdRoot, "tool.json"), []byte(`{"schema_version":1,"name":"tool","version":"1.0.1","stability":"stable"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changes := filepath.Join(root, "changes")
+	if err := os.Mkdir(changes, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(changes, "breaking.json")
+	if err := os.WriteFile(path, []byte(`{"schema_version":1,"changes":[{"component":"module","impact":"minor","breaking":true,"summary":"raise toolchain"}]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changelog := filepath.Join(root, "CHANGELOG.md")
+	if err := os.WriteFile(changelog, []byte("# Changelog\n\n## [Unreleased]\n\n## [1.0.1] - 2026-09-14\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, _, err := planRelease(filepath.Dir(cmdRoot), changes, changelog, "v1.1.0"); err == nil || !strings.Contains(err.Error(), "module breaking change requires major") {
+		t.Fatalf("expected major-version rejection; got %v", err)
+	}
+	if err := os.WriteFile(path, []byte(`{"schema_version":1,"changes":[{"component":"module","impact":"major","breaking":true,"summary":"raise toolchain"}]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	plan, _, _, err := planRelease(filepath.Dir(cmdRoot), changes, changelog, "v2.0.0")
+	if err != nil || plan.NextSuite.String() != "2.0.0" {
+		t.Fatalf("expected module v2.0.0 plan; got %+v, %v", plan, err)
+	}
+}
+
 func TestChangeCoverageMapsCoreAndToolScopes(t *testing.T) {
 	tools := map[string]toolManifestAtPath{
 		"ai-profile": {},
 		"repo-zip":   {},
 	}
-	paths := []string{"cli/compile.go", "internal/repozip/service.go", "docs/testing.md"}
+	paths := []string{"cli/compile.go", "internal/repozip/service.go", "docs/testing.md", "scripts/check-workflows.sh", ".github/workflows/ci.yml"}
 	required := requiredChangeComponents(paths, tools)
 	for _, name := range []string{"module", "ai-profile", "repo-zip"} {
 		if _, ok := required[name]; !ok {
@@ -103,6 +136,22 @@ func TestChangeCoverageMapsCoreAndToolScopes(t *testing.T) {
 	}
 	if err := validateChangeCoverage(paths, files[:0], tools); err == nil {
 		t.Fatal("expected missing coverage to fail")
+	}
+}
+
+func TestChangeCoverageRequiresModuleRecordForCIAndWorkflowScripts(t *testing.T) {
+	tools := map[string]toolManifestAtPath{"ai-profile": {}, "repo-zip": {}}
+	for _, changed := range []string{
+		".github/workflows/ci.yml",
+		".github/workflows/release.yml",
+		".github/dependabot.yml",
+		"scripts/check-workflows.sh",
+		"scripts/install-test-shells.sh",
+	} {
+		required := requiredChangeComponents([]string{changed}, tools)
+		if _, ok := required["module"]; !ok {
+			t.Fatalf("change to %q must require module change record", changed)
+		}
 	}
 }
 

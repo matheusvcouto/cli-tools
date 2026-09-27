@@ -483,6 +483,132 @@
         "option_policy": "interspersed"
       },
       {
+        "id": "profiles.grok",
+        "name": "grok",
+        "summary": "manage grok profiles",
+        "flags": [
+          {
+            "id": "profiles.grok.json",
+            "long": "json",
+            "summary": "emit JSON",
+            "type": "bool",
+            "action": "switch",
+            "global": true
+          }
+        ],
+        "option_policy": "interspersed",
+        "commands": [
+          {
+            "id": "profiles.grok.acp",
+            "name": "acp",
+            "summary": "run the ACP adapter with a profile",
+            "args": [
+              {
+                "id": "profiles.grok.acp.profile",
+                "name": "profile",
+                "type": "string",
+                "required": true,
+                "min": 1,
+                "max": 1
+              },
+              {
+                "id": "profiles.grok.acp.argv",
+                "name": "args",
+                "type": "string",
+                "mode": "opaque",
+                "max": -1
+              }
+            ],
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "profiles.grok.delete",
+            "name": "delete",
+            "summary": "permanently delete a profile",
+            "args": [
+              {
+                "id": "profiles.grok.delete.name",
+                "name": "profile",
+                "type": "string",
+                "required": true,
+                "min": 1,
+                "max": 1
+              }
+            ],
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "profiles.grok.list",
+            "name": "list",
+            "summary": "list profiles",
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "profiles.grok.new",
+            "name": "new",
+            "summary": "create a profile",
+            "args": [
+              {
+                "id": "profiles.grok.new.name",
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "min": 1,
+                "max": 1
+              }
+            ],
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "profiles.grok.rename",
+            "name": "rename",
+            "summary": "rename a profile",
+            "args": [
+              {
+                "id": "profiles.grok.rename.old",
+                "name": "old",
+                "type": "string",
+                "required": true,
+                "min": 1,
+                "max": 1
+              },
+              {
+                "id": "profiles.grok.rename.new",
+                "name": "new",
+                "type": "string",
+                "required": true,
+                "min": 1,
+                "max": 1
+              }
+            ],
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "profiles.grok.run",
+            "name": "run",
+            "summary": "run the AI CLI with a profile",
+            "args": [
+              {
+                "id": "profiles.grok.run.profile",
+                "name": "profile",
+                "type": "string",
+                "required": true,
+                "min": 1,
+                "max": 1
+              },
+              {
+                "id": "profiles.grok.run.argv",
+                "name": "args",
+                "type": "string",
+                "mode": "opaque",
+                "max": -1
+              }
+            ],
+            "option_policy": "interspersed"
+          }
+        ]
+      },
+      {
         "id": "cli.builtin.help",
         "name": "help",
         "summary": "show help for a command",

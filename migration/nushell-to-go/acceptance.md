@@ -1,6 +1,6 @@
 # Gates de aceitação
 
-Evidência detalhada da última execução local: [`validation.md`](validation.md).
+Evidência histórica da execução local da migração: [`validation.md`](validation.md). O avanço Windows posterior é registrado em [`../../plans/windows-support/VALIDATION.md`](../../plans/windows-support/VALIDATION.md).
 
 ## Já comprovado localmente
 
@@ -25,7 +25,7 @@ Evidência detalhada da última execução local: [`validation.md`](validation.m
 - [x] rename não move diretório;
 - [x] delete transacional com rollback;
 - [x] env isolation atual para roots e overrides de auth/provider/state/workload identity de Claude e Codex;
-- [x] run/ACP preservam argv e exit em Unix;
+- [x] run/ACP preservam argv e exit em Unix; implementação Windows equivalente existe sem shell e com contenção por Job Object;
 - [x] ACP sem output do wrapper;
 - [x] context isolation atual: Codex profile-native `AGENTS*`, Claude profile-native `CLAUDE.md`/rules + cwd de projeto;
 - [x] statusline merge;
@@ -43,16 +43,16 @@ Evidência detalhada da última execução local: [`validation.md`](validation.m
 - [x] `--git` gera/verifica bundle Git restaurável, sem copiar `.git`, inclusive em linked worktree real + E2E;
 - [x] ZIP verificado antes da publicação;
 - [x] mudança no conjunto de arquivos aborta;
-- [x] no-clobber/force sem remove-then-rename em Unix;
+- [x] no-clobber/force sem remove-then-rename em Unix e Windows;
 - [x] macOS CI real verde.
 
 ## Release/mise
 
 - [x] tooling descobre `cmd/*`;
-- [x] releases publicam apenas macOS/Linux inicialmente;
+- [x] release tooling gera macOS/Linux e Windows amd64/arm64; publicação Windows fica condicionada aos gates nativos;
 - [x] artifacts usam `bin/`;
 - [x] checksums;
-- [x] release workflow depende de testes Linux/macOS;
+- [x] release workflow depende de testes Linux/macOS e Windows x64/ARM64, incluindo smoke nativo dos `.exe`;
 - [x] tag/release real `v0.1.1` executada;
 - [x] asset real validado com `mise --no-config install/exec` e todos os roots
   de estado/configuração/credenciais redirecionados para sandbox.

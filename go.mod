@@ -1,3 +1,3 @@
-module github.com/matheusvcouto/cli-tools
+module github.com/matheusvcouto/cli-tools/v2
 
-go 1.23.0
+go 1.27.1

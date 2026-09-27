@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/matheusvcouto/cli-tools/internal/safefs"
+	"github.com/matheusvcouto/cli-tools/v2/internal/safefs"
 )
 
 type ProcessIO struct {
@@ -60,7 +60,10 @@ func (s *Service) Create(tool, alias string) (Profile, error) {
 	if _, ok := LookupTool(tool); !ok {
 		return Profile{}, fmt.Errorf("unknown tool %q", tool)
 	}
-	return s.Store.createProfile(tool, alias, s.Now())
+	if tool == "grok" {
+		return s.Store.createProfile(tool, alias, s.Now(), initGrokProfile)
+	}
+	return s.Store.createProfile(tool, alias, s.Now(), nil)
 }
 
 func (s *Service) Rename(tool, oldAlias, newAlias string) (Profile, error) {
@@ -133,6 +136,19 @@ func (s *Service) DeleteConfirmed(tool, alias string) (string, error) {
 	return s.Store.deleteProfile(tool, alias)
 }
 
+// DeleteConfirmedProfile deletes only the exact profile the user saw before
+// confirming. A concurrent rename/replacement of its alias aborts instead of
+// deleting a different profile. This is required for interactive callers.
+func (s *Service) DeleteConfirmedProfile(selected Profile) (string, error) {
+	if err := ValidateAlias(selected.Alias); err != nil {
+		return "", err
+	}
+	if _, ok := LookupTool(selected.Tool); !ok {
+		return "", fmt.Errorf("unknown tool %q", selected.Tool)
+	}
+	return s.Store.deleteProfileIfUnchanged(selected.Tool, selected.Alias, &selected)
+}
+
 func (s *Service) Run(ctx context.Context, tool, alias string, args []string, io ProcessIO) error {
 	profile, spec, err := s.Profile(tool, alias)
 	if err != nil {
@@ -144,7 +160,7 @@ func (s *Service) Run(ctx context.Context, tool, alias string, args []string, io
 	if err := s.prepareProfile(tool, profile.Dir); err != nil {
 		return err
 	}
-	env := isolatedEnv(s.Env(), profileEnvironment(spec, profile.Dir), spec.ClearEnv)
+	env := isolatedEnv(s.Env(), profileEnvironment(spec, profile.Dir), spec.ClearEnv, s.normalizeEnvKey)
 	return s.Runner.Replace(ctx, spec.Binary, args, env, io)
 }
 
@@ -162,8 +178,11 @@ func (s *Service) ACP(ctx context.Context, tool, alias string, args []string, io
 	if err := s.prepareProfile(tool, profile.Dir); err != nil {
 		return err
 	}
-	env := isolatedEnv(s.Env(), profileEnvironment(spec, profile.Dir), spec.ClearEnv)
-	argv := append(append([]string{}, spec.ACP.Args...), args...)
+	env := isolatedEnv(s.Env(), profileEnvironment(spec, profile.Dir), spec.ClearEnv, s.normalizeEnvKey)
+	argv := make([]string, 0, len(spec.ACP.Args)+len(args)+len(spec.ACP.SuffixArgs))
+	argv = append(argv, spec.ACP.Args...)
+	argv = append(argv, args...)
+	argv = append(argv, spec.ACP.SuffixArgs...)
 	return s.Runner.Replace(ctx, spec.ACP.Binary, argv, env, io)
 }
 
@@ -180,22 +199,38 @@ func profileEnvironment(spec ToolSpec, profileDir string) []envValue {
 			value: filepath.Join(profileDir, anthropicConfigDirName),
 		})
 	}
+	if spec.Name == "grok" {
+		values = append(values, grokForcedEnvironment()...)
+	}
 	return values
 }
 
-func isolatedEnv(base []string, set []envValue, clear []string) []string {
+func (s *Service) normalizeEnvKey(key string) string {
+	type normalizer interface {
+		NormalizeEnvKey(string) string
+	}
+	if n, ok := s.Runner.(normalizer); ok {
+		return n.NormalizeEnvKey(key)
+	}
+	return key
+}
+
+func isolatedEnv(base []string, set []envValue, clear []string, normalize func(string) string) []string {
+	if normalize == nil {
+		normalize = func(key string) string { return key }
+	}
 	remove := make(map[string]struct{}, len(clear)+len(set))
 	for _, item := range set {
-		remove[item.key] = struct{}{}
+		remove[normalize(item.key)] = struct{}{}
 	}
 	for _, key := range clear {
-		remove[key] = struct{}{}
+		remove[normalize(key)] = struct{}{}
 	}
 	out := make([]string, 0, len(base)+len(set))
 	for _, item := range base {
 		key, _, ok := strings.Cut(item, "=")
 		if ok {
-			if _, drop := remove[key]; drop {
+			if _, drop := remove[normalize(key)]; drop {
 				continue
 			}
 		}
@@ -211,6 +246,8 @@ func (s *Service) prepareProfile(tool, profileDir string) error {
 	switch tool {
 	case "claude":
 		return s.ensureClaudeContextIsolation(profileDir)
+	case "grok":
+		return s.ensureGrokProfile(profileDir)
 	case "codex":
 		// Codex resolves user-global guidance from CODEX_HOME itself. A profile's
 		// AGENTS.override.md / AGENTS.md belongs inside that profile and must not
@@ -248,6 +285,12 @@ func (s *Service) ensureClaudeContextIsolation(profileDir string) error {
 	if raw, err := readStableRegularRoot(root, "settings.json"); err == nil {
 		if err := json.Unmarshal(raw, &settings); err != nil {
 			return fmt.Errorf("decode existing settings.json: %w", err)
+		}
+		// JSON null decodes successfully into a nil map. Without an explicit
+		// object check, adding claudeMdExcludes below would panic instead of
+		// rejecting an invalid profile-local settings document.
+		if settings == nil {
+			return fmt.Errorf("existing settings.json must contain a JSON object, not null")
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
@@ -291,7 +334,7 @@ func (s *Service) ensureClaudeContextIsolation(profileDir string) error {
 		return err
 	}
 	raw = append(raw, '\n')
-	return writeAtomicRoot(root, "settings.json", raw, 0o600, ".settings-")
+	return writeBoundedProfileMetadataRoot(root, "settings.json", raw, 0o600, ".settings-")
 }
 
 func randomHex(bytesN int) (string, error) {

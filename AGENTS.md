@@ -27,7 +27,7 @@ Se `plans/` contiver um plano ativo relacionado à tarefa, leia o `README.md` de
 
 - Nunca testar contra estado real do usuário.
 - Nunca escrever, renomear ou apagar `~/.ai-profiles` em testes ou durante a implementação da migração.
-- Nunca executar `claude`, `codex`, `claude-agent-acp` ou `codex-acp` reais em testes.
+- Nunca executar `claude`, `codex`, `grok`, `claude-agent-acp` ou `codex-acp` reais em testes.
 - Nunca acessar Keychain, Credential Manager, Secret Service, tokens ou contas reais.
 - Nunca alterar Git config global/sistema.
 - Repositórios Git de teste devem existir somente sob diretório temporário controlado pelo teste.
@@ -100,7 +100,7 @@ Dependência externa só entra quando torna a implementação comprovadamente ma
 - Mudança relevante recebe `changes/*.json`; CI valida cobertura por componente. Não fazer bump manual por commit.
 - `go run ./tools/release prepare --suite-version X.Y.Z` é preview; `--write` materializa manifests/changelogs/contracts e arquiva records.
 - `cli/` é API Go pública reutilizável; `cli/api.contract.json` protege a superfície exportada e `go run ./tools/release api check` é gate obrigatório antes de release.
-- API aditiva exige `api write` para passar a ser protegida; `api write --allow-breaking` só é aceitável em major deliberado com change record de `module`.
+- API aditiva exige `api write` para passar a ser protegida; `api write --allow-breaking` exige quebra deliberada e change record de `module`. O módulo desta migração já usa `/v2` e Go 1.27.1 por decisão registrada; não reverta esse estado para passar em sandbox.
 - Produto que cruza para `1.x` precisa declarar `stability: "stable"` no change record; estabilidade nunca pode regredir.
 - `release prepare --write` deve preservar rollback do conjunto em qualquer erro retornado; não reintroduzir mutações parciais sem teste de restauração.
 - Tags estáveis usam exatamente `vX.Y.Z`, nunca são reutilizadas/movidas e só apontam para commit já preparado com CI verde.
@@ -158,3 +158,40 @@ Uma mudança só está pronta quando:
 7. não há afirmação de suporte sem evidência correspondente.
 
 Durante uma migração ativa, atualizar também o checklist indicado pelo `README.md` daquela migração.
+
+## 10. Regras adicionais de evidência e entrega dos snapshots
+
+- Nunca inventar gates, testes, evidências, snapshots ou resultados CI. Revisão estática/documentação oficial é evidência **de revisão**, não de runtime.
+- Não degradar código de produção, garantias fail-closed, baseline Go ou segurança para adaptar ao sandbox; não substituir execuções bloqueadas por mocks.
+- Ao finalizar um ponto, continuar para o próximo quando tecnicamente possível; registrar bloqueios e validações externas pendentes no `CONTEXT.md`.
+- Para cada rodada, gerar ZIP completo do repositório e `CONTEXT.md` breve **separado** e **dentro** do ZIP. Entregar como arquivos reais quando a interface permitir, não apenas descrição textual ou cards personalizados.
+- Gerar também `SNAPSHOT-{NNN}_cli-tools_BASE64.md` com o ZIP codificado em **Base64 puro, sem code fences, cabeçalho ou Markdown**; verificar que a decodificação resulta nos mesmos bytes SHA-256 do ZIP. No macOS: `base64 -D -i SNAPSHOT-{NNN}_cli-tools_BASE64.md -o SNAPSHOT-{NNN}_cli-tools.zip`.
+- Quando a interface não oferecer anexos nativos, informar a limitação; arquivos de download somente no fim da resposta, sem cards. Nunca afirmar que o ZIP foi anexado se não houver confirmação.
+
+## Continuação: Grok Build (SNAPSHOT-002_cli-tools)
+
+- O provider `grok` está implementado; ler `plans/grok-build/README.md`, `REPORT_AND_PLAN.md` e `VALIDATION.md` antes de alterar seu contrato.
+- A suíte padrão permanece offline e não deve executar `grok` real nem tocar `~/.grok`, tokens, MCPs, projetos ou contas reais do desenvolvedor.
+- Probes sintéticos validam somente o launcher (argv/env/exit code); não são prova de compatibilidade Grok.
+- ACP Grok é `grok agent <opções> stdio`; não mover opções após `stdio`.
+- Não injetar `--always-approve`/`--yolo`; preservar deny rules, hooks, folder trust e sandbox.
+- No Windows, nunca executar `grok.cmd` por `cmd.exe`. Resolver somente o package oficial com manifesto/entrypoint verificado e Node direto, ou preferir `grok.exe`.
+- Não limpar `GROK_*` genericamente: isso pode remover guardrails administrados. Alterações na lista de ambiente exigem reconsulta às docs atuais.
+- Execuções reais com Grok oficial são opt-in/separadas, com versão/plataforma registradas; não usar credenciais pessoais como fixture.
+
+
+## Continuação: Grok Build code review (SNAPSHOT-003_cli-tools)
+
+- Ler `plans/grok-build/CODE_REVIEW_003.md` antes de reabrir decisões já corrigidas.
+- A referência oficial atual adicionou `compat.codex.skills` e `compat.codex.hooks`: default explicitamente `false`.
+- Remover env herdada de identidade e compatibilidade, mas preservar restrições administrativas `GROK_DISABLE_API_KEY_AUTH`, `GROK_FORCE_LOGIN_TEAM_ID`, sandbox e requirements.
+- Config local do perfil pode optar deliberadamente por compat Claude/Cursor/Codex; não forçar `false` via env.
+- Status real: validação estática local, sem Go 1.27.1/Grok autenticado/runner Windows nativo.
+- Próxima entrega: `SNAPSHOT-{NNN}_cli-tools.zip`, `CONTEXT-{NNN}_cli-tools.md` separado e dentro do ZIP, Base64 puro opcional/backup e checksums.
+
+## Continuação: SNAPSHOT-004 / segurança do store e View Limits
+
+- O índice deve rejeitar aliases que apontem para o mesmo diretório físico; não relaxar `profileDirIdentity` para evitar data loss em `delete`. Arquivos JSON de metadados mantêm o limite de 8 MiB inclusive na leitura via `os.Root` e no recovery helper.
+- A lista `grokClearEnv` remove apenas redirecionamentos/identidade herdados; preservar requisitos/guardrails de organização (sandbox, login team, disable API key). Revalidar contra a referência oficial por versão.
+- `plans/view-limits/README.md` é **plano**, não adapter entregue. Só usar fontes oficiais autorizadas e operações read-only por perfil; diferenciar assinatura, API e uso local. Não extrair segredos ou fazer requisições de teste pagas inadvertidamente.
+- Ler `plans/grok-build/CODE_REVIEW_004.md` para pendências nativas/ACL antes de promover suporte.

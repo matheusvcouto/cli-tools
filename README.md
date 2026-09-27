@@ -5,7 +5,7 @@ binários standalone e criadas para uso pessoal.
 
 ## Ferramentas
 
-- [`ai-profile`](cmd/ai-profile/README.md) — gerencia perfis isolados para Claude e Codex.
+- [`ai-profile`](cmd/ai-profile/README.md) — gerencia perfis isolados para Claude, Codex e Grok Build.
 - [`repo-zip`](cmd/repo-zip/README.md) — cria snapshots ZIP de repositórios Git.
 
 ## Instalação
@@ -46,9 +46,9 @@ repo-zip
 
 - macOS: suportado;
 - Linux: suportado;
-- Windows: compilação disponível, mas suporte de runtime ainda está em desenvolvimento.
+- Windows x64/ARM64: implementação de runtime e geração de artifacts configuradas; promoção/publicação é condicionada aos gates nativos Windows do CI.
 
-Cross-build comprova compilação, não suporte de runtime.
+Cross-build comprova compilação; a evidência de runtime continua sendo o CI nativo.
 
 ## Desenvolvimento
 
@@ -70,7 +70,7 @@ Documentação técnica:
 - [Release, changelog e mise](docs/release.md)
 - [Histórico de mudanças](CHANGELOG.md)
 - [Engenharia](docs/engineering.md)
-- [API Go pública e compatibilidade v1](docs/cli-api.md)
+- [API Go pública e lock de compatibilidade](docs/cli-api.md)
 - [Decisões arquiteturais da suíte](ADR.md)
 - [`ai-profile` ADR](cmd/ai-profile/ADR.md)
 - [`repo-zip` ADR](cmd/repo-zip/ADR.md)
@@ -79,3 +79,5 @@ Documentação técnica:
 
 Este é um projeto pessoal, criado para automatizar fluxos específicos do
 autor. Não é uma distribuição oficial do Claude, Codex ou Git.
+
+**Roadmap (não implementado):** View Limits por provider/perfil, com fontes oficiais e separação entre assinatura, limites de API e uso local. Ver [`plans/view-limits/README.md`](plans/view-limits/README.md).

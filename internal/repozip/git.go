@@ -49,7 +49,7 @@ type commandResult struct {
 
 func (g Git) run(repo string, args ...string) (commandResult, error) {
 	argv := append([]string{"-C", repo}, args...)
-	cmd := g.command("git", argv...)
+	cmd := g.command(gitExecutableName(), argv...)
 	cmd.Env = g.environment()
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
@@ -73,15 +73,15 @@ func sanitizedGitEnv(env []string) []string {
 	// Prevent caller-provided repository overrides from redirecting Git away
 	// from the explicitly selected -C repository.
 	blocked := map[string]struct{}{
-		"GIT_DIR": {}, "GIT_WORK_TREE": {}, "GIT_INDEX_FILE": {},
-		"GIT_OBJECT_DIRECTORY": {}, "GIT_COMMON_DIR": {},
-		"GIT_ALTERNATE_OBJECT_DIRECTORIES": {},
+		normalizeEnvironmentKey("GIT_DIR"): {}, normalizeEnvironmentKey("GIT_WORK_TREE"): {}, normalizeEnvironmentKey("GIT_INDEX_FILE"): {},
+		normalizeEnvironmentKey("GIT_OBJECT_DIRECTORY"): {}, normalizeEnvironmentKey("GIT_COMMON_DIR"): {},
+		normalizeEnvironmentKey("GIT_ALTERNATE_OBJECT_DIRECTORIES"): {},
 	}
 	out := make([]string, 0, len(env))
 	for _, item := range env {
 		key, _, ok := strings.Cut(item, "=")
 		if ok {
-			if _, drop := blocked[key]; drop {
+			if _, drop := blocked[normalizeEnvironmentKey(key)]; drop {
 				continue
 			}
 		}
@@ -259,7 +259,7 @@ func (g Git) TrackedGuard(repo, rel string) error {
 	if slash == ".git" || strings.HasPrefix(slash, ".git/") {
 		return fmt.Errorf("output cannot be inside .git")
 	}
-	cmd := g.command("git", "--literal-pathspecs", "-C", repo, "ls-files", "--error-unmatch", "--", slash)
+	cmd := g.command(gitExecutableName(), "--literal-pathspecs", "-C", repo, "ls-files", "--error-unmatch", "--", slash)
 	cmd.Env = g.environment()
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -372,7 +372,7 @@ func (g Git) SnapshotMetadata(repo string, excludes []string) (GitSnapshotMetada
 
 func (g Git) WriteBundle(repo string, dst io.Writer) error {
 	argv := []string{"-C", repo, "bundle", "create", "-", "--all"}
-	cmd := g.command("git", argv...)
+	cmd := g.command(gitExecutableName(), argv...)
 	cmd.Env = g.environment()
 	cmd.Stdout = dst
 	var stderr bytes.Buffer

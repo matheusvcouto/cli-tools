@@ -14,7 +14,7 @@ Os binários recebem argv/env/stdio diretamente. Nenhuma regra de negócio execu
 - store JSON versionado;
 - create/list/rename/delete/run/acp/apply-statusline;
 - environment isolation;
-- process replacement Unix;
+- process runner Unix e Windows;
 - guidance Codex;
 - templates embutidos;
 - completions;
@@ -39,9 +39,9 @@ Não existe backend `zip/unzip` por plataforma.
 
 ## 5. Plataformas — implementação atual
 
-- Linux: runtime sintético testado localmente;
-- macOS: mesma implementação Unix, runtime tests reais verdes no GitHub Actions;
-- Windows: compile-only. Stubs deixam explícitas as capabilities nativas ainda não implementadas.
+- Linux: backend Unix; runtime local coberto pela suíte hermética;
+- macOS: mesmo backend Unix onde a semântica coincide; runtime tests reais já observados no GitHub Actions;
+- Windows: adapters nativos implementados para lock, commit, execução de processo/Job Object, publicação e paths de completion. Cross-build e revisão estática estão verdes; a promoção para `supported` depende da execução nativa configurada em CI, conforme `../../plans/windows-support/VALIDATION.md`.
 
 ## 6. Qualidade — local concluído
 
@@ -51,11 +51,11 @@ Gates locais: format, test, vet, shuffle/repeat e race. Cross-build cobre seis p
 
 A workflow de tag:
 
-1. testa Linux e macOS;
-2. só então gera artifacts;
-3. smoke-testa o archive Linux;
-4. valida SHA256SUMS;
-5. publica GitHub Release.
+1. testa Linux, macOS, Windows x64 e Windows ARM64;
+2. executa smoke nativo dos artifacts Windows x64/ARM64;
+3. só então gera/publica o conjunto final de artifacts, incluindo `.exe` Windows;
+4. smoke-testa o archive Linux;
+5. valida SHA256SUMS e publica a GitHub Release.
 
 A instalação alvo é `mise use -g github:matheusvcouto/cli-tools@latest`.
 

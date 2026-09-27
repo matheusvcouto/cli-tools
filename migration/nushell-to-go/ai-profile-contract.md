@@ -82,4 +82,4 @@ O runtime não depende de Nushell. O binário funciona igualmente quando chamado
 
 ## Suporte
 
-Linux e macOS compartilham o backend Unix quando a semântica é a mesma e passam por runtime tests em CI. Windows é compile-only enquanto capabilities críticas não tiverem implementação e testes próprios. Compilar não significa suportar.
+Linux e macOS compartilham o backend Unix quando a semântica é a mesma. Windows possui adapters próprios para lock, commit, processo e semântica de ambiente, com testes nativos configurados no CI; permanece `untested` até essa execução Windows ser observada. Cross-build isolado continua não significando suporte.

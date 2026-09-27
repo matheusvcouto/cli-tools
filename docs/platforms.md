@@ -16,34 +16,42 @@ handler somente se preflight passou
 
 Capability ausente falha antes de efeito de domínio.
 
-## Portável hoje
+## Portável
 
 - CLI Core: compile/parser/binding/help/schema/contract/docs;
 - completion engine e geração Fish/Nushell 0.114+/Bash/Zsh/PowerShell;
 - JSON store/schema e naming;
 - seleção/guards Git;
-- `archive/zip` create/verify;
+- `archive/zip` create/verify.
 
 Completion **gerada** ser portátil não significa que cada shell foi executado em todo SO. Native E2E é evidência separada.
 
-## Específico hoje
+## Adapters de plataforma
 
-- `filelock`;
-- `fscommit`;
-- process replacement do `ai-profile`;
-- publicação final do `repo-zip`.
+As regras de domínio não selecionam SO. Quando a semântica muda, a implementação fica em arquivos com build tags:
 
-Essas primitivas permanecem fora de `cli/`.
+- `filelock`: Unix / Windows;
+- `fscommit`: Unix / Windows;
+- process runner do `ai-profile`: Unix / Windows;
+- publicação do `repo-zip`: Unix / Windows;
+- paths de completion: macOS / Linux / Windows.
 
-## macOS e Linux
-
-Compartilham implementações Unix quando a semântica é igual: lock/replace apropriados, `exec` para `run/acp` e primitives de publicação do `repo-zip`. Linux possui runtime tests locais; macOS é validado em runner nativo de CI.
+macOS e Linux compartilham backend Unix apenas onde a primitive e sua garantia são equivalentes.
 
 ## Windows
 
-Windows continua compile-only para o produto quando falta primitive equivalente de runtime. Stubs/capabilities devem retornar erro explícito antes de tocar estado. Para promover suporte, são necessários runtime tests nativos de lock, replace, processo/stdio/exit e publicação force/no-clobber.
+A implementação Windows cobre as capabilities de runtime necessárias:
 
-PowerShell completion é um adapter independente dessa declaração: geração/conformance não prova os demais casos de uso do produto no Windows.
+- lock exclusivo do profile store via `LockFileEx`/`UnlockFileEx`;
+- replace confinado de commits via `safefs.Root.Rename` (`os.Root` no Go de release);
+- `ai-profile run/acp` via processo nativo, sem shell, com stdin/stdout/stderr diretos e argv literal; o processo nasce suspenso, entra em um Job Object e só então é retomado, com cancelamento/cleanup da árvore inteira e propagação exata do exit code quando a contenção termina normalmente;
+- wrappers npm `.cmd` conhecidos de Claude/Codex/Grok/ACP são resolvidos para o entrypoint validado e executados diretamente por `node.exe`; wrappers desconhecidos continuam fail-closed;
+- ambiente Windows é tratado com nomes de variáveis case-insensitive, inclusive isolamento de credenciais e sanitização `GIT_*`;
+- publicação `repo-zip`: force por rename confinado; no-clobber por hard link confinado + remoção do temporário;
+- completion paths possuem adapter Windows próprio;
+- release gera `.zip` com `.exe` para `windows/amd64` e `windows/arm64`.
+
+CI nativo usa `windows-2025` (x64) e `windows-11-vs2026-arm` (ARM64), além de cross-build separado. O matrix principal também cobre nativamente Linux e macOS em amd64+arm64, alinhado aos seis targets publicados. Windows x64 executa o race detector suportado pelo Go; Windows ARM64 não o executa porque o race detector oficial não suporta essa combinação. A release é construída uma única vez; ambos os runners Windows baixam e executam os archives desse bundle, e a publicação reutiliza exatamente o mesmo artifact após os gates nativos.
 
 ## Terminal
 
@@ -51,11 +59,13 @@ O composition root detecta stdio como character device usando stdlib e passa `cl
 
 ## `os.Root`
 
-Releases usam Go 1.27.1 e `internal/safefs` usa `os.Root`; fallback de toolchain antiga existe apenas para bootstrap/desenvolvimento e é mais conservador.
+O módulo e as releases exigem Go 1.27.1. `internal/safefs` usa `os.Root` como única implementação; toolchains antigas são recusadas em vez de receber um fallback com garantias inferiores.
 
 ## Estados de suporte
 
-- `supported`: implementação + runtime tests nativos;
+- `supported`: implementação + runtime tests nativos observados;
 - `partial`: só parte das capabilities;
-- `untested`: implementação existe, evidência insuficiente;
+- `untested`: implementação existe, evidência nativa ainda não foi observada;
 - `unsupported`: garantia necessária não implementada.
+
+Cross-build nunca promove sozinho o estado de suporte.

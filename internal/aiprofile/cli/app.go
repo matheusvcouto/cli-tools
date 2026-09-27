@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"text/tabwriter"
 
-	core "github.com/matheusvcouto/cli-tools/cli"
-	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
+	core "github.com/matheusvcouto/cli-tools/v2/cli"
+	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
 )
 
 // New compiles ai-profile from one declarative command tree. Domain services
@@ -100,7 +100,10 @@ func toolCommand(spec aiprofile.ToolSpec, lazy *core.Lazy[*aiprofile.Service], p
 			if !confirmed {
 				return &core.Diagnostic{Code: core.CodeInvalidValue, Kind: "confirmation", Message: "deletion cancelled", Class: core.ExitUsage}
 			}
-			path, err := service.DeleteConfirmed(tool, name)
+			// Revalidate the exact displayed profile while holding the store
+			// lock. An alias can be reused by another process while the user
+			// answers the two interactive confirmation prompts.
+			path, err := service.DeleteConfirmedProfile(p)
 			if err != nil {
 				return err
 			}

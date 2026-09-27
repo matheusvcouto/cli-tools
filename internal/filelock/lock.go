@@ -1,11 +1,6 @@
 package filelock
 
-import (
-	"errors"
-	"os"
-)
-
-var ErrUnsupported = errors.New("file locking is not supported on this platform")
+import "os"
 
 type Lock interface {
 	Close() error

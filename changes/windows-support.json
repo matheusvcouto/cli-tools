@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "module",
+      "impact": "major",
+      "breaking": true,
+      "summary": "Upgrade the module to v2 with a Go 1.27.1 minimum and confined os.Root-only storage; build once, native-test all six published targets, and harden GitHub Actions provenance"
+    },
+    {
+      "component": "ai-profile",
+      "impact": "minor",
+      "breaking": false,
+      "summary": "Implement Windows locking, safe profile commits, and Job Object-contained native process execution"
+    },
+    {
+      "component": "repo-zip",
+      "impact": "minor",
+      "breaking": false,
+      "summary": "Implement confined Windows force and no-clobber archive publication"
+    }
+  ]
+}

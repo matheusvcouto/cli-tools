@@ -1,5 +1,7 @@
 # Evidências de validação
 
+> **Snapshot histórico de 2026-09-12.** As afirmações de Windows compile-only/release sem Windows abaixo registram o estado daquela execução e foram supersedidas. A implementação e validação Windows atuais ficam em [`../../plans/windows-support/VALIDATION.md`](../../plans/windows-support/VALIDATION.md).
+
 Última revisão local: 2026-09-12 (revisada após auditoria atual de isolamento/contexto de `ai-profile`).
 
 Este arquivo registra **o que realmente foi executado**. Cross-build não é tratado como teste de runtime e nenhum item externo é inferido a partir de teste local.

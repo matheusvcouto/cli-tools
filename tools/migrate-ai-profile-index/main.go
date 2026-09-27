@@ -4,12 +4,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
+	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
 )
 
 func main() {
@@ -45,7 +46,7 @@ func migrate(from, root string) error {
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	raw, err := os.ReadFile(fromAbs)
+	raw, err := readLegacyIndex(fromAbs)
 	if err != nil {
 		return err
 	}
@@ -54,16 +55,54 @@ func migrate(from, root string) error {
 		return fmt.Errorf("parse legacy index: %w", err)
 	}
 	store := aiprofile.Store{Root: rootAbs}
-	if err := store.Update(func(data *aiprofile.StoreData) error {
-		if len(data.Profiles) != 0 {
-			return errors.New("destination store is not empty")
-		}
-		data.Profiles = append(data.Profiles, profiles...)
-		return nil
-	}); err != nil {
-		return err
+	return store.ImportLegacy(profiles, fromAbs, raw)
+}
+
+// The legacy index is user-provided local metadata, not an unbounded input
+// source. Reject links and special files; verify identity before and after a
+// bounded read. The explicit migration never changes the source file.
+const maxLegacyIndexBytes int64 = 8 << 20
+
+func readLegacyIndex(path string) ([]byte, error) {
+	before, err := os.Lstat(path)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	if before.Mode()&os.ModeSymlink != 0 || !before.Mode().IsRegular() {
+		return nil, fmt.Errorf("legacy source is not a regular file: %s", path)
+	}
+	if before.Size() > maxLegacyIndexBytes {
+		return nil, fmt.Errorf("legacy index exceeds %d bytes", maxLegacyIndexBytes)
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	opened, statErr := f.Stat()
+	if statErr != nil {
+		_ = f.Close()
+		return nil, statErr
+	}
+	if !opened.Mode().IsRegular() || !os.SameFile(before, opened) {
+		_ = f.Close()
+		return nil, fmt.Errorf("legacy source changed identity while opening")
+	}
+	raw, readErr := io.ReadAll(io.LimitReader(f, maxLegacyIndexBytes+1))
+	closeErr := f.Close()
+	if readErr != nil {
+		return nil, fmt.Errorf("read legacy index: %w", readErr)
+	}
+	if closeErr != nil {
+		return nil, fmt.Errorf("close legacy index: %w", closeErr)
+	}
+	if int64(len(raw)) > maxLegacyIndexBytes {
+		return nil, fmt.Errorf("legacy index exceeds %d bytes", maxLegacyIndexBytes)
+	}
+	after, err := os.Lstat(path)
+	if err != nil || after.Mode()&os.ModeSymlink != 0 || !after.Mode().IsRegular() || !os.SameFile(opened, after) {
+		return nil, fmt.Errorf("legacy source changed identity during read")
+	}
+	return raw, nil
 }
 
 type lexer struct {

@@ -1,9 +1,9 @@
 # Public Go API (`cli`)
 
-The package `github.com/matheusvcouto/cli-tools/cli` is intentionally reusable by other Go projects. It is not an internal implementation detail of the bundled CLIs.
+The package `github.com/matheusvcouto/cli-tools/v2/cli` is intentionally reusable by other Go projects. It is not an internal implementation detail of the bundled CLIs.
 
 ```go
-import cli "github.com/matheusvcouto/cli-tools/cli"
+import cli "github.com/matheusvcouto/cli-tools/v2/cli"
 
 app, err := cli.Compile(cli.App{
     ID:   "example",
@@ -34,10 +34,10 @@ The external-package test `cli/public_api_external_test.go` compiles and exercis
 
 ## Compatibility policy
 
-The suite/module Git tag versions the public Go API. Before `v1.0.0`, compatibility may still change deliberately. Starting at v1:
+The suite/module Git tag versions the public Go API. Go 1.27.1 is the minimum for this codebase and the next incompatible release is planned as `v2.0.0`; the import path is `github.com/matheusvcouto/cli-tools/v2`. Consumers of the former `v1` module retain the original (unsuffixed) import path until they intentionally migrate. Future incompatible changes to the stable `v2` public API require a `v3` major release with `/v3` imports; changes within `v2` must preserve Go import compatibility.
 
-- removing an exported symbol or changing a locked declaration requires a new module major version;
-- additive exported API is allowed in a compatible release, but the API lock must be regenerated so the new symbol becomes protected too;
+- removing an exported symbol or changing a locked declaration is allowed only after explicit review, a `module` change record and `api write --allow-breaking`;
+- additive exported API is allowed, but the API lock must be regenerated so the new symbol becomes protected too;
 - implementation details under `cli/internal/` are never public API;
 - CLI syntax compatibility is a separate contract guarded by each tool's `cli.contract.json`.
 
@@ -55,15 +55,15 @@ After an intentional additive API change:
 go run ./tools/release api write
 ```
 
-`api write` refuses an existing breaking API change by default. Only while preparing an intentional module major release may the baseline be replaced with:
+`api write` refuses an existing breaking API change by default. After explicit review of an intentional breaking module change, the baseline may be replaced with:
 
 ```sh
 go run ./tools/release api write --allow-breaking
 ```
 
-That command is not a substitute for the required `module` change record and major-version release review.
+That command is not a substitute for the required `module` change record and review of the incompatible change.
 
-## v1 release gate
+## Stable release gate
 
 A v1 tag should be cut only after all of the following are green on the exact commit being tagged:
 

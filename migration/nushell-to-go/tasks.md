@@ -9,7 +9,7 @@ Marcar apenas com evidência.
 - [x] mini core sem framework próprio;
 - [x] domínio sem `runtime.GOOS`;
 - [x] diferenças reais de SO isoladas em build tags/capabilities;
-- [x] Windows compile-only com stubs explícitos onde falta semântica segura;
+- [x] Windows possui adapters reais para lock, commit, process runner, publicação e paths; execução nativa continua sujeita aos gates Windows;
 - [x] docs ativas não dependem do legado para trabalho normal.
 
 ## `ai-profile`
@@ -24,7 +24,7 @@ Marcar apenas com evidência.
 - [x] delete com confirmação, quarentena e rollback;
 - [x] env isolation, incluindo roots Anthropic/Claude e workload identity;
 - [x] argv passthrough;
-- [x] process replacement/exit status em Unix;
+- [x] execução/exit status em Unix e Windows, com Job Object no Windows;
 - [x] ACP stdout limpo;
 - [x] guidance Codex;
 - [x] statusline embutida + merge seguro;
@@ -45,7 +45,7 @@ Marcar apenas com evidência.
 - [x] output confinado e temp no mesmo parent;
 - [x] ZIP verificado pelo mesmo descriptor temporário;
 - [x] rechecagem do conjunto elegível antes de publicar;
-- [x] no-clobber e force separados em Unix;
+- [x] no-clobber e force separados em Unix e Windows;
 - [x] mudança durante snapshot aborta;
 - [x] runtime macOS confirmado pelo CI do repositório real.
 
@@ -60,8 +60,8 @@ Marcar apenas com evidência.
 - [x] release descobre `cmd/*`;
 - [x] release exige Go 1.27.1;
 - [x] release gera `SHA256SUMS`;
-- [x] workflow de release exige Linux + macOS antes de publish;
-- [x] smoke test do archive Linux previsto na workflow;
+- [x] workflow de release exige Linux/macOS + Windows x64/ARM64 antes de publish;
+- [x] smoke do archive Linux e dos `.exe` Windows x64/ARM64 previsto na workflow;
 - [x] workflow real executada em GitHub para `v0.1.1`;
 - [x] instalação de release real via mise testada com HOME/MISE_* temporários,
   config discovery desabilitado e fallbacks de credenciais desativados.

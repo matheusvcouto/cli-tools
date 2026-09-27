@@ -27,3 +27,16 @@ Não executar automaticamente.
 - manter `index.nuon` e diretórios físicos originais intactos até encerrar a janela.
 
 O conversor não apaga `index.nuon` nem move diretórios.
+
+## Proteção adicional do cutover (SNAPSHOT-006)
+
+O índice legado normalmente fica no próprio root `~/.ai-profiles/index.nuon`.
+A migração permite esse arquivo somente quando é **exatamente** o `--from`
+fornecido, seu conteúdo é revalidado sob o lock e todos os demais arquivos e
+diretórios do root são explicados pelo índice. Um NUON corrompido, diretório
+referenciado ausente, entrada residual não listada, `index.json.bak` já
+existente ou alteração concorrente da origem aborta sem publicar o novo JSON.
+Se o índice JSON desaparecer depois de uma migração, o modo normal **não**
+tratará os diretórios legados como armazenamento vazio. Recupere a partir de
+backup validado por uma pessoa; não apague diretórios para deixar o guard
+passar.

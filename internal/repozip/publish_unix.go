@@ -5,7 +5,7 @@ package repozip
 import (
 	"fmt"
 
-	"github.com/matheusvcouto/cli-tools/internal/safefs"
+	"github.com/matheusvcouto/cli-tools/v2/internal/safefs"
 )
 
 func ensurePublicationSupported() error { return nil }

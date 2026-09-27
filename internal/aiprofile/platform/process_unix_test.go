@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/matheusvcouto/cli-tools/internal/testenv"
+	"github.com/matheusvcouto/cli-tools/v2/internal/testenv"
 
-	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
+	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
 )
 
 func TestRunnerReplaceHelper(t *testing.T) {
@@ -65,5 +65,16 @@ func TestRunnerReplacesProcessAndPreservesExit(t *testing.T) {
 	}
 	if !strings.Contains(string(out), "target:ok") {
 		t.Fatalf("target output missing: %q", out)
+	}
+}
+
+func TestRunnerDoesNotExecAfterCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	// The name is intentionally nonexistent. A canceled request must return
+	// its context error rather than attempting executable resolution.
+	err := (Runner{}).Replace(ctx, "not-a-real-agent-executable", nil, nil, aiprofile.ProcessIO{})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled launch returned %v", err)
 	}
 }

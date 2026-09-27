@@ -26,6 +26,7 @@
 - regular files são revalidados durante a leitura;
 - conjunto de arquivos elegíveis é comparado novamente antes da publicação;
 - `--git` não percorre nem copia `.git`; usa `git bundle create --all` e verifica o bundle com o próprio Git antes de inseri-lo no ZIP;
+- o bundle Git temporário recebe `0600` em Unix e DACL protegida aplicada diretamente ao handle em Windows, sem confiar em `chmod` para privacidade;
 - linked worktrees são suportadas sem resolver manualmente `$GIT_DIR`/`$GIT_COMMON_DIR`;
 - token de consistência de `--git` inclui HEAD, refs/reachable refs e status antes/depois do snapshot;
 - overrides Git sensíveis vindos do ambiente, incluindo `GIT_ALTERNATE_OBJECT_DIRECTORIES`, são removidos antes de executar Git;
@@ -49,5 +50,8 @@ As CLIs atualmente usam somente a standard library. A política é stdlib-first,
 - release com `CGO_ENABLED=0`;
 - `-trimpath`;
 - `SHA256SUMS`;
-- release só depois de gates Linux + macOS;
+- release só depois de gates nativos Linux/macOS/Windows nas arquiteturas publicadas;
+- Actions externas são fixadas por SHA completo imutável e atualizadas por Dependabot;
+- o mesmo bundle imutável é checksummed, smoke-tested nativamente nos seis targets publicados e publicado sem rebuild;
+- publicação recusa archive ausente/extra e cada smoke recusa CLI ausente/extra;
 - artifacts contêm apenas `bin/*`.

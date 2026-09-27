@@ -20,7 +20,7 @@ O objetivo não é copiar a aparência antiga; é preservar capacidades e dados 
 | statusline Claude-only | built-in + custom dir | tests |
 | shell completion | Fish/Nushell 0.114+/Bash/Zsh/PowerShell | generation + native conditional tests |
 | schema legado | conversor transitório | tests |
-| Windows | parcial/compile-only | cross-build |
+| Windows | implementação completa; `untested` até CI nativo observado | testes Windows configurados + cross-build |
 
 ## Dados que a migração deve preservar
 

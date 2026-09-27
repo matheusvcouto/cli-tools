@@ -232,11 +232,11 @@ Além dos comandos, o módulo atual oferece comportamento interativo que não po
 
 Como executável standalone não devolve automaticamente valores tipados ao pipeline Nushell, a implementação oferece `list --json` como interface machine-readable. **Decisão posterior:** não há integração Nushell obrigatória para o runtime/estrutura; a completion Nushell é opcional e requer Nu 0.114+.
 
-### Suporte atual por SO
+### Suporte por SO — fotografia histórica
 
-O módulo `platform/require-runtime` trata `untested` como bloqueio, não como sucesso.
+Os blocos abaixo descrevem o estado do legado/auditoria original e **não** o estado atual da implementação Go. O estado vigente está em `../../docs/platforms.md`; o trabalho Windows posterior está em `../../plans/windows-support/`.
 
-`ai-profile run/acp`:
+Na fotografia histórica, `ai-profile run/acp` era:
 
 ```text
 macOS   supported
@@ -244,7 +244,7 @@ Linux   untested
 Windows untested
 ```
 
-`repo-zip`:
+E `repo-zip` era:
 
 ```text
 macOS   supported
@@ -252,9 +252,9 @@ Linux   unsupported
 Windows unsupported
 ```
 
-O `repo-zip` macOS atual requer `git`, `/usr/bin/zip` e `unzip`, usando `unzip -tqq` para verificação.
+O legado `repo-zip` macOS requeria `git`, `/usr/bin/zip` e `unzip`, usando `unzip -tqq` para verificação.
 
-**Decisão histórica supersedida:** a implementação Go usa `archive/zip` em macOS/Linux. Apenas capacidades realmente específicas de SO ficam separadas; Windows permanece compile-only nas capabilities ainda não implementadas.
+**Estado atual supersedente:** a implementação Go usa `archive/zip` de forma portátil e adapters próprios somente onde a garantia de SO muda. Windows já possui as capabilities nativas implementadas; enquanto a execução nativa configurada no CI não for observada, permanece `untested`, não `supported`.
 
 ### Referências adicionais congeladas
 
