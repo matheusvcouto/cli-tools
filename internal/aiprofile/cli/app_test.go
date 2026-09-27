@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	core "github.com/matheusvcouto/cli-tools/cli"
-	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
+	core "github.com/matheusvcouto/cli-tools/v2/cli"
+	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
 )
 
 type fakeRunner struct {
@@ -75,6 +75,13 @@ func TestStaticPathsDoNotInitializeService(t *testing.T) {
 	if len(r.Candidates) == 0 || r.Candidates[0].Value != "claude" {
 		t.Fatalf("%+v", r)
 	}
+	r, err = app.Complete(context.Background(), core.CompletionRequest{Protocol: 1, Argv: []string{"ai-profile", "gr"}, CursorArg: 1, CursorOffset: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Candidates) == 0 || r.Candidates[0].Value != "grok" {
+		t.Fatalf("missing static Grok completion: %+v", r)
+	}
 	if calls != 0 {
 		t.Fatalf("static completion initialized service %d times", calls)
 	}
@@ -124,6 +131,28 @@ func TestACPUsesOpaqueTrailingArgvWithoutWrapperOutput(t *testing.T) {
 	}
 	if runner.binary != "claude-agent-acp" || strings.Join(runner.args, "|") != "--flag" {
 		t.Fatalf("bad ACP call: %s %#v", runner.binary, runner.args)
+	}
+}
+
+func TestGrokACPPlacesAgentOptionsBeforeStdio(t *testing.T) {
+	service, runner := testService(t)
+	if _, err := service.Create("grok", "p"); err != nil {
+		t.Fatal(err)
+	}
+	lazy := core.NewLazy(func() (*aiprofile.Service, error) { return service, nil })
+	app, err := New(lazy, aiprofile.ProcessIO{}, core.ProductMetadata{Version: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out, errOut bytes.Buffer
+	if err := app.Run(context.Background(), []string{"grok", "acp", "p", "--model", "grok-4.7"}, core.IO{Out: &out, Err: &errOut}); err != nil {
+		t.Fatal(err)
+	}
+	if out.Len() != 0 || errOut.Len() != 0 {
+		t.Fatalf("wrapper output stdout=%q stderr=%q", out.String(), errOut.String())
+	}
+	if runner.binary != "grok" || strings.Join(runner.args, "|") != "agent|--model|grok-4.7|stdio" {
+		t.Fatalf("bad Grok ACP call: %s %#v", runner.binary, runner.args)
 	}
 }
 
@@ -205,6 +234,65 @@ func TestDeleteUsesCoreInteractionAndRequiresTwoConfirmations(t *testing.T) {
 	}
 }
 
+type triggerOnFirstRead struct {
+	reader  *strings.Reader
+	trigger func() error
+	called  bool
+}
+
+func (r *triggerOnFirstRead) Read(p []byte) (int, error) {
+	if !r.called {
+		r.called = true
+		if err := r.trigger(); err != nil {
+			return 0, err
+		}
+	}
+	return r.reader.Read(p)
+}
+
+// Reproduces an alias being reassigned after the displayed path is chosen
+// but before a human finishes answering deletion prompts. Neither directory
+// may be removed, regardless of prompt input.
+func TestInteractiveDeleteRefusesProfileReplacedDuringConfirmation(t *testing.T) {
+	service, _ := testService(t)
+	original, err := service.Create("grok", "profile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var replacement aiprofile.Profile
+	input := &triggerOnFirstRead{
+		reader: strings.NewReader("profile\nyes\n"),
+		trigger: func() error {
+			if _, err := service.Rename("grok", "profile", "preserved"); err != nil {
+				return err
+			}
+			var err error
+			replacement, err = service.Create("grok", "profile")
+			return err
+		},
+	}
+	lazy := core.NewLazy(func() (*aiprofile.Service, error) { return service, nil })
+	app, err := New(lazy, aiprofile.ProcessIO{}, core.ProductMetadata{Version: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out, errOut bytes.Buffer
+	err = app.Run(context.Background(), []string{"grok", "delete", "profile"}, core.IO{
+		In: input, Out: &out, Err: &errOut, Terminal: core.Terminal{StdinTTY: true},
+	})
+	if err == nil || !strings.Contains(err.Error(), "changed after deletion confirmation") {
+		t.Fatalf("interactive delete accepted a replaced alias: %v", err)
+	}
+	if !input.called || replacement.Dir == "" || original.Dir == replacement.Dir {
+		t.Fatalf("test did not replace the alias: original=%s replacement=%s", original.Dir, replacement.Dir)
+	}
+	for _, profile := range []aiprofile.Profile{original, replacement} {
+		if _, err := os.Stat(filepath.Join(profile.Dir, "config.toml")); err != nil {
+			t.Fatalf("unsafe delete altered %s: %v", profile.Dir, err)
+		}
+	}
+}
+
 func TestDeleteRefusesNonInteractiveInputBeforeMutation(t *testing.T) {
 	service, _ := testService(t)
 	if _, err := service.Create("claude", "profile"); err != nil {
@@ -255,7 +343,7 @@ func TestApplyStatuslineIsRetiredFromActiveCLI(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, tool := range []string{"claude", "codex"} {
+	for _, tool := range []string{"claude", "codex", "grok"} {
 		var help bytes.Buffer
 		if err := app.Run(context.Background(), []string{tool, "--help"}, core.IO{Out: &help}); err != nil {
 			t.Fatal(err)

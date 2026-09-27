@@ -18,8 +18,8 @@ Leia nesta ordem:
 
 - `reference/` é somente leitura e serve para comparação de comportamento.
 - Não copiar nomes, paths, contas, credenciais ou estado real para fixtures.
-- macOS e Linux usam backend Unix onde a semântica é comprovadamente a mesma; Windows permanece compile-only/unsupported nas capabilities ainda sem backend seguro.
-- Plataforma sem backend seguro deve continuar explicitamente `untested`/`unsupported`.
+- macOS e Linux usam backend Unix onde a semântica é comprovadamente a mesma; Windows usa adapters próprios para as capabilities cuja garantia difere.
+- Implementação sem execução nativa observada deve continuar explicitamente `untested`; capability realmente ausente permanece `unsupported`.
 - Não mover/remover o código Nushell original antes dos gates de cutover.
 - Não executar migração real de `~/.ai-profiles` durante testes.
 - O legado não define UX. Diferenças de capacidade/invariante exigem contrato/ADR; melhorias de mensagens/apresentação não.

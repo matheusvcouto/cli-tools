@@ -58,4 +58,4 @@ Isso reduz inconsistência; não é promessa de snapshot transacional contra tod
 
 ## Plataformas
 
-Criação/verificação do ZIP são portáteis. Apenas publicação final tem implementação específica onde necessário. Windows fica compile-only até receber semântica equivalente testada.
+Criação/verificação do ZIP são portáteis. A publicação final usa implementação específica onde a garantia do SO muda. Windows já possui publicação no-clobber/replace nativa implementada e gates próprios; permanece `untested` até uma execução nativa Windows ser observada no CI.

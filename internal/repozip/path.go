@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/matheusvcouto/cli-tools/internal/safefs"
+	"github.com/matheusvcouto/cli-tools/v2/internal/safefs"
 )
 
 func relativeIfInside(path, root string) string {
@@ -81,7 +81,7 @@ func ensureExplicitParent(path, repo string) (string, error) {
 		if err := root.MkdirAll(filepath.ToSlash(rel), 0o755); err != nil {
 			return "", fmt.Errorf("output parent escapes repository or is unsafe: %w", err)
 		}
-		// Defense in depth for bootstrap builds using the legacy safefs backend.
+		// Independent canonical-path defense in depth against an explicit parent that resolves through a symlink.
 		realRepo, err := filepath.EvalSymlinks(repo)
 		if err != nil {
 			return "", err

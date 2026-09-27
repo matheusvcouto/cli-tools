@@ -23,9 +23,13 @@ intencional: ele define o contrato reutilizável do CLI Core e pode ser importad
 por outros projetos. Novos pacotes públicos continuam exigindo necessidade real
 e decisão arquitetural explícita.
 
-Enquanto o módulo estiver abaixo de `v1`, breaking changes do pacote público
-podem ocorrer de forma deliberada e documentada. Após `v1`, sua compatibilidade
-segue o SemVer do módulo Go e as regras de versionamento de módulos do Go.
+A partir de `v1`, mudanças incompatíveis do pacote público exigem novo major e
+novo import path, conforme Go Semantic Import Versioning. A migração em curso para
+Go 1.27.1 e `os.Root` estabelece o módulo `github.com/matheusvcouto/cli-tools/v2`
+para a futura tag `v2.0.0`. Consumidores de `v1` permanecem no path antigo;
+`cli/api.contract.json` registra e protege o contrato público da nova versão.
+Novos majors exigirão o sufixo `/vN` correspondente; o tooling de release
+recusa tags com path incompatível.
 
 ## D003 — Stdlib-first — Accepted
 
@@ -97,10 +101,10 @@ contract diff/changeset e cobertas pela migração.
 
 ## D016 — Filesystem confinado compartilhado — Accepted
 
-`internal/safefs` representa a invariante comum “não escapar desta raiz”.
-Official builds com Go 1.27.1 usam `os.Root`; o fallback para toolchains antigas
-existe para desenvolvimento/bootstrap, não é a baseline de segurança do artifact
-oficial.
+`internal/safefs` representa a invariante comum “não escapar desta raiz”. O módulo
+exige Go 1.27.1 e usa `os.Root` como única implementação. Não existe fallback para
+toolchain antiga: reduzir a garantia de containment para manter compatibilidade de
+build é proibido.
 
 ## D017 — Identidade de path é propriedade do filesystem — Accepted
 

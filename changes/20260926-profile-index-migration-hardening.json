@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "ai-profile",
+      "impact": "patch",
+      "breaking": false,
+      "summary": "Reject all residual profile-root entries when index.json is missing, add validated explicit import of legacy NUON directories (including original index.nuon in the target root), bound and revalidate migration source, and preserve Windows PATH order when resolving official npm shims"
+    }
+  ]
+}

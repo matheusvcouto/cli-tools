@@ -4,61 +4,144 @@ on:
   push:
     tags: ['v*']
 
+# No implicit toolchain upgrade; a version mismatch must fail instead.
+env:
+  GOTOOLCHAIN: local
+
+concurrency:
+  # Never cancel a release in the middle of uploading its assets.
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
 jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Lint tagged workflows before native verification
+        shell: bash
+        run: ./scripts/check-workflows.sh
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache-dependency-path: go.mod
+      - name: Validate version, changelog, module path and prepared changes before native matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run ./tools/release changes validate
+          go run ./tools/release preflight --version "$GITHUB_REF_NAME" --changelog CHANGELOG.md
+      - name: Refuse tags not merged into the default branch
+        shell: bash
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          test -n "$DEFAULT_BRANCH"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$GITHUB_SHA" "refs/remotes/origin/$DEFAULT_BRANCH"
+      - name: Verify the remote tag still resolves to this commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/verify-remote-release-tag.sh
+
   verify:
+    needs: preflight
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-24.04
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+          - os: macos-15-intel
+            arch: amd64
+          - os: macos-15
+            arch: arm64
+          - os: windows-2025
+            arch: amd64
+          - os: windows-11-vs2026-arm
+            arch: arm64
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: '1.27.1'
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
           check-latest: false
-      - name: Format
+          cache-dependency-path: go.mod
+      - name: Format (Unix)
+        if: runner.os != 'Windows'
         shell: bash
-        run: test -z "$(gofmt -l .)"
+        run: |
+          set -euo pipefail
+          unformatted="$(gofmt -l .)"
+          test -z "$unformatted" || { printf 'unformatted: %s\n' "$unformatted" >&2; exit 1; }
+      - name: Format (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $unformatted = @(gofmt -l .)
+          if ($LASTEXITCODE -ne 0) { throw "gofmt failed with $LASTEXITCODE" }
+          if ($unformatted.Count -ne 0) {
+            $unformatted | ForEach-Object { Write-Error "unformatted: $_" }
+            exit 1
+          }
       - run: go test ./...
       - run: go vet ./...
       - run: go test -shuffle=on -count=3 ./...
-      - run: go test -race ./...
+      - name: Verify Windows race toolchain
+        if: runner.os == 'Windows' && matrix.arch == 'amd64'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $runtime = (& gcc --print-file-name libsynchronization.a | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0) { throw "gcc failed with $LASTEXITCODE" }
+          if ([string]::IsNullOrWhiteSpace($runtime) -or $runtime -eq 'libsynchronization.a' -or -not (Test-Path -LiteralPath $runtime -PathType Leaf)) {
+            throw "Windows race detector requires a mingw-w64 runtime providing libsynchronization.a; gcc returned '$runtime'"
+          }
+      - name: Race detector
+        if: runner.os != 'Windows' || matrix.arch == 'amd64'
+        env:
+          CGO_ENABLED: '1'
+        run: go test -race ./...
       - name: Verify public Go API compatibility lock
         run: go run ./tools/release api check
       - name: Verify CLI contract locks
         run: go run ./tools/release contracts check
 
   native-shell-completion:
-    runs-on: ubuntu-latest
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: '1.27.1'
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
           check-latest: false
-      - name: Install Fish and Zsh test shells
+          cache-dependency-path: go.mod
+      - name: Install native completion test shells with verified Nushell
         shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends fish zsh
-      - name: Install pinned Nushell test binary
-        shell: bash
-        env:
-          NU_VERSION: '0.114.1'
-          NU_SHA256: 'ce3a1c5a07c784098b5675224a165e73a45f0f720a8392791d7c3a5b4720255e'
-        run: |
-          set -euo pipefail
-          asset="nu-${NU_VERSION}-x86_64-unknown-linux-musl.tar.gz"
-          url="https://github.com/nushell/nushell/releases/download/${NU_VERSION}/${asset}"
-          curl --fail --location --proto '=https' --tlsv1.2 --output "/tmp/${asset}" "$url"
-          printf '%s  %s\n' "$NU_SHA256" "/tmp/${asset}" | sha256sum -c -
-          tar -xzf "/tmp/${asset}" -C /tmp
-          install -m 0755 "/tmp/nu-${NU_VERSION}-x86_64-unknown-linux-musl/nu" /usr/local/bin/nu
+        run: ./scripts/install-test-shells.sh
       - name: Verify native shell completion behavior
         shell: bash
         run: |
@@ -68,60 +151,314 @@ jobs:
           done
           go test ./cli -count=1 -v -run 'Test(BashAdapterSyntaxAndNULTransport|FishNativeCompletionBehaviorWhereAvailable|NushellNativeCompletionBehaviorWhereAvailable|ZshNativeCompletionBehaviorWhereAvailable|PowerShellNativeCompletionBehaviorWhereAvailable|NativeShellSyntaxWhereAvailable)$'
 
-  publish:
+  build-release:
     needs: [verify, native-shell-completion]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
     permissions:
-      contents: write
+      contents: read
       id-token: write
       attestations: write
       artifact-metadata: write
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: '1.27.1'
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
           check-latest: false
-      - name: Build release and extract versioned notes
+          cache-dependency-path: go.mod
+      - name: Lint tagged release workflows
+        shell: bash
+        run: ./scripts/check-workflows.sh
+      - name: Validate tag commit is on the repository default branch
+        shell: bash
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          test -n "$DEFAULT_BRANCH"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          # A tag on an unmerged development branch cannot publish binaries.
+          git merge-base --is-ancestor "$GITHUB_SHA" "refs/remotes/origin/$DEFAULT_BRANCH"
+      - name: Verify remote tag still points to the exact triggering commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/verify-remote-release-tag.sh
+      - name: Verify release preparation consumed pending change records
         shell: bash
         run: |
-          go run ./tools/release \
+          set -euo pipefail
+          if find changes -mindepth 1 -maxdepth 1 -type f -name '*.json' -print -quit | grep -q .; then
+            echo "pending change records remain under changes/; run release prepare --write before tagging" >&2
+            find changes -mindepth 1 -maxdepth 1 -type f -name '*.json' -print >&2
+            exit 1
+          fi
+      - name: Build release artifacts once
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run ./tools/release build \
             --version "${GITHUB_REF_NAME}" \
             --changelog CHANGELOG.md \
-            --notes-out "${RUNNER_TEMP}/release-notes.md" \
+            --notes-out release-notes.md \
             --out dist
-      - name: Smoke-test Linux archive
+      - name: Verify generated release bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd dist && sha256sum -c SHA256SUMS)
+      # Attest from the actual builder, not a later publish runner that only
+      # downloaded the build output. Later jobs verify the same manifest.
+      - name: Attest the release archives from the original builder
+        if: github.event.repository.visibility == 'public'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-checksums: dist/SHA256SUMS
+      - name: Upload immutable release archives
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-dist
+          path: dist/
+          if-no-files-found: error
+          # Rerunning the entire workflow must replace the prior artifact
+          # for this run. Every subsequent consumer rechecks SHA256SUMS.
+          overwrite: true
+          retention-days: 7
+      - name: Upload release notes
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
+          # Rerunning the entire workflow must replace the prior artifact
+          # for this run. Every subsequent consumer rechecks SHA256SUMS.
+          overwrite: true
+          retention-days: 7
+
+  unix-release-smoke:
+    needs: build-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            release_os: linux
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            release_os: linux
+            arch: arm64
+          - os: macos-15-intel
+            release_os: macos
+            arch: amd64
+          - os: macos-15
+            release_os: macos
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download the exact release archives selected for publication
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: release-dist
+          path: dist
+      - name: Verify checksum and smoke-test native Unix executable archive
         shell: bash
         run: |
           set -euo pipefail
           version="${GITHUB_REF_NAME}"
-          asset="dist/cli-tools_${version#v}_linux_amd64.tar.gz"
+          plain_version="${version#v}"
+          release_os="${{ matrix.release_os }}"
+          arch="${{ matrix.arch }}"
+          asset="dist/cli-tools_${plain_version}_${release_os}_${arch}.tar.gz"
           test -f "$asset"
+
+          asset_name="$(basename "$asset")"
+          expected_hash="$(awk -v name="$asset_name" '
+            $2 == name { n++; hash=$1 }
+            END {
+              if (n != 1 || length(hash) != 64 || hash !~ /^[0-9A-Fa-f]+$/) exit 1
+              print tolower(hash)
+            }
+          ' dist/SHA256SUMS)"
+          if command -v sha256sum >/dev/null 2>&1; then
+            actual_hash="$(sha256sum "$asset" | awk '{print $1}')"
+          else
+            actual_hash="$(shasum -a 256 "$asset" | awk '{print $1}')"
+          fi
+          test "$actual_hash" = "$expected_hash"
+
           tmp="$(mktemp -d)"
           trap 'rm -rf "$tmp"' EXIT
           tar -xzf "$asset" -C "$tmp"
+          expected_names="$(for manifest in cmd/*/tool.json; do
+            test -f "$manifest"
+            basename "$(dirname "$manifest")"
+          done | LC_ALL=C sort)"
+          actual_names="$(python3 - "$tmp/bin" <<'PY'
+          import os
+          import sys
+
+          entries = list(os.scandir(sys.argv[1]))
+          bad = sorted(e.name for e in entries if e.is_symlink() or not e.is_file(follow_symlinks=False))
+          if bad:
+              raise SystemExit("unexpected bin entries: " + ", ".join(bad))
+          print("\n".join(sorted(e.name for e in entries)))
+          PY
+          )"
+          test -n "$expected_names"
+          test "$actual_names" = "$expected_names"
+
           count=0
-          for binary in "$tmp"/bin/*; do
+          while IFS= read -r name; do
+            test -n "$name"
+            binary="$tmp/bin/$name"
             test -f "$binary"
+            test ! -L "$binary"
             test -x "$binary"
-            name="$(basename "$binary")"
-            product_version="$(jq -r .version "cmd/$name/tool.json")"
+            product_version="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["version"])' "cmd/$name/tool.json")"
             test "$("$binary" --version)" = "$name $product_version"
-            test "$("$binary" version --json | jq -r .suite_version)" = "$version"
+            suite_version="$("$binary" version --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["suite_version"])')"
+            test "$suite_version" = "$version"
             count=$((count + 1))
-          done
+          done <<< "$expected_names"
           test "$count" -gt 0
-          (cd dist && sha256sum -c SHA256SUMS)
-      - name: Attest release archives
-        if: github.event.repository.visibility == 'public'
-        uses: actions/attest@v4
+
+  windows-release-smoke:
+    needs: build-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2025
+            arch: amd64
+          - os: windows-11-vs2026-arm
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          subject-checksums: dist/SHA256SUMS
-      - name: Create GitHub release and upload assets
+          persist-credentials: false
+      - name: Download the exact release archives selected for publication
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: release-dist
+          path: dist
+      - name: Verify checksum and smoke-test native Windows executables
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = $env:GITHUB_REF_NAME
+          $plainVersion = $version.TrimStart('v')
+          $arch = '${{ matrix.arch }}'
+          $asset = Join-Path 'dist' "cli-tools_${plainVersion}_windows_${arch}.zip"
+          if (-not (Test-Path -LiteralPath $asset -PathType Leaf)) {
+            throw "missing Windows release asset: $asset"
+          }
+
+          $assetName = Split-Path -Leaf $asset
+          $manifestLines = @(Get-Content -LiteralPath (Join-Path 'dist' 'SHA256SUMS'))
+          $manifestLine = @($manifestLines | Where-Object { $_ -match ('^[0-9a-fA-F]{64}  ' + [regex]::Escape($assetName) + '$') })
+          if ($manifestLine.Count -ne 1) {
+            throw "SHA256SUMS must contain exactly one entry for $assetName"
+          }
+          $expectedHash = ($manifestLine[0] -split '\s+', 2)[0].ToLowerInvariant()
+          $actualHash = (Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualHash -ne $expectedHash) {
+            throw "checksum mismatch for $assetName"
+          }
+
+          $extract = Join-Path $env:RUNNER_TEMP 'cli-tools-windows-smoke'
+          if (Test-Path -LiteralPath $extract) { Remove-Item -LiteralPath $extract -Recurse -Force }
+          Expand-Archive -LiteralPath $asset -DestinationPath $extract
+          $binDir = Join-Path $extract 'bin'
+          $entries = @(Get-ChildItem -LiteralPath $binDir -Force)
+          # A .exe reparse point is not an executable supplied by our immutable
+          # archive. Reject it instead of following the link during the smoke.
+          $unexpectedEntries = @($entries | Where-Object {
+            $_.PSIsContainer -or
+            (($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) -or
+            $_.Extension -ine '.exe'
+          })
+          $executableEntries = @($entries | Where-Object {
+            -not $_.PSIsContainer -and
+            (($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) -and
+            $_.Extension -ieq '.exe'
+          })
+          if ($unexpectedEntries.Count -ne 0) {
+            throw "Windows release bin/ contains unexpected entries: $($unexpectedEntries.Name -join ', ')"
+          }
+          $binaries = @($executableEntries | Sort-Object BaseName)
+          if ($binaries.Count -eq 0) { throw 'Windows release contains no executables' }
+          $expectedNames = @(Get-ChildItem -LiteralPath 'cmd' -Directory | Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'tool.json') -PathType Leaf } | ForEach-Object { $_.Name } | Sort-Object)
+          $actualNames = @($binaries | ForEach-Object { $_.BaseName })
+          if ($expectedNames.Count -eq 0 -or ($expectedNames -join "`n") -cne ($actualNames -join "`n")) {
+            throw "Windows release command set mismatch: expected [$($expectedNames -join ', ')], got [$($actualNames -join ', ')]"
+          }
+
+          foreach ($binary in $binaries) {
+            $name = $binary.BaseName
+            $manifest = Get-Content -LiteralPath (Join-Path (Join-Path 'cmd' $name) 'tool.json') -Raw | ConvertFrom-Json
+            $actualVersion = (& $binary.FullName --version | Out-String).Trim()
+            if ($LASTEXITCODE -ne 0) { throw "$name --version failed with $LASTEXITCODE" }
+            $expectedVersion = "$name $($manifest.version)"
+            if ($actualVersion -ne $expectedVersion) { throw "$name --version = '$actualVersion', want '$expectedVersion'" }
+
+            $metadataRaw = (& $binary.FullName version --json | Out-String)
+            if ($LASTEXITCODE -ne 0) { throw "$name version --json failed with $LASTEXITCODE" }
+            $metadata = $metadataRaw | ConvertFrom-Json
+            if ($metadata.suite_version -ne $version) {
+              throw "$name suite_version = '$($metadata.suite_version)', want '$version'"
+            }
+          }
+
+  publish:
+    needs: [build-release, unix-release-smoke, windows-release-smoke]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download the exact verified release archives
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: release-dist
+          path: dist
+      - name: Download release notes generated with the release archives
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: release-notes
+          path: .
+      - name: Verify release bundle before publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release-notes.md
+          test -s dist/SHA256SUMS
+          version="${GITHUB_REF_NAME#v}"
+          expected_files="$(printf '%s\n' \
+            SHA256SUMS \
+            "cli-tools_${version}_linux_amd64.tar.gz" \
+            "cli-tools_${version}_linux_arm64.tar.gz" \
+            "cli-tools_${version}_macos_amd64.tar.gz" \
+            "cli-tools_${version}_macos_arm64.tar.gz" \
+            "cli-tools_${version}_windows_amd64.zip" \
+            "cli-tools_${version}_windows_arm64.zip" | LC_ALL=C sort)"
+          actual_files="$(find dist -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort)"
+          test "$actual_files" = "$expected_files"
+          (cd dist && sha256sum -c SHA256SUMS)
+      - name: Create or resume draft; re-download and verify all remote assets
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "${GITHUB_REF_NAME}" dist/* \
-            --title "CLI Tools ${GITHUB_REF_NAME}" \
-            --notes-file "${RUNNER_TEMP}/release-notes.md" \
-            --verify-tag
+        shell: bash
+        run: ./scripts/publish-release.sh

@@ -366,7 +366,7 @@ func runAPICommand(args []string) {
 	fs.StringVar(&dir, "dir", "cli", "directory containing the public Go package")
 	fs.StringVar(&lock, "lock", "cli/api.contract.json", "public Go API compatibility lock")
 	if mode == "write" {
-		fs.BoolVar(&allowBreaking, "allow-breaking", false, "replace an existing lock after an intentional major API break")
+		fs.BoolVar(&allowBreaking, "allow-breaking", false, "replace an existing lock after an explicitly reviewed API break")
 	}
 	if err := fs.Parse(args[1:]); err != nil {
 		fatalf("api %s flags: %v", mode, err)
@@ -381,7 +381,7 @@ func runAPICommand(args []string) {
 	if mode == "write" {
 		if baseline, err := loadPublicAPIContract(lock); err == nil {
 			if compatErr := checkPublicAPICompatibility(baseline, current); compatErr != nil && !allowBreaking {
-				fatalf("api write: %v; use --allow-breaking only for an intentional major-version API break", compatErr)
+				fatalf("api write: %v; use --allow-breaking only for an explicitly reviewed API break with a module change record", compatErr)
 			}
 		} else if !os.IsNotExist(err) {
 			fatalf("api write baseline: %v", err)

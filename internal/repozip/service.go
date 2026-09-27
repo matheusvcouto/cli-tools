@@ -12,7 +12,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/matheusvcouto/cli-tools/internal/safefs"
+	"github.com/matheusvcouto/cli-tools/v2/internal/safefs"
 )
 
 type ArchiveBackend interface {

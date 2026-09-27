@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/matheusvcouto/cli-tools/internal/testenv"
+	"github.com/matheusvcouto/cli-tools/v2/internal/testenv"
 )
 
 func sandboxEnv(t *testing.T) []string {

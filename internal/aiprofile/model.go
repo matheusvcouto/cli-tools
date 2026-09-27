@@ -26,8 +26,9 @@ type ToolSpec struct {
 }
 
 type ACPTool struct {
-	Binary string
-	Args   []string
+	Binary     string
+	Args       []string
+	SuffixArgs []string
 }
 
 var Tools = []ToolSpec{
@@ -106,6 +107,13 @@ var Tools = []ToolSpec{
 			"OPENAI_WORKLOAD_IDENTITY_CONTEXT",
 		},
 		ACP: &ACPTool{Binary: "codex-acp"},
+	},
+	{
+		Name:      "grok",
+		Binary:    "grok",
+		ConfigEnv: "GROK_HOME",
+		ClearEnv:  grokClearEnv,
+		ACP:       &ACPTool{Binary: "grok", Args: []string{"agent"}, SuffixArgs: []string{"stdio"}},
 	},
 }
 

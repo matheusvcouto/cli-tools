@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/matheusvcouto/cli-tools/cli/internal/model"
+	"github.com/matheusvcouto/cli-tools/v2/cli/internal/model"
 )
 
 type Mode uint8

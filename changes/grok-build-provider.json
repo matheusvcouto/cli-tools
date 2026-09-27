@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "ai-profile",
+      "impact": "minor",
+      "breaking": false,
+      "summary": "Add and harden Grok Build profiles: isolated GROK_HOME, documented Codex skills/hooks defaults, inherited auth/compat override filtering that preserves administrative security restrictions, safe config identity checks, bounded profile metadata reads and writes, rejection of duplicate profile directories and orphaned profile state, safe feedback/trace routing, native ACP, and bounded fail-closed Windows npm resolution; fix invalid Claude settings causing panic"
+    }
+  ]
+}

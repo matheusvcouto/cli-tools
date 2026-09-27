@@ -15,8 +15,9 @@ import (
 	"strings"
 	"time"
 
-	corecli "github.com/matheusvcouto/cli-tools/cli"
-	productversion "github.com/matheusvcouto/cli-tools/internal/version"
+	corecli "github.com/matheusvcouto/cli-tools/v2/cli"
+	"github.com/matheusvcouto/cli-tools/v2/internal/fscommit"
+	productversion "github.com/matheusvcouto/cli-tools/v2/internal/version"
 )
 
 const changeRecordSchemaVersion = 1
@@ -352,6 +353,14 @@ func planRelease(cmdRoot, changesDir, changelogPath, requestedSuite string) (pre
 	currentSuite, err := latestChangelogVersion(string(changelog))
 	if err != nil {
 		return preparedRelease{}, nil, nil, err
+	}
+	// The suite tag is also the public Go module version. An incompatible
+	// change after v1 cannot be recorded as a minor release merely because
+	// independently versioned CLI products can accept minor changes.
+	for _, change := range byComponent["module"] {
+		if currentSuite.Major >= 1 && change.Breaking && change.Impact != impactMajor {
+			return preparedRelease{}, nil, nil, fmt.Errorf("module breaking change requires major impact at %s", currentSuite)
+		}
 	}
 	suiteImpact := impactNone
 	for _, x := range impacts {
@@ -710,7 +719,7 @@ func writeFileAtomic(path string, data []byte, mode os.FileMode) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	return os.Rename(name, path)
+	return fscommit.ReplacePath(name, path)
 }
 
 func contractToolNames(cmdRoot string) ([]string, error) {
@@ -748,7 +757,7 @@ func generateContract(cmdRoot, name string) ([]byte, error) {
 		return nil, err
 	}
 
-	cmd := exec.Command("go", "run", "./"+filepath.ToSlash(filepath.Join(cmdRoot, name)), "__cli", "contract")
+	cmd := exec.Command(goCommandName(), "run", "./"+filepath.ToSlash(filepath.Join(cmdRoot, name)), "__cli", "contract")
 	// Contract generation is static. Preserve only the build-tool paths/caches
 	// needed to invoke Go, while isolating user HOME/config/credentials and
 	// disabling network/module VCS discovery.
@@ -762,10 +771,18 @@ func generateContract(cmdRoot, name string) ([]byte, error) {
 		"GIT_CONFIG_GLOBAL=" + gitConfig,
 		"GIT_CONFIG_NOSYSTEM=1",
 		"GOENV=off",
+		"GOWORK=off",
+		"GOTOOLCHAIN=local",
 		"GOPROXY=off",
+		"GOSUMDB=off",
 		"GOVCS=*:off",
+		"GOTELEMETRY=off",
+		"GOCACHE=" + filepath.Join(cache, "go-build"),
+		"GOMODCACHE=" + filepath.Join(cache, "gomod"),
+		"GOPATH=" + filepath.Join(sandbox, "gopath"),
 	}
-	for _, key := range []string{"PATH", "GOROOT", "GOCACHE", "GOMODCACHE"} {
+	env = append(env, platformContractEnv(home, config, tmp)...)
+	for _, key := range []string{"PATH", "GOROOT"} {
 		if value := os.Getenv(key); value != "" {
 			env = append(env, key+"="+value)
 		}
@@ -862,7 +879,7 @@ func changedPaths(base, head string) ([]string, error) {
 	if head == "" {
 		head = "HEAD"
 	}
-	cmd := exec.Command("git", "diff", "--name-only", base+"..."+head)
+	cmd := exec.Command(gitCommandName(), "diff", "--name-only", base+"..."+head)
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err
@@ -899,7 +916,8 @@ func requiredChangeComponents(paths []string, tools map[string]toolManifestAtPat
 				required[name] = struct{}{}
 			}
 		}
-		if strings.HasPrefix(p, "tools/release/") || strings.HasPrefix(p, "internal/version/") || p == ".github/workflows/release.yml" {
+		if strings.HasPrefix(p, "tools/release/") || strings.HasPrefix(p, "internal/version/") ||
+			strings.HasPrefix(p, "scripts/") || strings.HasPrefix(p, ".github/workflows/") || p == ".github/dependabot.yml" {
 			required["module"] = struct{}{}
 		}
 	}
@@ -956,6 +974,13 @@ func runPrepareCommand(args []string) {
 	plan, files, manifests, err := planRelease(cmdRoot, changesDir, changelogPath, suiteVersion)
 	if err != nil {
 		fatalf("prepare: %v", err)
+	}
+	module, err := modulePath()
+	if err != nil {
+		fatalf("prepare module path: %v", err)
+	}
+	if err := validateReleaseModulePath(module, plan.NextSuite); err != nil {
+		fatalf("prepare module path: %v", err)
 	}
 	if _, err := verifyPublicAPILock(apiDir, apiLock); err != nil {
 		fatalf("prepare public API: %v", err)

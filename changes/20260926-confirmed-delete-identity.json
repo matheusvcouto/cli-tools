@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "ai-profile",
+      "impact": "patch",
+      "breaking": false,
+      "summary": "Prevent interactive profile deletion from removing an alias reassigned during confirmation by checking the originally displayed profile under the store lock; reject canceled launches before exec on Unix and process startup on Windows"
+    }
+  ]
+}

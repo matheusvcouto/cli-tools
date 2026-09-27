@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	iparse "github.com/matheusvcouto/cli-tools/cli/internal/parse"
+	iparse "github.com/matheusvcouto/cli-tools/v2/cli/internal/parse"
 )
 
 func fuzzFixture(f *testing.F) *CompiledApp {

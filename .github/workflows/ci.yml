@@ -3,48 +3,90 @@ name: ci
 on:
   push:
   pull_request:
+  workflow_dispatch:
+  merge_group:
+    types: [checks_requested]
+
+# No external toolchain auto-upgrade if the setup-go version differs from go.mod.
+env:
+  GOTOOLCHAIN: local
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
-  change-records:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+  workflow-lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v7
-        with:
-          go-version: '1.27.1'
-          check-latest: false
-      - name: Validate change-impact coverage
+          persist-credentials: false
+      - name: Lint GitHub Actions with checksum-verified actionlint
         shell: bash
+        run: ./scripts/check-workflows.sh
+
+  change-records:
+    # Also execute on merge_group: do not make required checks silently skip.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          # In fork PRs, the checkout default is the synthetic merge commit.
+          # Checkout the exact HEAD that the coverage diff names instead.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache-dependency-path: go.mod
+      - name: Validate pending change records (all events)
+        run: go run ./tools/release changes validate
+      - name: Validate change-impact coverage (pull requests)
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: >-
           go run ./tools/release changes validate
-          --base "${{ github.event.pull_request.base.sha }}"
-          --head "${{ github.sha }}"
+          --base "$PR_BASE"
+          --head "$PR_HEAD"
 
   contract-locks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: '1.27.1'
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
           check-latest: false
+          cache-dependency-path: go.mod
       - name: Verify CLI contract locks
         run: go run ./tools/release contracts check
 
   public-go-api:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: '1.27.1'
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
           check-latest: false
+          cache-dependency-path: go.mod
       - name: Verify public Go API compatibility lock
         run: go run ./tools/release api check
 
@@ -52,50 +94,90 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-24.04
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+          - os: macos-15-intel
+            arch: amd64
+          - os: macos-15
+            arch: arm64
+          - os: windows-2025
+            arch: amd64
+          - os: windows-11-vs2026-arm
+            arch: arm64
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: '1.27.1'
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
           check-latest: false
-      - name: Format
+          cache-dependency-path: go.mod
+      - name: Format (Unix)
+        if: runner.os != 'Windows'
         shell: bash
-        run: test -z "$(gofmt -l .)"
+        run: |
+          set -euo pipefail
+          unformatted="$(gofmt -l .)"
+          test -z "$unformatted" || { printf 'unformatted: %s\n' "$unformatted" >&2; exit 1; }
+      - name: Format (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $unformatted = @(gofmt -l .)
+          if ($LASTEXITCODE -ne 0) { throw "gofmt failed with $LASTEXITCODE" }
+          if ($unformatted.Count -ne 0) {
+            $unformatted | ForEach-Object { Write-Error "unformatted: $_" }
+            exit 1
+          }
       - run: go test ./...
       - run: go vet ./...
       - run: go test -shuffle=on -count=3 ./...
-      - run: go test -race ./...
+      - name: Verify Windows race toolchain
+        if: runner.os == 'Windows' && matrix.arch == 'amd64'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $runtime = (& gcc --print-file-name libsynchronization.a | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0) { throw "gcc failed with $LASTEXITCODE" }
+          if ([string]::IsNullOrWhiteSpace($runtime) -or $runtime -eq 'libsynchronization.a' -or -not (Test-Path -LiteralPath $runtime -PathType Leaf)) {
+            throw "Windows race detector requires a mingw-w64 runtime providing libsynchronization.a; gcc returned '$runtime'"
+          }
+      - name: Race detector
+        if: runner.os != 'Windows' || matrix.arch == 'amd64'
+        env:
+          CGO_ENABLED: '1'
+        run: go test -race ./...
+      - name: Verify native Windows primitive surface
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: go test -count=1 -v ./internal/filelock ./internal/fscommit ./internal/aiprofile ./internal/aiprofile/platform ./internal/repozip
+      - name: Verify native PowerShell completion on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: go test ./cli -count=1 -v -run 'TestPowerShellNativeCompletionBehaviorWhereAvailable'
 
   native-shell-completion:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: '1.27.1'
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
           check-latest: false
-      - name: Install Fish and Zsh test shells
+          cache-dependency-path: go.mod
+      - name: Install native completion test shells with verified Nushell
         shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends fish zsh
-      - name: Install pinned Nushell test binary
-        shell: bash
-        env:
-          NU_VERSION: '0.114.1'
-          NU_SHA256: 'ce3a1c5a07c784098b5675224a165e73a45f0f720a8392791d7c3a5b4720255e'
-        run: |
-          set -euo pipefail
-          asset="nu-${NU_VERSION}-x86_64-unknown-linux-musl.tar.gz"
-          url="https://github.com/nushell/nushell/releases/download/${NU_VERSION}/${asset}"
-          curl --fail --location --proto '=https' --tlsv1.2 --output "/tmp/${asset}" "$url"
-          printf '%s  %s\n' "$NU_SHA256" "/tmp/${asset}" | sha256sum -c -
-          tar -xzf "/tmp/${asset}" -C /tmp
-          install -m 0755 "/tmp/nu-${NU_VERSION}-x86_64-unknown-linux-musl/nu" /usr/local/bin/nu
-          nu --version
+        run: ./scripts/install-test-shells.sh
       - name: Verify native shell test surface
         shell: bash
         run: |
@@ -106,13 +188,17 @@ jobs:
           go test ./cli -count=1 -v -run 'Test(BashAdapterSyntaxAndNULTransport|FishNativeCompletionBehaviorWhereAvailable|NushellNativeCompletionBehaviorWhereAvailable|ZshNativeCompletionBehaviorWhereAvailable|PowerShellNativeCompletionBehaviorWhereAvailable|NativeShellSyntaxWhereAvailable)$'
 
   cross-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          go-version: '1.27.1'
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
           check-latest: false
+          cache-dependency-path: go.mod
       - name: Cross-build compile-only targets
         shell: bash
         run: |

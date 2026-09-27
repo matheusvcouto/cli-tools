@@ -1,4 +1,4 @@
-//go:build darwin || linux
+//go:build darwin || linux || windows
 
 package integration
 
@@ -15,22 +15,37 @@ import (
 	"strings"
 	"testing"
 
-	core "github.com/matheusvcouto/cli-tools/cli"
-	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
-	profilecli "github.com/matheusvcouto/cli-tools/internal/aiprofile/cli"
-	"github.com/matheusvcouto/cli-tools/internal/aiprofile/platform"
-	"github.com/matheusvcouto/cli-tools/internal/repozip"
-	repocli "github.com/matheusvcouto/cli-tools/internal/repozip/cli"
-	"github.com/matheusvcouto/cli-tools/internal/testenv"
+	core "github.com/matheusvcouto/cli-tools/v2/cli"
+	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
+	profilecli "github.com/matheusvcouto/cli-tools/v2/internal/aiprofile/cli"
+	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile/platform"
+	"github.com/matheusvcouto/cli-tools/v2/internal/repozip"
+	repocli "github.com/matheusvcouto/cli-tools/v2/internal/repozip/cli"
+	"github.com/matheusvcouto/cli-tools/v2/internal/testenv"
 )
 
+func platformExecutableName(name string) string {
+	if os.PathSeparator == '\\' {
+		return name + ".exe"
+	}
+	return name
+}
+
+func helperExecutableName(path string) string {
+	name := filepath.Base(path)
+	if strings.EqualFold(filepath.Ext(name), ".exe") {
+		name = strings.TrimSuffix(name, filepath.Ext(name))
+	}
+	return name
+}
+
 func TestMain(m *testing.M) {
-	switch filepath.Base(os.Args[0]) {
+	switch helperExecutableName(os.Args[0]) {
 	case "ai-profile":
 		os.Exit(runAIProfileHelper(os.Args[1:]))
 	case "repo-zip":
 		os.Exit(runRepoZipHelper(os.Args[1:]))
-	case "codex", "codex-acp", "claude", "claude-agent-acp":
+	case "codex", "codex-acp", "claude", "claude-agent-acp", "grok":
 		os.Exit(runFakeAIHelper())
 	default:
 		os.Exit(m.Run())
@@ -42,6 +57,15 @@ type fakeReport struct {
 	Args                    []string `json:"args"`
 	CodexHome               string   `json:"codex_home"`
 	ClaudeConfigDir         string   `json:"claude_config_dir"`
+	GrokHome                string   `json:"grok_home"`
+	XAIAPIKey               string   `json:"xai_api_key"`
+	GrokConfig              string   `json:"grok_config"`
+	GrokAuthProviderCommand string   `json:"grok_auth_provider_command"`
+	GrokAuthPath            string   `json:"grok_auth_path"`
+	GrokAuth                string   `json:"grok_auth"`
+	GrokClaudeSkills        string   `json:"grok_claude_skills_enabled"`
+	GrokDisableAutoUpdater  string   `json:"grok_disable_autoupdater"`
+	GrokSandbox             string   `json:"grok_sandbox"`
 	APIKey                  string   `json:"api_key"`
 	OpenAIBaseURL           string   `json:"openai_base_url"`
 	CodexAPIKey             string   `json:"codex_api_key"`
@@ -71,12 +95,12 @@ type fakeReport struct {
 
 func TestCLIEndToEndWithSyntheticState(t *testing.T) {
 	binDir := t.TempDir()
-	aiBin := filepath.Join(binDir, "ai-profile")
-	repoZipBin := filepath.Join(binDir, "repo-zip")
+	aiBin := filepath.Join(binDir, platformExecutableName("ai-profile"))
+	repoZipBin := filepath.Join(binDir, platformExecutableName("repo-zip"))
 	installSelfAs(t, aiBin)
 	installSelfAs(t, repoZipBin)
-	for _, name := range []string{"codex", "codex-acp", "claude", "claude-agent-acp"} {
-		installSelfAs(t, filepath.Join(binDir, name))
+	for _, name := range []string{"codex", "codex-acp", "claude", "claude-agent-acp", "grok"} {
+		installSelfAs(t, filepath.Join(binDir, platformExecutableName(name)))
 	}
 
 	sandbox := t.TempDir()
@@ -136,12 +160,20 @@ func TestCLIEndToEndWithSyntheticState(t *testing.T) {
 		"ANTHROPIC_CUSTOM_HEADERS":         "Authorization: Bearer wrong",
 		"CLAUDE_SECURESTORAGE_CONFIG_DIR":  "/wrong/secure",
 		"CLAUDE_CODE_PLUGIN_CACHE_DIR":     "/wrong/plugins",
+		"XAI_API_KEY":                      "must-not-reach-child",
+		"GROK_CONFIG":                      "/wrong/grok-config.toml",
+		"GROK_AUTH_PROVIDER_COMMAND":       "wrong-auth-provider",
+		"GROK_AUTH_PATH":                   "/wrong/auth.json",
+		"GROK_AUTH":                        "wrong-inline-auth",
+		"GROK_CLAUDE_SKILLS_ENABLED":       "true",
+		"GROK_SANDBOX":                     "strict",
 	} {
 		baseEnv = setEnv(baseEnv, key, value)
 	}
 
 	codexDir := createAndResolveProfile(t, aiBin, baseEnv, "codex", "work")
 	claudeDir := createAndResolveProfile(t, aiBin, baseEnv, "claude", "work")
+	grokDir := createAndResolveProfile(t, aiBin, baseEnv, "grok", "work")
 	write(t, filepath.Join(codexDir, "AGENTS.md"), "profile codex guidance")
 	write(t, filepath.Join(claudeDir, "CLAUDE.md"), "profile claude guidance")
 
@@ -157,6 +189,8 @@ func TestCLIEndToEndWithSyntheticState(t *testing.T) {
 		{tool: "codex", action: "acp", wantExe: "codex-acp", wantCode: 23, profileDir: codexDir, args: []string{"--beta", "three words"}},
 		{tool: "claude", action: "run", wantExe: "claude", wantCode: 17, profileDir: claudeDir, args: []string{"--alpha", "two words"}},
 		{tool: "claude", action: "acp", wantExe: "claude-agent-acp", wantCode: 23, profileDir: claudeDir, args: []string{"--beta", "three words"}},
+		{tool: "grok", action: "run", wantExe: "grok", wantCode: 17, profileDir: grokDir, args: []string{"-p", "two words"}},
+		{tool: "grok", action: "acp", wantExe: "grok", wantCode: 17, profileDir: grokDir, args: []string{"--model", "grok-4.7"}},
 	} {
 		t.Run(tc.tool+"-"+tc.action, func(t *testing.T) {
 			argv := []string{tc.tool, tc.action, "work"}
@@ -168,7 +202,12 @@ func TestCLIEndToEndWithSyntheticState(t *testing.T) {
 			if code != tc.wantCode || report.Executable != tc.wantExe {
 				t.Fatalf("unexpected report/code: %#v code=%d", report, code)
 			}
-			assertFakeReport(t, tc.tool, report, tc.profileDir, project, tc.args)
+			wantArgs := tc.args
+			if tc.tool == "grok" && tc.action == "acp" {
+				wantArgs = append([]string{"agent"}, tc.args...)
+				wantArgs = append(wantArgs, "stdio")
+			}
+			assertFakeReport(t, tc.tool, report, tc.profileDir, project, wantArgs)
 		})
 	}
 
@@ -246,6 +285,16 @@ func assertFakeReport(t *testing.T, tool string, report fakeReport, wantHome, wa
 		}
 		if report.ProfileGuidance != "profile claude guidance" || report.ProjectGuidance != "project claude guidance" {
 			t.Fatalf("bad Claude context: %#v", report)
+		}
+	case "grok":
+		if report.XAIAPIKey != "" || report.GrokConfig != "" || report.GrokAuthProviderCommand != "" || report.GrokAuthPath != "" || report.GrokAuth != "" || report.GrokClaudeSkills != "" {
+			t.Fatalf("Grok authentication/config redirect leaked: %#v", report)
+		}
+		if report.GrokHome != wantHome || report.CodexHome != "" || report.ClaudeConfigDir != "" {
+			t.Fatalf("bad Grok profile env: %#v", report)
+		}
+		if report.GrokDisableAutoUpdater != "1" || report.GrokSandbox != "strict" {
+			t.Fatalf("Grok launcher controls not preserved/applied: %#v", report)
 		}
 	default:
 		t.Fatalf("unknown tool %q", tool)
@@ -452,6 +501,9 @@ func runAIProfileHelper(args []string) int {
 		err = app.Run(context.Background(), args, core.IO{In: os.Stdin, Out: os.Stdout, Err: os.Stderr, Terminal: core.TerminalFromFiles(os.Stdin, os.Stdout, os.Stderr)})
 	}
 	if err != nil {
+		if code, ok := platform.ChildExitCode(err); ok {
+			return code
+		}
 		core.RenderDiagnostic(os.Stderr, err)
 		return core.ExitCode(err)
 	}
@@ -471,7 +523,7 @@ func runRepoZipHelper(args []string) int {
 }
 
 func runFakeAIHelper() int {
-	exe := filepath.Base(os.Args[0])
+	exe := helperExecutableName(os.Args[0])
 	profileRoot := os.Getenv("CODEX_HOME")
 	profileFile := "AGENTS.md"
 	projectFile := "AGENTS.md"
@@ -479,6 +531,10 @@ func runFakeAIHelper() int {
 		profileRoot = os.Getenv("CLAUDE_CONFIG_DIR")
 		profileFile = "CLAUDE.md"
 		projectFile = "CLAUDE.md"
+	} else if exe == "grok" {
+		profileRoot = os.Getenv("GROK_HOME")
+		profileFile = "config.toml"
+		projectFile = "AGENTS.md"
 	}
 	profileGuidance, _ := os.ReadFile(filepath.Join(profileRoot, profileFile))
 	activeAnthropicProfile, _ := os.ReadFile(filepath.Join(os.Getenv("ANTHROPIC_CONFIG_DIR"), "active_config"))
@@ -489,6 +545,15 @@ func runFakeAIHelper() int {
 		"args":                             os.Args[1:],
 		"codex_home":                       os.Getenv("CODEX_HOME"),
 		"claude_config_dir":                os.Getenv("CLAUDE_CONFIG_DIR"),
+		"grok_home":                        os.Getenv("GROK_HOME"),
+		"xai_api_key":                      os.Getenv("XAI_API_KEY"),
+		"grok_config":                      os.Getenv("GROK_CONFIG"),
+		"grok_auth_provider_command":       os.Getenv("GROK_AUTH_PROVIDER_COMMAND"),
+		"grok_auth_path":                   os.Getenv("GROK_AUTH_PATH"),
+		"grok_auth":                        os.Getenv("GROK_AUTH"),
+		"grok_claude_skills_enabled":       os.Getenv("GROK_CLAUDE_SKILLS_ENABLED"),
+		"grok_disable_autoupdater":         os.Getenv("GROK_DISABLE_AUTOUPDATER"),
+		"grok_sandbox":                     os.Getenv("GROK_SANDBOX"),
 		"api_key":                          os.Getenv("OPENAI_API_KEY"),
 		"openai_base_url":                  os.Getenv("OPENAI_BASE_URL"),
 		"codex_api_key":                    os.Getenv("CODEX_API_KEY"),
@@ -586,7 +651,7 @@ func write(t *testing.T, path, content string) {
 }
 
 func TestAIProfileStaticCommandsDoNotRequireHomeOrStore(t *testing.T) {
-	bin := filepath.Join(t.TempDir(), "ai-profile")
+	bin := filepath.Join(t.TempDir(), platformExecutableName("ai-profile"))
 	installSelfAs(t, bin)
 
 	env := unsetEnv(safeTestEnv(t), "HOME", "USERPROFILE", "AI_PROFILE_ROOT")
