@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/matheusvcouto/cli-tools/v2/internal/safefs"
+	"github.com/matheusvcouto/cli-tools/internal/safefs"
 )
 
 func relativeIfInside(path, root string) string {

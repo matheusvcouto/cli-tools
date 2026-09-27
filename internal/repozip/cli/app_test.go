@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	core "github.com/matheusvcouto/cli-tools/v2/cli"
-	"github.com/matheusvcouto/cli-tools/v2/internal/repozip"
+	core "github.com/matheusvcouto/cli-tools/cli"
+	"github.com/matheusvcouto/cli-tools/internal/repozip"
 )
 
 func TestStaticSurfaceDoesNotNeedWorkingService(t *testing.T) {

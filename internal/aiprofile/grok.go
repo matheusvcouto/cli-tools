@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/matheusvcouto/cli-tools/v2/internal/safefs"
+	"github.com/matheusvcouto/cli-tools/internal/safefs"
 )
 
 // New Grok profiles start with cross-tool compatibility disabled so selecting

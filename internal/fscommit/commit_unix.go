@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/matheusvcouto/cli-tools/v2/internal/safefs"
+	"github.com/matheusvcouto/cli-tools/internal/safefs"
 )
 
 func replaceRoot(root *safefs.Root, src, dst string) error {

@@ -6,8 +6,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/matheusvcouto/cli-tools/v2/cli/internal/model"
-	iparse "github.com/matheusvcouto/cli-tools/v2/cli/internal/parse"
+	"github.com/matheusvcouto/cli-tools/cli/internal/model"
+	iparse "github.com/matheusvcouto/cli-tools/cli/internal/parse"
 )
 
 func (c *CompiledApp) Run(ctx context.Context, argv []string, streams IO) error {

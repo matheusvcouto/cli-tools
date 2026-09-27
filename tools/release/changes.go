@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	corecli "github.com/matheusvcouto/cli-tools/v2/cli"
-	"github.com/matheusvcouto/cli-tools/v2/internal/fscommit"
-	productversion "github.com/matheusvcouto/cli-tools/v2/internal/version"
+	corecli "github.com/matheusvcouto/cli-tools/cli"
+	"github.com/matheusvcouto/cli-tools/internal/fscommit"
+	productversion "github.com/matheusvcouto/cli-tools/internal/version"
 )
 
 const changeRecordSchemaVersion = 1

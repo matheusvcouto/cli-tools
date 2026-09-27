@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/matheusvcouto/cli-tools/v2/internal/testenv"
+	"github.com/matheusvcouto/cli-tools/internal/testenv"
 
-	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
+	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
 )
 
 func TestRunnerReplaceHelper(t *testing.T) {

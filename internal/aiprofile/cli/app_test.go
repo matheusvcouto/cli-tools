@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	core "github.com/matheusvcouto/cli-tools/v2/cli"
-	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
+	core "github.com/matheusvcouto/cli-tools/cli"
+	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
 )
 
 type fakeRunner struct {

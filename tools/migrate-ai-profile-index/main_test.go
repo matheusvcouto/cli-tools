@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
+	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
 )
 
 func TestParseLegacyTable(t *testing.T) {

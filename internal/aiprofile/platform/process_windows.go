@@ -14,7 +14,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
+	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
 )
 
 type Runner struct{}

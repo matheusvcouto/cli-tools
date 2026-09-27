@@ -4,11 +4,11 @@ import (
 	_ "embed"
 	"os"
 
-	core "github.com/matheusvcouto/cli-tools/v2/cli"
-	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
-	profilecli "github.com/matheusvcouto/cli-tools/v2/internal/aiprofile/cli"
-	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile/platform"
-	"github.com/matheusvcouto/cli-tools/v2/internal/version"
+	core "github.com/matheusvcouto/cli-tools/cli"
+	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
+	profilecli "github.com/matheusvcouto/cli-tools/internal/aiprofile/cli"
+	"github.com/matheusvcouto/cli-tools/internal/aiprofile/platform"
+	"github.com/matheusvcouto/cli-tools/internal/version"
 )
 
 //go:embed tool.json

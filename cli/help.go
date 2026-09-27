@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/matheusvcouto/cli-tools/v2/cli/internal/model"
+	"github.com/matheusvcouto/cli-tools/cli/internal/model"
 )
 
 func (c *CompiledApp) Help(path ...string) string {

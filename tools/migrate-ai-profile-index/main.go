@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
+	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
 )
 
 func main() {

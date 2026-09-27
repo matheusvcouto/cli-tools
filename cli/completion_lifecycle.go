@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/matheusvcouto/cli-tools/v2/internal/fscommit"
+	"github.com/matheusvcouto/cli-tools/internal/fscommit"
 )
 
 type completionInstallState string

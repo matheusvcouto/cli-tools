@@ -4,10 +4,10 @@ import (
 	_ "embed"
 	"os"
 
-	core "github.com/matheusvcouto/cli-tools/v2/cli"
-	"github.com/matheusvcouto/cli-tools/v2/internal/repozip"
-	repocli "github.com/matheusvcouto/cli-tools/v2/internal/repozip/cli"
-	"github.com/matheusvcouto/cli-tools/v2/internal/version"
+	core "github.com/matheusvcouto/cli-tools/cli"
+	"github.com/matheusvcouto/cli-tools/internal/repozip"
+	repocli "github.com/matheusvcouto/cli-tools/internal/repozip/cli"
+	"github.com/matheusvcouto/cli-tools/internal/version"
 )
 
 //go:embed tool.json

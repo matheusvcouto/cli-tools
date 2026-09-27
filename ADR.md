@@ -24,12 +24,11 @@ por outros projetos. Novos pacotes públicos continuam exigindo necessidade real
 e decisão arquitetural explícita.
 
 A partir de `v1`, mudanças incompatíveis do pacote público exigem novo major e
-novo import path, conforme Go Semantic Import Versioning. A migração em curso para
-Go 1.27.1 e `os.Root` estabelece o módulo `github.com/matheusvcouto/cli-tools/v2`
-para a futura tag `v2.0.0`. Consumidores de `v1` permanecem no path antigo;
-`cli/api.contract.json` registra e protege o contrato público da nova versão.
-Novos majors exigirão o sufixo `/vN` correspondente; o tooling de release
-recusa tags com path incompatível.
+novo import path, conforme Go Semantic Import Versioning. Esta suíte permanece
+em `github.com/matheusvcouto/cli-tools`, sem sufixo. Go 1.27.1 e `os.Root` entram
+na próxima tag `v1.1.0`; o lock `cli/api.contract.json` não mudou em relação a
+`v1.0.1`. Um major futuro exigirá o sufixo `/vN` e o tooling de release recusa
+tag incompatível com esse path.
 
 ## D003 — Stdlib-first — Accepted
 

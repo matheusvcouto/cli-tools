@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/matheusvcouto/cli-tools/v2/internal/fscommit"
-	"github.com/matheusvcouto/cli-tools/v2/internal/safefs"
+	"github.com/matheusvcouto/cli-tools/internal/fscommit"
+	"github.com/matheusvcouto/cli-tools/internal/safefs"
 )
 
 // writeAtomicRoot replaces dst with content while keeping every operation

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/matheusvcouto/cli-tools/v2/internal/safefs"
+	"github.com/matheusvcouto/cli-tools/internal/safefs"
 )
 
 func TestWindowsPublishNoClobberPublishesAndRemovesTempName(t *testing.T) {

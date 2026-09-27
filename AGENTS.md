@@ -100,7 +100,7 @@ Dependência externa só entra quando torna a implementação comprovadamente ma
 - Mudança relevante recebe `changes/*.json`; CI valida cobertura por componente. Não fazer bump manual por commit.
 - `go run ./tools/release prepare --suite-version X.Y.Z` é preview; `--write` materializa manifests/changelogs/contracts e arquiva records.
 - `cli/` é API Go pública reutilizável; `cli/api.contract.json` protege a superfície exportada e `go run ./tools/release api check` é gate obrigatório antes de release.
-- API aditiva exige `api write` para passar a ser protegida; `api write --allow-breaking` exige quebra deliberada e change record de `module`. O módulo desta migração já usa `/v2` e Go 1.27.1 por decisão registrada; não reverta esse estado para passar em sandbox.
+- API aditiva exige `api write` para passar a ser protegida; `api write --allow-breaking` exige quebra deliberada e change record de `module`. A suíte permanece no módulo `github.com/matheusvcouto/cli-tools`, sem sufixo `/v2`; a próxima tag de suíte é `v1.1.0`, não `v2.0.0`. Go mínimo continua `1.27.1`; não rebaixar a toolchain para passar em sandbox.
 - Produto que cruza para `1.x` precisa declarar `stability: "stable"` no change record; estabilidade nunca pode regredir.
 - `release prepare --write` deve preservar rollback do conjunto em qualquer erro retornado; não reintroduzir mutações parciais sem teste de restauração.
 - Tags estáveis usam exatamente `vX.Y.Z`, nunca são reutilizadas/movidas e só apontam para commit já preparado com CI verde.

@@ -15,13 +15,13 @@ import (
 	"strings"
 	"testing"
 
-	core "github.com/matheusvcouto/cli-tools/v2/cli"
-	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
-	profilecli "github.com/matheusvcouto/cli-tools/v2/internal/aiprofile/cli"
-	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile/platform"
-	"github.com/matheusvcouto/cli-tools/v2/internal/repozip"
-	repocli "github.com/matheusvcouto/cli-tools/v2/internal/repozip/cli"
-	"github.com/matheusvcouto/cli-tools/v2/internal/testenv"
+	core "github.com/matheusvcouto/cli-tools/cli"
+	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
+	profilecli "github.com/matheusvcouto/cli-tools/internal/aiprofile/cli"
+	"github.com/matheusvcouto/cli-tools/internal/aiprofile/platform"
+	"github.com/matheusvcouto/cli-tools/internal/repozip"
+	repocli "github.com/matheusvcouto/cli-tools/internal/repozip/cli"
+	"github.com/matheusvcouto/cli-tools/internal/testenv"
 )
 
 func platformExecutableName(name string) string {

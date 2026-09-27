@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/matheusvcouto/cli-tools/v2/internal/filelock"
-	"github.com/matheusvcouto/cli-tools/v2/internal/safefs"
+	"github.com/matheusvcouto/cli-tools/internal/filelock"
+	"github.com/matheusvcouto/cli-tools/internal/safefs"
 )
 
 type Store struct {

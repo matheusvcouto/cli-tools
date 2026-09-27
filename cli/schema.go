@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"sort"
 
-	"github.com/matheusvcouto/cli-tools/v2/cli/internal/model"
+	"github.com/matheusvcouto/cli-tools/cli/internal/model"
 )
 
 const SchemaVersion = 1

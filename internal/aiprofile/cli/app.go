@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"text/tabwriter"
 
-	core "github.com/matheusvcouto/cli-tools/v2/cli"
-	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
+	core "github.com/matheusvcouto/cli-tools/cli"
+	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
 )
 
 // New compiles ai-profile from one declarative command tree. Domain services

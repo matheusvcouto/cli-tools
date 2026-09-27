@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/matheusvcouto/cli-tools/v2/cli/internal/model"
+	"github.com/matheusvcouto/cli-tools/cli/internal/model"
 )
 
 // MarkdownReference renders deterministic reference documentation from the compiled graph.

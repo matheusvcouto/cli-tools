@@ -28,7 +28,7 @@ A superfície de uma CLI é uma `cli.App` declarativa compilada uma vez. É proi
 - help/version/schema/contract/completion gerada permanecem livres de I/O de domínio;
 - shell-specific behavior fica no adapter.
 - `cli/` é uma API Go pública reutilizável por outros módulos; `cli/internal/` não é contrato público;
-- `cli/api.contract.json` protege a superfície exportada: breaking exige revisão explícita, change record de `module` e `api write --allow-breaking`; breaking em versão estável exige major e novo sufixo `/vN` (a migração atual é `/v2`); adição exige atualizar o lock para passar a ser protegida;
+- `cli/api.contract.json` protege a superfície exportada: breaking exige revisão explícita, change record de `module` e `api write --allow-breaking`; breaking em versão estável exige major e novo sufixo `/vN`; a suíte atual permanece sem sufixo e a próxima tag é `v1.1.0`; adição exige atualizar o lock para passar a ser protegida;
 
 ## Evidência
 

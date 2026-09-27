@@ -1,9 +1,9 @@
 # Public Go API (`cli`)
 
-The package `github.com/matheusvcouto/cli-tools/v2/cli` is intentionally reusable by other Go projects. It is not an internal implementation detail of the bundled CLIs.
+The package `github.com/matheusvcouto/cli-tools/cli` is intentionally reusable by other Go projects. It is not an internal implementation detail of the bundled CLIs.
 
 ```go
-import cli "github.com/matheusvcouto/cli-tools/v2/cli"
+import cli "github.com/matheusvcouto/cli-tools/cli"
 
 app, err := cli.Compile(cli.App{
     ID:   "example",
@@ -34,7 +34,7 @@ The external-package test `cli/public_api_external_test.go` compiles and exercis
 
 ## Compatibility policy
 
-The suite/module Git tag versions the public Go API. Go 1.27.1 is the minimum for this codebase and the next incompatible release is planned as `v2.0.0`; the import path is `github.com/matheusvcouto/cli-tools/v2`. Consumers of the former `v1` module retain the original (unsuffixed) import path until they intentionally migrate. Future incompatible changes to the stable `v2` public API require a `v3` major release with `/v3` imports; changes within `v2` must preserve Go import compatibility.
+The suite/module Git tag versions the public Go API. Go 1.27.1 is the minimum for this codebase. The next suite tag is `v1.1.0` on the existing import path `github.com/matheusvcouto/cli-tools`. The exported API lock is unchanged from `v1.0.1`. A future incompatible public API change requires a new major module path such as `/v2`.
 
 - removing an exported symbol or changing a locked declaration is allowed only after explicit review, a `module` change record and `api write --allow-breaking`;
 - additive exported API is allowed, but the API lock must be regenerated so the new symbol becomes protected too;

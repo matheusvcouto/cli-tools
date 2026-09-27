@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/matheusvcouto/cli-tools/v2/internal/aiprofile"
-	"github.com/matheusvcouto/cli-tools/v2/internal/testenv"
+	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
+	"github.com/matheusvcouto/cli-tools/internal/testenv"
 )
 
 func TestWindowsRunnerDoesNotLaunchAfterCancellation(t *testing.T) {

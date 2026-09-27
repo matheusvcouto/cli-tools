@@ -1,6 +1,6 @@
 package fscommit
 
-import "github.com/matheusvcouto/cli-tools/v2/internal/safefs"
+import "github.com/matheusvcouto/cli-tools/internal/safefs"
 
 // ReplaceRoot atomically replaces dst with src when the platform can provide
 // that guarantee. src and dst are relative to the same already-open safety

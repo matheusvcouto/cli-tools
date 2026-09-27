@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/matheusvcouto/cli-tools/v2/cli/internal/model"
+	"github.com/matheusvcouto/cli-tools/cli/internal/model"
 )
 
 type CompiledApp struct {

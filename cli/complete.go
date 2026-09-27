@@ -7,8 +7,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/matheusvcouto/cli-tools/v2/cli/internal/model"
-	iparse "github.com/matheusvcouto/cli-tools/v2/cli/internal/parse"
+	"github.com/matheusvcouto/cli-tools/cli/internal/model"
+	iparse "github.com/matheusvcouto/cli-tools/cli/internal/parse"
 )
 
 // Complete plans shell-neutral completion using the same parser as execution.

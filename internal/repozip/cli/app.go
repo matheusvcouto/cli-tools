@@ -3,8 +3,8 @@ package repocli
 import (
 	"fmt"
 
-	core "github.com/matheusvcouto/cli-tools/v2/cli"
-	"github.com/matheusvcouto/cli-tools/v2/internal/repozip"
+	core "github.com/matheusvcouto/cli-tools/cli"
+	"github.com/matheusvcouto/cli-tools/internal/repozip"
 )
 
 const (

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	cli "github.com/matheusvcouto/cli-tools/v2/cli"
+	cli "github.com/matheusvcouto/cli-tools/cli"
 )
 
 func TestPublicAPIWorksFromExternalPackage(t *testing.T) {

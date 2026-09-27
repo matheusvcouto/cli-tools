@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/matheusvcouto/cli-tools/v2/internal/safefs"
+	"github.com/matheusvcouto/cli-tools/internal/safefs"
 )
 
 type Archiver struct{}
