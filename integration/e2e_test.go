@@ -217,12 +217,25 @@ func TestCLIEndToEndWithSyntheticState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	var settings struct {
+		ClaudeMdExcludes []string `json:"claudeMdExcludes"`
+	}
+	if err := json.Unmarshal(raw, &settings); err != nil {
+		t.Fatalf("decode Claude settings: %v\n%s", err, raw)
+	}
 	for _, want := range []string{
 		filepath.Join(home, ".claude", "CLAUDE.md"),
 		filepath.Join(home, ".claude", "CLAUDE.local.md"),
 		filepath.Join(home, ".claude", "rules", "**"),
 	} {
-		if !strings.Contains(string(raw), want) {
+		found := false
+		for _, got := range settings.ClaudeMdExcludes {
+			if got == want {
+				found = true
+				break
+			}
+		}
+		if !found {
 			t.Fatalf("Claude settings missing context exclusion %q: %s", want, raw)
 		}
 	}

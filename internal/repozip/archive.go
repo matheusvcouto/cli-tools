@@ -165,7 +165,7 @@ func addGitBundle(ctx context.Context, zw *zip.Writer, repo string, git Git, met
 		return fmt.Errorf("write Git metadata ZIP entry: %w", err)
 	}
 
-	tmp, err := os.CreateTemp("", "repo-zip-*.bundle")
+	tmp, err := createPrivateTempFile("", "repo-zip-*.bundle")
 	if err != nil {
 		return fmt.Errorf("create temporary Git bundle: %w", err)
 	}
@@ -174,9 +174,6 @@ func addGitBundle(ctx context.Context, zw *zip.Writer, repo string, git Git, met
 		_ = tmp.Close()
 		_ = os.Remove(tmpPath)
 	}()
-	if err := securePrivateTempFile(tmp); err != nil {
-		return fmt.Errorf("secure temporary Git bundle: %w", err)
-	}
 	if err := git.WriteBundle(repo, tmp); err != nil {
 		return err
 	}

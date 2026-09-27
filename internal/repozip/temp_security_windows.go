@@ -16,6 +16,8 @@ const (
 	repozipDACLInfo      = 0x00000004
 	repozipProtectedDACL = 0x80000000
 	repozipSDDLRevision1 = 1
+	repozipReadControl   = 0x00020000
+	repozipWriteDAC      = 0x00040000
 )
 
 var (
@@ -28,9 +30,75 @@ var (
 type repozipSecurityDescriptor struct{}
 type repozipACL struct{}
 
+// createPrivateTempFile returns a regular file opened for read/write whose
+// handle also has WRITE_DAC. os.CreateTemp does not request that right, and
+// SetSecurityInfo then fails with ACCESS_DENIED. The unique name comes from
+// CreateTemp; the handle used afterward is a new open of that same file.
+func createPrivateTempFile(dir, pattern string) (*os.File, error) {
+	provisional, err := os.CreateTemp(dir, pattern)
+	if err != nil {
+		return nil, fmt.Errorf("create temporary file: %w", err)
+	}
+	name := provisional.Name()
+	before, statErr := provisional.Stat()
+	closeErr := provisional.Close()
+	if statErr != nil || closeErr != nil {
+		_ = os.Remove(name)
+		if statErr != nil {
+			return nil, fmt.Errorf("stat temporary file: %w", statErr)
+		}
+		return nil, fmt.Errorf("close temporary file: %w", closeErr)
+	}
+	if !before.Mode().IsRegular() {
+		_ = os.Remove(name)
+		return nil, fmt.Errorf("temporary file is not regular")
+	}
+
+	path16, err := syscall.UTF16PtrFromString(name)
+	if err != nil {
+		_ = os.Remove(name)
+		return nil, fmt.Errorf("encode temporary file path: %w", err)
+	}
+	h, err := syscall.CreateFile(
+		path16,
+		syscall.GENERIC_READ|syscall.GENERIC_WRITE|repozipReadControl|repozipWriteDAC,
+		syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE,
+		nil,
+		syscall.OPEN_EXISTING,
+		syscall.FILE_ATTRIBUTE_NORMAL|syscall.FILE_FLAG_OPEN_REPARSE_POINT,
+		0,
+	)
+	if err != nil {
+		_ = os.Remove(name)
+		return nil, fmt.Errorf("reopen temporary file for Windows ACL: %w", err)
+	}
+	f := os.NewFile(uintptr(h), name)
+	if f == nil {
+		_ = syscall.CloseHandle(h)
+		_ = os.Remove(name)
+		return nil, fmt.Errorf("wrap temporary file")
+	}
+	after, err := f.Stat()
+	if err != nil || !after.Mode().IsRegular() || !os.SameFile(before, after) {
+		_ = f.Close()
+		_ = os.Remove(name)
+		if err != nil {
+			return nil, fmt.Errorf("stat reopened temporary file: %w", err)
+		}
+		return nil, fmt.Errorf("temporary file changed identity before Windows ACL update")
+	}
+	if err := securePrivateTempFile(f); err != nil {
+		_ = f.Close()
+		_ = os.Remove(name)
+		return nil, err
+	}
+	return f, nil
+}
+
 // securePrivateTempFile applies a protected DACL directly to the already-open
-// temporary file handle. os.Chmod does not provide Unix-style 0600 privacy on
-// Windows, and applying the ACL by handle avoids a pathname race.
+// temporary file handle. The handle must include WRITE_DAC. os.Chmod does not
+// provide Unix-style 0600 privacy on Windows, and applying the ACL by handle
+// avoids a pathname race.
 func securePrivateTempFile(f *os.File) error {
 	if f == nil {
 		return fmt.Errorf("secure temporary file: nil handle")

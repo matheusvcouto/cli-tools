@@ -3,10 +3,18 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/matheusvcouto/cli-tools/internal/aiprofile"
 )
+
+// nuonQuote matches parseLegacyNUON, which decodes double-quoted fields with
+// strconv.Unquote. A raw Windows path inside quotes is invalid NUON because
+// backslash starts an escape.
+func nuonQuote(s string) string {
+	return strconv.Quote(s)
+}
 
 func TestParseLegacyTable(t *testing.T) {
 	input := `[[tool, alias, dir, created_at]; [claude, personal, "/tmp/profiles/claude-id", "2026-01-02T03:04:05"], [codex, work, /tmp/profiles/codex-id, 2026-02-03T04:05:06]]`
@@ -34,7 +42,7 @@ func TestMigratePreservesFieldsAndSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	source := filepath.Join(base, "index.nuon")
-	input := `[[tool, alias, dir, created_at]; [claude, personal, "` + d1 + `", "2026-01-02T03:04:05"], [codex, work, "` + d2 + `", "2026-02-03T04:05:06"]]`
+	input := `[[tool, alias, dir, created_at]; [claude, personal, ` + nuonQuote(d1) + `, "2026-01-02T03:04:05"], [codex, work, ` + nuonQuote(d2) + `, "2026-02-03T04:05:06"]]`
 	if err := os.WriteFile(source, []byte(input), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +81,7 @@ func TestMigrateRefusesUnreferencedLegacyState(t *testing.T) {
 		t.Fatal(err)
 	}
 	source := filepath.Join(base, "index.nuon")
-	input := `[[tool, alias, dir, created_at]; [claude, personal, "` + dir + `", "2026-01-02T03:04:05"]]`
+	input := `[[tool, alias, dir, created_at]; [claude, personal, ` + nuonQuote(dir) + `, "2026-01-02T03:04:05"]]`
 	if err := os.WriteFile(source, []byte(input), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +115,7 @@ func TestMigratePreservesLegacyIndexInsideDestinationRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 	source := filepath.Join(root, "index.nuon")
-	content := `[[tool, alias, dir, created_at]; [claude, personal, "` + legacyDir + `", "2026-01-02T03:04:05"]]`
+	content := `[[tool, alias, dir, created_at]; [claude, personal, ` + nuonQuote(legacyDir) + `, "2026-01-02T03:04:05"]]`
 	if err := os.WriteFile(source, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}

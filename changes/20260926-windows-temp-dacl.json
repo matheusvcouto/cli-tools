@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "repo-zip",
+      "impact": "patch",
+      "breaking": false,
+      "summary": "Open Windows Git bundle temp files with WRITE_DAC before applying the protected DACL"
+    }
+  ]
+}

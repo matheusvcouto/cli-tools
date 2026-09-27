@@ -3,7 +3,6 @@
 package repozip
 
 import (
-	"os"
 	"os/user"
 	"strings"
 	"syscall"
@@ -20,15 +19,11 @@ var (
 )
 
 func TestSecurePrivateTempFileAppliesProtectedWindowsACL(t *testing.T) {
-	f, err := os.CreateTemp(t.TempDir(), "bundle-*.tmp")
+	f, err := createPrivateTempFile(t.TempDir(), "bundle-*.tmp")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer f.Close()
-
-	if err := securePrivateTempFile(f); err != nil {
-		t.Fatalf("securePrivateTempFile: %v", err)
-	}
 
 	sddl, control := readRepozipWindowsDACLForTest(t, f.Name())
 	if control&repozipSEDACLProtected == 0 {
@@ -38,7 +33,7 @@ func TestSecurePrivateTempFileAppliesProtectedWindowsACL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(sddl, current.Uid) {
+	if !sddlGrantsSID(sddl, current.Uid) {
 		t.Fatalf("temporary-file DACL does not contain current user SID %q: %s", current.Uid, sddl)
 	}
 	if strings.Contains(sddl, ";;;WD)") || strings.Contains(sddl, ";;;S-1-1-0)") {
@@ -93,4 +88,57 @@ func readRepozipWindowsDACLForTest(t *testing.T, path string) (string, uint16) {
 		t.Fatalf("empty SDDL returned for %q", path)
 	}
 	return syscall.UTF16ToString(unsafe.Slice(text, textLen)), control
+}
+
+// Windows rewrites some SIDs to SDDL aliases. The built-in Administrator
+// account S-1-5-21-…-500 is stored as LA, so a literal SID search misses it.
+func sddlGrantsSID(sddl, sid string) bool {
+	if strings.Contains(sddl, sid) {
+		return true
+	}
+	trustee, err := canonicalSDDLTrustee(sid)
+	return err == nil && trustee != "" && strings.Contains(sddl, ";;;"+trustee+")")
+}
+
+func canonicalSDDLTrustee(sid string) (string, error) {
+	raw := "D:(A;;FA;;;" + sid + ")"
+	text, err := syscall.UTF16PtrFromString(raw)
+	if err != nil {
+		return "", err
+	}
+	var sd *repozipSecurityDescriptor
+	r1, _, callErr := repozipConvertStringSDToSDW.Call(
+		uintptr(unsafe.Pointer(text)),
+		repozipSDDLRevision1,
+		uintptr(unsafe.Pointer(&sd)),
+		0,
+	)
+	if r1 == 0 {
+		return "", repozipWindowsCallError(callErr)
+	}
+	defer func() { _, _ = syscall.LocalFree(syscall.Handle(uintptr(unsafe.Pointer(sd)))) }()
+
+	var out *uint16
+	var outLen uint32
+	r1, _, callErr = repozipConvertSDToStringTest.Call(
+		uintptr(unsafe.Pointer(sd)),
+		repozipSDDLRevision1,
+		repozipDACLInfo,
+		uintptr(unsafe.Pointer(&out)),
+		uintptr(unsafe.Pointer(&outLen)),
+	)
+	if r1 == 0 {
+		return "", repozipWindowsCallError(callErr)
+	}
+	defer func() { _, _ = syscall.LocalFree(syscall.Handle(uintptr(unsafe.Pointer(out)))) }()
+	if out == nil || outLen == 0 {
+		return "", syscall.EINVAL
+	}
+	rendered := syscall.UTF16ToString(unsafe.Slice(out, outLen))
+	i := strings.LastIndex(rendered, ";;;")
+	j := strings.LastIndex(rendered, ")")
+	if i < 0 || j <= i+3 {
+		return "", syscall.EINVAL
+	}
+	return rendered[i+3 : j], nil
 }
