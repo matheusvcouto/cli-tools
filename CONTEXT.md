@@ -75,3 +75,12 @@ Primeiro enviar implementação e aguardar CI nativo; preparar release e
 revalidar o commit antes de tag. Select com setas/barra visual ficou para
 próxima etapa por pedido do usuário. Evidência Twitch fornecida pelo usuário
 mostra consulta/estimativas e transferência iniciada; não comprova conclusão.
+
+## CI verde e release preparada
+
+CI 36933364310 do commit 805e699: todos os 12 jobs PASS, incluindo os seis
+runners nativos. prepare --write materializou suíte 1.3.0 e media-get 0.2.0
+experimental; change records movidos integralmente para changes/archive/1.3.0.
+Falta confirmar CI do commit preparado, enviar tag nova e acompanhar smokes
+e publicação. Evidência real Twitch enviada pelo usuário cobre início de
+transferência, não arquivo final. Interface visual ficará para próxima etapa.

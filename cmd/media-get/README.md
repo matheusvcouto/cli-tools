@@ -1,8 +1,8 @@
 # media-get
 
 Downloader de vídeo, áudio e legendas com yt-dlp instalado no sistema. Produto
-experimental em desenvolvimento; ainda não publicado. Implementação inicial
-para macOS; o launcher Linux existe, mas ainda precisa de validação nativa.
+experimental. O launcher possui testes nativos sintéticos no macOS e Linux
+(x64 e ARM64); funcionamento com sites/FFmpeg reais continua não verificado.
 Downloads no Windows são recusados explicitamente. Help, schema, contract e
 completion continuam disponíveis sem yt-dlp, FFmpeg ou acesso ao HOME.
 

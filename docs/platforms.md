@@ -74,9 +74,9 @@ Cross-build nunca promove sozinho o estado de suporte.
 
 ## media-get experimental
 
-macOS é o alvo inicial, com execução do launcher sobre fakes sintéticos e
-testes de publicação/cancelamento locais. Compatibilidade com yt-dlp/FFmpeg e
-mídia real permanece **não verificada**. Linux possui backend Unix, mas aguarda
-runner nativo. Windows mantém help/schema/completion; download é `unsupported`
+macOS e Linux possuem execução nativa do launcher sobre fakes sintéticos e
+testes de publicação/cancelamento em x64 e ARM64, observados no CI do commit
+`805e699` (run `36933364310`). Compatibilidade com yt-dlp/FFmpeg e
+mídia real permanece **não verificada** pela suíte. Windows mantém help/schema/completion; download é `unsupported`
 até existir backend de contenção nativa e seus testes. Essas limitações são
 específicas do novo produto e não alteram a evidência das outras ferramentas.

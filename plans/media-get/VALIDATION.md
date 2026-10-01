@@ -91,3 +91,24 @@ Após os ajustes finais de apresentação e preservação da classe de erro da C
 `check-safe.sh race ./internal/mediaget/...` PASS. Binário macOS ARM64 recompilado
 com CGO_ENABLED=0/trimpath/buildvcs=false e ambiente sintético/offline; smokes
 --help, --version e version --json PASS. `git diff --check` PASS.
+
+## CI nativo antes do preparo de v1.3.0
+
+Commit `805e6999036fa11230a6a23a1026719123e431fd`: CI
+https://github.com/matheusvcouto/cli-tools/actions/runs/36933364310 — completed/success.
+Todos os 12 jobs passaram: testes em Linux/macOS/Windows × x64/ARM64,
+workflow-lint, change records, contratos, API pública, shells nativos e
+cross-build. Isso comprova runtime das capabilities exercitadas pelos testes
+sintéticos; download de media-get no Windows continua unsupported.
+
+Usuário forneceu execução real Twitch com metadados, estimativas e transferência
+em andamento. Não foi observada conclusão/reprodução; esta evidência do usuário
+não foi usada como fixture. Suite v1.3.0 escolhida expressamente pelo usuário;
+prepare --write executado após CI verde, preservando versões independentes.
+CI no commit preparado e workflow de release ainda devem passar antes de
+declarar publicação concluída. Sem novos snapshots.
+
+Após prepare --write: gates completos locais novamente PASS; preflight v1.3.0
+PASS (três ferramentas, nenhum record pendente). Binário em dist/media-get
+reconstruído com versão de produto 0.2.0/suíte 1.3.0; smokes help/version/json
+PASS. Arquivos de preparação e records arquivados conferidos por leitura.

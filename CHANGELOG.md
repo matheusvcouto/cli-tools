@@ -6,6 +6,14 @@ versões seguem [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-01
+
+### Adicionado
+
+- **media-get:** Introduce experimental media-get with declarative CLI Core, optional Referer, video/audio/SRT selections, per-operation system dependency checks, concurrent cached transfer-size previews before selection, loading counters and staged progress, cancellable Unix process groups and confined no-clobber publication with partial-download recovery
+- **module:** Allow explicitly requested forward suite-version skips within the computed major while preserving compatibility guards, independent product versions and transactional release preparation
+- **module:** Include the new experimental media-get product in automatic tool discovery without changing the public Go CLI Core API
+
 ## [1.1.0] - 2026-09-27
 
 ### Adicionado

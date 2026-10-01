@@ -7,7 +7,7 @@ binários standalone e criadas para uso pessoal.
 
 - [`ai-profile`](cmd/ai-profile/README.md) — gerencia perfis isolados para Claude, Codex e Grok Build.
 - [`repo-zip`](cmd/repo-zip/README.md) — cria snapshots ZIP de repositórios Git.
-- [`media-get`](cmd/media-get/README.md) — baixa vídeo, áudio e legendas com yt-dlp/FFmpeg do sistema (experimental, ainda não publicado).
+- [`media-get`](cmd/media-get/README.md) — baixa vídeo, áudio e legendas com yt-dlp/FFmpeg do sistema (experimental).
 
 ## Instalação
 
@@ -41,7 +41,10 @@ A instalação disponibiliza os comandos:
 ```text
 ai-profile
 repo-zip
+media-get
 ```
+
+`media-get` entra na distribuição a partir da suíte `v1.3.0`.
 
 ## Plataformas
 

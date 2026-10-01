@@ -84,7 +84,8 @@ runtime JS para certos extratores são requisitos adicionais do yt-dlp, descrito
 nas fontes oficiais; não são garantidos apenas por achar o executável.
 
 macOS é o alvo inicial. Linux compartilha processo Unix e dica apt, mas precisa
-de runner nativo; a pasta XDG personalizada requer flag/env por enquanto.
+de runner nativo para cada revisão; nesta tarefa o launcher passou no CI nativo.
+A pasta XDG personalizada requer flag/env por enquanto.
 Windows possui somente superfície estática: download fail-closed até implementar
 contenção nativa de processos e confirmar suas capabilities em testes reais.
 
@@ -124,7 +125,8 @@ existir o segundo adapter e seu comportamento puder ser testado.
 - [x] Gates completos após a última revisão e contrato final: PASS.
 - [x] Snapshot/contexto/Base64/checksums verificados em snapshots/009/.
 - [ ] Validação opt-in com mídia sintética e yt-dlp/FFmpeg reais no macOS.
-- [ ] Runner Linux nativo e downloads Windows (fora desta rodada).
+- [x] Launcher Linux nativo (x64/ARM64): CI `36933364310` PASS.
+- [ ] Downloads Windows: capability ainda não implementada.
 
 Resultados finais e pendências ficam em `VALIDATION.md` e `CONTEXT.md` da rodada.
 
