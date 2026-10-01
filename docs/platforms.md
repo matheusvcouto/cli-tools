@@ -35,6 +35,8 @@ As regras de domínio não selecionam SO. Quando a semântica muda, a implementa
 - process runner do `ai-profile`: Unix / Windows;
 - publicação do `repo-zip`: Unix / Windows;
 - paths de completion: macOS / Linux / Windows.
+- processos do `media-get`: grupo Unix no macOS/Linux; download explicitamente
+  indisponível nas demais plataformas.
 
 macOS e Linux compartilham backend Unix apenas onde a primitive e sua garantia são equivalentes.
 
@@ -69,3 +71,12 @@ O módulo e as releases exigem Go 1.27.1. `internal/safefs` usa `os.Root` como �
 - `unsupported`: garantia necessária não implementada.
 
 Cross-build nunca promove sozinho o estado de suporte.
+
+## media-get experimental
+
+macOS é o alvo inicial, com execução do launcher sobre fakes sintéticos e
+testes de publicação/cancelamento locais. Compatibilidade com yt-dlp/FFmpeg e
+mídia real permanece **não verificada**. Linux possui backend Unix, mas aguarda
+runner nativo. Windows mantém help/schema/completion; download é `unsupported`
+até existir backend de contenção nativa e seus testes. Essas limitações são
+específicas do novo produto e não alteram a evidência das outras ferramentas.

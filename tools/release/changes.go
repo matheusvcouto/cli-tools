@@ -329,6 +329,10 @@ func nextToolStability(current string, currentVersion, nextVersion semVersion, c
 }
 
 func planRelease(cmdRoot, changesDir, changelogPath, requestedSuite string) (preparedRelease, []loadedChangeFile, map[string]toolManifestAtPath, error) {
+	return planReleaseWithVersionOverride(cmdRoot, changesDir, changelogPath, requestedSuite, false)
+}
+
+func planReleaseWithVersionOverride(cmdRoot, changesDir, changelogPath, requestedSuite string, allowOverride bool) (preparedRelease, []loadedChangeFile, map[string]toolManifestAtPath, error) {
 	manifests, err := discoverToolManifests(cmdRoot)
 	if err != nil {
 		return preparedRelease{}, nil, nil, err
@@ -375,7 +379,16 @@ func planRelease(cmdRoot, changesDir, changelogPath, requestedSuite string) (pre
 		return preparedRelease{}, nil, nil, err
 	}
 	if requested != nextSuite {
-		return preparedRelease{}, nil, nil, fmt.Errorf("suite version %s does not match computed %s bump from %s to %s", requested, suiteImpact, currentSuite, nextSuite)
+		if !allowOverride {
+			return preparedRelease{}, nil, nil, fmt.Errorf("suite version %s does not match computed %s bump from %s to %s", requested, suiteImpact, currentSuite, nextSuite)
+		}
+		// Deliberate skips may only advance beyond the minimum computed bump,
+		// within its major. This cannot lower the required compatibility impact
+		// or introduce a major/module-path change as a side effect.
+		if requested.Major != nextSuite.Major || requested.Minor < nextSuite.Minor || requested.Minor == nextSuite.Minor && requested.Patch <= nextSuite.Patch {
+			return preparedRelease{}, nil, nil, fmt.Errorf("suite version override %s must advance beyond computed %s within the same major", requested, nextSuite)
+		}
+		nextSuite = requested
 	}
 
 	plan := preparedRelease{CurrentSuite: currentSuite, NextSuite: nextSuite, SuiteImpact: suiteImpact, Tools: map[string]preparedTool{}, Changes: byComponent}
@@ -949,7 +962,7 @@ func runPrepareCommand(args []string) {
 	fs := flag.NewFlagSet("release prepare", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	var suiteVersion, cmdRoot, changesDir, changelogPath, dateText, apiDir, apiLock string
-	var write bool
+	var write, allowVersionOverride bool
 	fs.StringVar(&suiteVersion, "suite-version", "", "target suite version in vX.Y.Z or X.Y.Z form")
 	fs.StringVar(&cmdRoot, "cmd-root", "cmd", "command root containing tool.json manifests")
 	fs.StringVar(&changesDir, "changes", "changes", "pending change-record directory")
@@ -958,6 +971,7 @@ func runPrepareCommand(args []string) {
 	fs.StringVar(&apiLock, "api-lock", "cli/api.contract.json", "public Go API compatibility lock")
 	fs.StringVar(&dateText, "date", time.Now().UTC().Format("2006-01-02"), "release date in YYYY-MM-DD")
 	fs.BoolVar(&write, "write", false, "apply the prepared versions/changelogs/contracts and archive records")
+	fs.BoolVar(&allowVersionOverride, "allow-suite-version-override", false, "explicitly advance beyond the computed suite version within the same major")
 	if err := fs.Parse(args); err != nil {
 		fatalf("prepare flags: %v", err)
 	}
@@ -971,7 +985,7 @@ func runPrepareCommand(args []string) {
 	if err != nil {
 		fatalf("prepare date: %v", err)
 	}
-	plan, files, manifests, err := planRelease(cmdRoot, changesDir, changelogPath, suiteVersion)
+	plan, files, manifests, err := planReleaseWithVersionOverride(cmdRoot, changesDir, changelogPath, suiteVersion, allowVersionOverride)
 	if err != nil {
 		fatalf("prepare: %v", err)
 	}

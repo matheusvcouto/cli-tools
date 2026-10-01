@@ -100,7 +100,8 @@ Dependência externa só entra quando torna a implementação comprovadamente ma
 - Mudança relevante recebe `changes/*.json`; CI valida cobertura por componente. Não fazer bump manual por commit.
 - `go run ./tools/release prepare --suite-version X.Y.Z` é preview; `--write` materializa manifests/changelogs/contracts e arquiva records.
 - `cli/` é API Go pública reutilizável; `cli/api.contract.json` protege a superfície exportada e `go run ./tools/release api check` é gate obrigatório antes de release.
-- API aditiva exige `api write` para passar a ser protegida; `api write --allow-breaking` exige quebra deliberada e change record de `module`. A suíte permanece no módulo `github.com/matheusvcouto/cli-tools`, sem sufixo `/v2`; a próxima tag de suíte é `v1.1.0`, não `v2.0.0`. Go mínimo continua `1.27.1`; não rebaixar a toolchain para passar em sandbox.
+- API aditiva exige `api write` para passar a ser protegida; `api write --allow-breaking` exige quebra deliberada e change record de `module`.
+- Sufixo de módulo (`/v2`, `/v3` ou outro `/vN`), troca do path do módulo e mudança drástica de versão — major, salto de suíte, ou abandono da próxima versão já calculada — só acontecem quando o usuário disser isso explicitamente nesta conversa. Plano, ADR, snapshot, change record ou documentação antiga não autorizam essa mudança. Go mínimo continua `1.27.1`; não rebaixar a toolchain para passar em sandbox.
 - Produto que cruza para `1.x` precisa declarar `stability: "stable"` no change record; estabilidade nunca pode regredir.
 - `release prepare --write` deve preservar rollback do conjunto em qualquer erro retornado; não reintroduzir mutações parciais sem teste de restauração.
 - Tags estáveis usam exatamente `vX.Y.Z`, nunca são reutilizadas/movidas e só apontam para commit já preparado com CI verde.
@@ -159,14 +160,22 @@ Uma mudança só está pronta quando:
 
 Durante uma migração ativa, atualizar também o checklist indicado pelo `README.md` daquela migração.
 
-## 10. Regras adicionais de evidência e entrega dos snapshots
+## 10. Regras adicionais de evidência
+
+Geração automática de snapshots desativada neste projeto por decisão do usuário.
+Não gerar ZIP de entrega, contexto separado de snapshot, Base64 ou checksums de
+snapshot durante as rodadas. As instruções antigas abaixo estão comentadas e
+inativas, inclusive quando repetidas em planos ou documentos históricos.
+Snapshots existentes ficam preservados e ignorados pelo Git.
 
 - Nunca inventar gates, testes, evidências, snapshots ou resultados CI. Revisão estática/documentação oficial é evidência **de revisão**, não de runtime.
 - Não degradar código de produção, garantias fail-closed, baseline Go ou segurança para adaptar ao sandbox; não substituir execuções bloqueadas por mocks.
 - Ao finalizar um ponto, continuar para o próximo quando tecnicamente possível; registrar bloqueios e validações externas pendentes no `CONTEXT.md`.
+<!-- Inativo: geração e entrega automática de snapshots.
 - Para cada rodada, gerar ZIP completo do repositório e `CONTEXT.md` breve **separado** e **dentro** do ZIP. Entregar como arquivos reais quando a interface permitir, não apenas descrição textual ou cards personalizados.
 - Gerar também `SNAPSHOT-{NNN}_cli-tools_BASE64.md` com o ZIP codificado em **Base64 puro, sem code fences, cabeçalho ou Markdown**; verificar que a decodificação resulta nos mesmos bytes SHA-256 do ZIP. No macOS: `base64 -D -i SNAPSHOT-{NNN}_cli-tools_BASE64.md -o SNAPSHOT-{NNN}_cli-tools.zip`.
 - Quando a interface não oferecer anexos nativos, informar a limitação; arquivos de download somente no fim da resposta, sem cards. Nunca afirmar que o ZIP foi anexado se não houver confirmação.
+-->
 
 ## Continuação: Grok Build (SNAPSHOT-002_cli-tools)
 
@@ -187,7 +196,9 @@ Durante uma migração ativa, atualizar também o checklist indicado pelo `READM
 - Remover env herdada de identidade e compatibilidade, mas preservar restrições administrativas `GROK_DISABLE_API_KEY_AUTH`, `GROK_FORCE_LOGIN_TEAM_ID`, sandbox e requirements.
 - Config local do perfil pode optar deliberadamente por compat Claude/Cursor/Codex; não forçar `false` via env.
 - Status real: validação estática local, sem Go 1.27.1/Grok autenticado/runner Windows nativo.
+<!-- Inativo: geração e entrega automática de snapshots.
 - Próxima entrega: `SNAPSHOT-{NNN}_cli-tools.zip`, `CONTEXT-{NNN}_cli-tools.md` separado e dentro do ZIP, Base64 puro opcional/backup e checksums.
+-->
 
 ## Continuação: SNAPSHOT-004 / segurança do store e View Limits
 
@@ -195,3 +206,14 @@ Durante uma migração ativa, atualizar também o checklist indicado pelo `READM
 - A lista `grokClearEnv` remove apenas redirecionamentos/identidade herdados; preservar requisitos/guardrails de organização (sandbox, login team, disable API key). Revalidar contra a referência oficial por versão.
 - `plans/view-limits/README.md` é **plano**, não adapter entregue. Só usar fontes oficiais autorizadas e operações read-only por perfil; diferenciar assinatura, API e uso local. Não extrair segredos ou fazer requisições de teste pagas inadvertidamente.
 - Ler `plans/grok-build/CODE_REVIEW_004.md` para pendências nativas/ACL antes de promover suporte.
+
+## Build local antes da entrega e do push
+
+- Ao concluir alterações em uma CLI, gerar o executável nativo atualizado em
+  `./dist/<nome>/<nome>` (com `.exe` no Windows) para o usuário testar.
+- Antes de cada `git push`, confirmar que os binários das CLIs alteradas foram
+  reconstruídos a partir do código atual e verificar help/versão em ambiente
+  isolado. Usar Go 1.27.1 ou superior e as flags de versão da suíte quando a
+  release estiver preparada; não alterar configurações globais.
+- `dist/` contém builds locais regeneráveis e permanece ignorado pelo Git.
+- Esta regra não reativa snapshots ZIP, Base64 ou contextos de entrega.

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "module",
+      "impact": "minor",
+      "breaking": false,
+      "summary": "Allow explicitly requested forward suite-version skips within the computed major while preserving compatibility guards, independent product versions and transactional release preparation"
+    }
+  ]
+}

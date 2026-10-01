@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "name": "media-get",
+  "version": "0.1.0",
+  "stability": "experimental"
+}

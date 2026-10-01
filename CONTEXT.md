@@ -23,3 +23,55 @@
 - Nunca criar mocks/testes artificiais nem alegar que testes não rodados passaram. Compensar bloqueios externos com análise de código real e documentação oficial. Não alterar produção para adaptar ao sandbox, nem enfraquecer segurança ou gate. `fail-closed` sempre que apropriado; após corrigir um problema, prosseguir para o próximo possível.
 - Entregar **repositório completo ZIP**, `CONTEXT.md` também separado e **Base64 puro** do ZIP, sem cabeçalho/fence. Nomes: `SNAPSHOT-{NNN}_cli-tools.zip`, `CONTEXT-{NNN}_cli-tools.md`, `SNAPSHOT-{NNN}_cli-tools_BASE64.md`; relatório e checksums adicionais. Validar integridade do ZIP, árvore extraída, SHA e reconstrução Base64. Preferir anexos ao fim, sem cards personalizados; caso a UI não renderize anexo nativo, usar os arquivos disponibilizados e o Base64 puro.
 - macOS: `base64 -D -i ~/Downloads/SNAPSHOT-008_cli-tools_BASE64.md -o ~/Downloads/SNAPSHOT-008_cli-tools.zip`.
+
+## Atualização 2026-10-01 — Media Get / SNAPSHOT-009
+
+- Novo produto experimental `media-get` integrado ao CLI Core, com plano em
+  `plans/media-get/README.md` e evidência atual em `plans/media-get/VALIDATION.md`.
+- Referer opcional (interpretação do exemplo de “Repair”), vídeo com áudio,
+  M4A e SRT; destino por flag/env/default Downloads, estimativa tolerante,
+  progresso numérico, dependências do sistema e publicação sem clobber.
+- Go 1.27.1 disponível nesta rodada: `scripts/check-safe.sh all` PASS, incluindo
+  tests/vet/shuffle/race/API/contratos/changes. Cross-build do novo produto PASS
+  nos seis alvos; smokes estáticos do binário macOS ARM64 PASS. Estas evidências
+  locais atualizam a indisponibilidade de Go descrita no histórico acima, sem
+  comprovar runtime de providers/sites ou jobs remotos.
+- Nenhuma mídia/conta real testada. Linux nativo/Windows download não validados;
+  download Windows explicitamente indisponível. Não houve commit/push/release,
+  alteração de versões existentes ou de configurações reais.
+- Entrega desta rodada: `snapshots/009/`; contexto separado, ZIP de toda a árvore
+  de fontes e Base64 puro. ZIP exclui `.git`, caches/builds e artifacts ignorados;
+  inclui arquivos versionados e novos arquivos de código/plano/documentação.
+
+## Revisão 2026-10-01 — SNAPSHOT-010
+
+Revisão de media-get sem alterar produção/contratos. Relatório:
+plans/media-get/REVIEW_010.md. Testes focados herméticos PASS com Go 1.27.1.
+Pendentes: descoberta de legendas sem formatos de vídeo; coerência entre ffprobe
+checado e executável usado; causa estruturada de exec.ExitError. Achados de revisão,
+sem reprodução com ferramentas reais. Validação real continua não executada.
+Preferências tomadas pela IA e fluxo de uso foram documentados para avaliação
+do usuário. Entrega em snapshots/010; nenhuma instalação/conta/commit/release.
+
+## Atualização — prévias e progresso do media-get
+
+Estimativas nos menus de tipo/qualidade antes da escolha, até três consultas
+paralelas, timeout de 20 s por lote e cache local ao wizard. Carregamento com
+animação/contador; transferência com bytes/percentual/speed/ETA e etapas de
+processamento/publicação. Erros do yt-dlp agora preservam a causa estruturada
+com mensagem segura. Gates completos locais PASS (Go 1.27.1/macOS ARM64).
+Ferramentas reais, runners remotos e os demais achados da revisão continuam
+pendentes; não houve push/publicação. Geração de snapshots desativada pelo usuário.
+
+## Preparação do push / suíte v1.3.0
+
+Usuário autorizou push e escolheu v1.3.0, inexistente no remoto consultado;
+última release publicada v1.1.0. Preview com avanço explícito: suíte 1.3.0,
+media-get 0.2.0 experimental; ai-profile/repo-zip permanecem 1.1.0.
+Tooling ganhou --allow-suite-version-override com guards de avanço/major e
+testes. AGENTS.md exige binário nativo em dist antes da entrega/push.
+Gates locais completos novamente PASS; build local e smoke de versão PASS.
+Primeiro enviar implementação e aguardar CI nativo; preparar release e
+revalidar o commit antes de tag. Select com setas/barra visual ficou para
+próxima etapa por pedido do usuário. Evidência Twitch fornecida pelo usuário
+mostra consulta/estimativas e transferência iniciada; não comprova conclusão.

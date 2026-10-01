@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "media-get",
+      "impact": "minor",
+      "breaking": false,
+      "summary": "Introduce experimental media-get with declarative CLI Core, optional Referer, video/audio/SRT selections, per-operation system dependency checks, concurrent cached transfer-size previews before selection, loading counters and staged progress, cancellable Unix process groups and confined no-clobber publication with partial-download recovery"
+    },
+    {
+      "component": "module",
+      "impact": "minor",
+      "breaking": false,
+      "summary": "Include the new experimental media-get product in automatic tool discovery without changing the public Go CLI Core API"
+    }
+  ]
+}

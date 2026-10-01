@@ -1,4 +1,8 @@
 /dist/
+/snapshots/
+SNAPSHOT-*_cli-tools.zip
+SNAPSHOT-*_cli-tools_BASE64.md
+CONTEXT-*_cli-tools.md
 /bin/
 *.test
 *.out

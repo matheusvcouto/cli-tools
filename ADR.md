@@ -5,6 +5,7 @@ Decisões específicas de cada CLI ficam próximas ao respectivo entrypoint:
 
 - [`ai-profile`](cmd/ai-profile/ADR.md);
 - [`repo-zip`](cmd/repo-zip/ADR.md).
+- [`media-get`](cmd/media-get/ADR.md).
 
 O CLI Core de `cli/` é a arquitetura ativa das CLIs. A implementação e os
 contratos vigentes são descritos pelas docs ativas; planos de migração concluídos
@@ -171,3 +172,12 @@ como aditivas, breaking ou sem efeito público quando possível.
 Comandos, flags e argumentos possuem IDs internos estáveis distintos dos nomes
 visíveis. Isso permite detectar rename/deprecation sem depender somente de
 texto, alimentar docs e manter schema/introspection estáveis.
+
+## D022 — Avanço explícito da versão da suíte — Accepted
+
+O preparador exige o bump calculado por padrão. Quando o usuário escolher
+expressamente um número superior, --allow-suite-version-override permite
+avançar além do mínimo dentro do mesmo major calculado. Não permite downgrade,
+não reduz impacto breaking, não altera versões individuais e não contorna a
+validação de module path, API, contratos ou rollback. Nesta tarefa o usuário
+escolheu v1.3.0 a partir de v1.1.0; media-get permanece experimental.

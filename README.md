@@ -7,6 +7,7 @@ binários standalone e criadas para uso pessoal.
 
 - [`ai-profile`](cmd/ai-profile/README.md) — gerencia perfis isolados para Claude, Codex e Grok Build.
 - [`repo-zip`](cmd/repo-zip/README.md) — cria snapshots ZIP de repositórios Git.
+- [`media-get`](cmd/media-get/README.md) — baixa vídeo, áudio e legendas com yt-dlp/FFmpeg do sistema (experimental, ainda não publicado).
 
 ## Instalação
 

@@ -65,7 +65,7 @@ func TestRepositoryCommandsAreDiscovered(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"ai-profile", "repo-zip"}
+	want := []string{"ai-profile", "media-get", "repo-zip"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("commands = %v, want %v", got, want)
 	}

@@ -175,3 +175,17 @@ go run ./tools/release preflight --version v1.1.0 --changelog CHANGELOG.md
 ```
 
 Revise e faça commit do resultado, repita o CI **no commit preparado**, e só então envie a tag protegida. Os scripts de publicação aceitam exclusivamente `vX.Y.Z` canônico (sem sufixos `-rc` ou `+build`) como o builder Go. O workflow falha fechado se qualquer etapa de pré-validação ou teste nativo falhar. Para a revisão de segurança e o checklist de teste remoto desta árvore, consulte `plans/release-readiness/SNAPSHOT_008_REVIEW.md`.
+
+## Versão deliberada da suíte
+
+A versão calculada continua obrigatória por padrão. Somente por pedido explícito
+do usuário, uma versão superior no mesmo major calculado pode ser preparada com:
+
+```sh
+go run ./tools/release prepare --suite-version v1.3.0 --allow-suite-version-override
+```
+
+O flag não altera os bumps dos produtos nem permite diminuir o bump necessário
+ou saltar para outro major. Preview, CI nativo, --write, rollback e novo CI no
+commit preparado continuam obrigatórios antes da tag. v1.1.0 foi publicada em
+2026-09-27; nesta tarefa a versão desejada pelo usuário é v1.3.0.

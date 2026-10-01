@@ -45,6 +45,9 @@ internal/
 │   └── cli/                 # Spec/composição da CLI
 ├── repozip/                 # domínio repo-zip
 │   └── cli/                 # Spec/composição da CLI
+├── mediaget/                # domínio media-get
+│   ├── cli/                 # Spec e fluxo interativo
+│   └── ytdlp/               # adapter e processos por plataforma
 ├── filelock/                # primitive de plataforma focada
 ├── fscommit/                # commit/replace confinado
 ├── safefs/                  # operações confinadas a uma raiz

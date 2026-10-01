@@ -55,6 +55,53 @@ func TestPlanReleaseUsesIndependentToolVersionsAndHighestSuiteImpact(t *testing.
 	}
 }
 
+func TestExplicitSuiteVersionOverrideOnlyAdvancesAndPreservesToolVersions(t *testing.T) {
+	root := t.TempDir()
+	cmdRoot := filepath.Join(root, "cmd")
+	toolDir := filepath.Join(cmdRoot, "tool")
+	changes := filepath.Join(root, "changes")
+	for _, dir := range []string{toolDir, changes} {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(toolDir, "tool.json"), []byte(`{"schema_version":1,"name":"tool","version":"0.1.0","stability":"experimental"}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(changes, "x.json"), []byte(`{"schema_version":1,"changes":[{"component":"tool","impact":"minor","breaking":false,"summary":"new feature"}]}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	changelog := filepath.Join(root, "CHANGELOG.md")
+	if err := os.WriteFile(changelog, []byte("# Changelog\n\n## [Unreleased]\n\n## [1.1.0] - 2026-09-27\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, _, err := planRelease(cmdRoot, changes, changelog, "v1.3.0"); err == nil {
+		t.Fatal("override enabled implicitly")
+	}
+	plan, _, _, err := planReleaseWithVersionOverride(cmdRoot, changes, changelog, "v1.3.0", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.NextSuite.String() != "1.3.0" || plan.SuiteImpact != impactMinor || plan.Tools["tool"].Next.String() != "0.2.0" {
+		t.Fatalf("%+v", plan)
+	}
+	for _, version := range []string{"v1.1.0", "v1.1.9", "v2.0.0", "v1.3.0-rc.1"} {
+		if _, _, _, err := planReleaseWithVersionOverride(cmdRoot, changes, changelog, version, true); err == nil {
+			t.Fatalf("accepted invalid override %s", version)
+		}
+	}
+	if _, _, _, err := planReleaseWithVersionOverride(cmdRoot, changes, changelog, "v1.2.0", true); err != nil {
+		t.Fatal(err)
+	}
+	// Major-impact changes still require their computed major, even with override.
+	if err := os.WriteFile(filepath.Join(changes, "x.json"), []byte(`{"schema_version":1,"changes":[{"component":"module","impact":"major","breaking":true,"summary":"breaking API"}]}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, _, err := planReleaseWithVersionOverride(cmdRoot, changes, changelog, "v1.3.0", true); err == nil {
+		t.Fatal("override lowered a required major")
+	}
+}
+
 func TestStableBreakingToolRequiresMajorImpact(t *testing.T) {
 	root := t.TempDir()
 	cmdRoot := filepath.Join(root, "cmd")
