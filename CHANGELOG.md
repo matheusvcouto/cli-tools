@@ -6,7 +6,7 @@ versões seguem [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
-## [1.4.0] - 2026-10-02
+## [1.3.3] - 2026-10-02
 
 ### Adicionado
 

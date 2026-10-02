@@ -153,11 +153,40 @@ e smokes das três CLIs PASS. Logs media-review-{all,native}.log em
 dist/release-validation. Executável dist/media-get/media-get reconstruído com
 suite_version=v1.3.2+dev; sem release, CI remoto ou nova medição de throughput.
 
-## Publicação autorizada — preparo v1.4.0
+## Correção de publicação autorizada — v1.3.3 (2026-10-02)
 
-Usuário validou o fluxo local e autorizou integrar main/publicar/voltar ao checkout
-principal. Preview canônico: suite 1.3.2 -> 1.4.0 minor, media-get 0.2.1 -> 0.3.0
-experimental; demais produtos 1.1.0. Prepare --write concluído, records preservados
-em changes/archive/1.4.0. Gates completos da árvore preparada, preflight e smokes
-nativos das três CLIs PASS. Logs dist/release-validation/v1.4.0-{all,native}.log.
-Commit final, CI remoto, tag e publicação ainda pendentes nesta etapa.
+O usuário autorizou retirar a publicação numerada incorretamente e corrigir para
+v1.3.3, sem preservar sua release/tag. A release equivocada e suas tags local e
+remota foram removidas. Alterações de produção permanecem as mesmas já testadas:
+media-get 0.3.0 experimental, demais produtos 1.1.0, módulo canônico sem sufixo.
+Changelog e arquivo de change records corrigidos para changes/archive/1.3.3.
+Não renomear notas/resultados antigos como se tivessem aprovado outra versão.
+Gates da árvore corrigida, CI remoto, tag e publicação ainda pendentes.
+
+## Decisão do usuário — aprovação explícita da versão (2026-10-02)
+
+Quando o cálculo/classificação sugerir uma versão diferente da sequência
+esperada ou pedida pelo usuário (inclusive minor/major da suíte em vez do patch
+esperado), PARAR antes de prepare --write, commit de preparo, tag ou publicação e
+PERGUNTAR explicitamente. Apresentar resumo concreto das mudanças, versão atual,
+versão esperada/proposta da suíte, versões individuais dos produtos e motivo da
+divergência, incluindo eventual limitação do tooling. Aguardar aprovação explícita
+da versão proposta ou escolha da alternativa. Aviso em commentary, preview ou
+pedido genérico de publicar não equivalem a aprovação da divergência.
+
+A correção atual é autorização específica de v1.3.3; não autoriza outros saltos.
+O tooling ainda agrega o maior impacto dos componentes na suíte; antes de outro
+preparo, revisar essa política com o usuário em vez de seguir o cálculo sozinho.
+Não enfraquecer gates para forçar versões nem alterar path do módulo.
+
+A retirada no GitHub não comprova ausência de caches externos do módulo Go.
+Downloads registrados corresponderam aos smokes internos; isso não comprova
+que nenhuma cópia externa existe. Não consultar uma versão retirada em proxies
+para testar sua existência, pois a própria consulta pode provocar seu cache.
+Reutilizar no futuro uma versão publicada e retirada exige discutir esse risco
+com o usuário; nunca garantir ausência de conflitos de checksum sem evidência.
+
+Árvore corrigida para v1.3.3: check-safe.sh all, preflight e smokes nativos
+PASS. Logs em dist/release-validation/1.3.3/{all,native}.log. Código e manifests
+de produto preservados; binários reconstruídos com suite_version=v1.3.3.
+CI remoto, tag e publicação da correção ainda pendentes nesta etapa.

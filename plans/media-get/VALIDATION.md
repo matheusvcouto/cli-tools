@@ -317,11 +317,15 @@ e smokes das três CLIs PASS. Logs media-review-{all,native}.log em
 dist/release-validation. Executável dist/media-get/media-get reconstruído com
 suite_version=v1.3.2+dev; sem release, CI remoto ou nova medição de throughput.
 
-## Publicação autorizada — preparo v1.4.0
+## Correção autorizada da versão da suíte — v1.3.3 (2026-10-02)
 
-Usuário validou o fluxo local e autorizou integrar main/publicar/voltar ao checkout
-principal. Preview canônico: suite 1.3.2 -> 1.4.0 minor, media-get 0.2.1 -> 0.3.0
-experimental; demais produtos 1.1.0. Prepare --write concluído, records preservados
-em changes/archive/1.4.0. Gates completos da árvore preparada, preflight e smokes
-nativos das três CLIs PASS. Logs dist/release-validation/v1.4.0-{all,native}.log.
-Commit final, CI remoto, tag e publicação ainda pendentes nesta etapa.
+Release/tag com numeração não aprovada retiradas por pedido explícito do usuário.
+Árvore corrigida preserva media-get 0.3.0 e as melhorias validadas pelo usuário,
+com suíte v1.3.3. Changelog/arquivo de records ajustados; não reaproveitar resultados
+de uma publicação anterior como evidência da versão corrigida. Gates locais,
+CI, smokes de pacotes e mise isolado desta publicação ainda pendentes.
+
+Árvore corrigida para v1.3.3: check-safe.sh all, preflight e smokes nativos
+PASS. Logs em dist/release-validation/1.3.3/{all,native}.log. Código e manifests
+de produto preservados; binários reconstruídos com suite_version=v1.3.3.
+CI remoto, tag e publicação da correção ainda pendentes nesta etapa.

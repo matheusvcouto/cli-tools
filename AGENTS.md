@@ -135,6 +135,11 @@ exige uma necessidade própria, documentada, e não é o fluxo padrão.
   o caminho atual nem enfraquecer os gates para contornar a necessidade.
 - Saltos da suíte e abandono da próxima versão calculada também exigem pedido
   explícito; nunca escolher uma mudança drástica de versão por conta própria.
+- Se a versão calculada/proposta divergir da sequência esperada ou pedida pelo
+  usuário, perguntar antes de prepare --write, commit de preparo, tag ou release.
+  Informar resumo das mudanças, versão atual/esperada/proposta da suíte, versões
+  dos produtos e motivo da divergência; aguardar aprovação explícita da versão.
+  Aviso em commentary, preview e autorização genérica de publicar não bastam.
 - Go mínimo continua `1.27.1`; não rebaixar a toolchain para passar em sandbox.
 
 ### Demais garantias de release
