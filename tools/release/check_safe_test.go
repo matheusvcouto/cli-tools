@@ -57,12 +57,15 @@ func TestPreparedCacheOfflineChecksAndContracts(t *testing.T) {
 	write("check_test.go", `package checks
 import (
  "os"
+ "os/exec"
  "path/filepath"
  "strings"
  "testing"
  "example.test/dependency"
 )
 func TestIsolation(t *testing.T) {
+ mode, err := exec.Command("go", "env", "GOTELEMETRY").Output()
+ if err != nil || strings.TrimSpace(string(mode)) != "off" { t.Fatalf("Go telemetry not disabled: %s %v", mode, err) }
  if dependency.Value != "synthetic" { t.Fatal("wrong module") }
  for _, key := range []string{"CHECK_SECRET", "GH_TOKEN"} {
   if os.Getenv(key) != "" { t.Fatalf("inherited %s", key) }

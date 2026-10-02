@@ -50,7 +50,14 @@ func TestWindowsRunnerTarget(t *testing.T) {
 			os.Exit(92)
 		}
 		if path := os.Getenv("GO_WINDOWS_RUNNER_PID_FILE"); path != "" {
-			if err := os.WriteFile(path, []byte(strconv.Itoa(child.Process.Pid)), 0o600); err != nil {
+			// Publish only a complete PID. WriteFile makes an empty file visible
+			// before writing, which races with the cancellation test's reader.
+			pending := path + ".pending"
+			err := os.WriteFile(pending, []byte(strconv.Itoa(child.Process.Pid)), 0o600)
+			if err == nil {
+				err = os.Rename(pending, path)
+			}
+			if err != nil {
 				_ = child.Process.Kill()
 				fmt.Fprintln(os.Stderr, "write grandchild pid:", err)
 				os.Exit(93)

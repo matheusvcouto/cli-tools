@@ -33,6 +33,10 @@ func New(root string) ([]string, error) {
 	}
 
 	home := filepath.Join(root, "home")
+	config := filepath.Join(root, "xdg", "config")
+	if err := DisableGoTelemetry(home, config); err != nil {
+		return nil, err
+	}
 	tmp := filepath.Join(root, "tmp")
 	env := []string{
 		"PATH=" + os.Getenv("PATH"),
@@ -56,7 +60,6 @@ func New(root string) ([]string, error) {
 		"GOPROXY=off",
 		"GOSUMDB=off",
 		"GOVCS=*:off",
-		"GOTELEMETRY=off",
 		"GOCACHE=" + filepath.Join(root, "go", "cache"),
 		"GOMODCACHE=" + filepath.Join(root, "go", "modcache"),
 		"GOPATH=" + filepath.Join(root, "go", "path"),
@@ -76,6 +79,7 @@ func New(root string) ([]string, error) {
 
 	// exec.Cmd on Windows needs these to find/launch executables reliably.
 	if runtime.GOOS == "windows" {
+		env = append(env, "APPDATA="+config)
 		for _, key := range []string{"SystemRoot", "WINDIR", "ComSpec", "PATHEXT"} {
 			if value := os.Getenv(key); value != "" {
 				env = append(env, key+"="+value)
@@ -95,4 +99,22 @@ func Set(env []string, key, value string) []string {
 		out = append(out, item)
 	}
 	return append(out, prefix+value)
+}
+
+// DisableGoTelemetry seeds Go's mode file in an isolated configuration tree.
+// GOTELEMETRY is a read-only go env result, not an environment override.
+// Call this before invoking Go to prevent background telemetry processes from
+// racing with disposable directory cleanup. The caller owns home and config.
+func DisableGoTelemetry(home, config string) error {
+	if runtime.GOOS == "darwin" {
+		config = filepath.Join(home, "Library", "Application Support")
+	}
+	dir := filepath.Join(config, "go", "telemetry")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return fmt.Errorf("create isolated telemetry directory: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "mode"), []byte("off\n"), 0o600); err != nil {
+		return fmt.Errorf("disable isolated Go telemetry: %w", err)
+	}
+	return nil
 }

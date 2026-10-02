@@ -37,13 +37,12 @@ contratos com dependência preparada e manifests preservados.
 scripts/check-safe.sh all PASS (fmt/test/vet/shuffle/race/API/contratos/changes).
 scripts/check-safe.sh fuzz PASS nos oito alvos; nenhum crasher nesta rodada.
 Actionlint oficial 1.7.12 darwin/arm64, SHA-256 upstream verificado: PASS.
-Sintaxe shell e git diff --check PASS. CI remoto, runtime Linux/Windows desta
-revisão e integração com v1.3.1 não executados. Não extrapolar evidência local.
+Sintaxe shell e git diff --check PASS. Evidência local inicial; a execução remota da integração está registrada abaixo.
 Revisão adicional: CI verifica integridade dos módulos e rejeita alterações
 ou criação de go.mod/go.sum durante preparação. Testes de tools/release PASS,
 actionlint PASS e git diff --check PASS após o ajuste. Guard do workflow
 executado em Git sintético local: aceita estado limpo e rejeita manifest
-alterado/go.sum novo. CI remoto e runtime Windows continuam não executados.
+alterado/go.sum novo. A execução nativa remota está registrada abaixo.
 Regra reforçada: manter github.com/matheusvcouto/cli-tools sem /vN. Mudança de
 major/path exige pedido específico do usuário, nunca inferência de release ou
 plano antigo. go.mod e imports preservados; ajuste apenas documental.
@@ -61,3 +60,17 @@ Builds reconstruídos a partir da árvore integrada antes do push.
 Depois observar CI nativo, preparar v1.3.2, repetir CI e enviar tag/publicação.
 Histórico do agente anterior preservado em
  docs/history/go-workflow/context-v1.3.1.md; não restaura regras de snapshots.
+
+## CI da integração e correções
+
+Run 36946751109: Linux amd64/arm64, macOS arm64 e Windows arm64 PASS.
+macOS Intel falhou na limpeza de telemetria do Go; Windows amd64 falhou na
+leitura prematura de PID sintético. Correções: semear o modo off na configuração
+isolada antes de invocar Go (GOTELEMETRY não é variável configurável), e publicar
+o PID completo por rename no teste Windows. Nova execução nativa pendente.
+Mise v1.3.1 PASS em HOME/MISE_*/GH_CONFIG_DIR sintéticos, sem configuração global.
+Referências de API pública e conteúdo dos archives corrigidas em docs/cli-api.md
+e docs/security.md. Nenhum comportamento de produto foi modificado.
+
+Árvore corrigida: check-safe.sh all PASS e builds/smokes das três CLIs PASS.
+Nova confirmação nativa remota pendente; ainda não preparar/taguear v1.3.2.

@@ -7,6 +7,12 @@
       "summary": "Prepare Go dependencies online and reuse dedicated caches for offline checks and contract generation; refresh development rules."
     },
     {
+      "component": "ai-profile",
+      "impact": "none",
+      "summary": "Publish the synthetic Windows descendant PID only after its complete write.",
+      "justification": "Test synchronization only; production cancellation and product contracts are unchanged."
+    },
+    {
       "component": "media-get",
       "impact": "none",
       "summary": "Document terminal dependencies with prepared Go caches instead of vendoring.",

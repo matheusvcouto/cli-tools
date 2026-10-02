@@ -112,3 +112,14 @@ CI remoto da integração pendente antes de preparar v1.3.2.
 v1.3.1 publicada com workflow 36945709150 success e todos os assets.
 O change record cobre module:patch e documentação media-get:none, sem mudar
 versões de produtos ou sua API. Usuário autorizou commit/push/publicação.
+
+## Falhas encontradas no CI nativo
+
+Run 36946751109 passou em Linux amd64/arm64, macOS arm64 e Windows arm64.
+No macOS Intel, um subprocesso de telemetria disputou a limpeza da configuração
+temporária: GOTELEMETRY é uma saída não configurável de go env. O runner agora
+cria o modo off no diretório de configuração isolado antes de iniciar Go; a
+regressão consulta o modo efetivo. No Windows amd64, o leitor observou o arquivo
+de PID sintético vazio entre criação e escrita. O teste publica o arquivo
+completo por rename; cancelamento de produção não mudou. A correção depende
+de confirmação nos respectivos jobs nativos antes de preparar a release.

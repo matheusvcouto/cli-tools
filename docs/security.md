@@ -43,7 +43,9 @@ Build oficial usa `os.Root` através de `internal/safefs`. `safefs.EnsureDir` an
 
 ## Dependências
 
-As CLIs atualmente usam somente a standard library. A política é stdlib-first, não stdlib-only.
+A política é stdlib-first, não stdlib-only. media-get usa os módulos oficiais
+x/term e x/sys, fixados em go.mod/go.sum, com notices BSD na distribuição.
+A preparação verifica os módulos e os checks reutilizam caches dedicados.
 
 ## Supply chain
 
@@ -54,4 +56,4 @@ As CLIs atualmente usam somente a standard library. A política é stdlib-first,
 - Actions externas são fixadas por SHA completo imutável e atualizadas por Dependabot;
 - o mesmo bundle imutável é checksummed, smoke-tested nativamente nos seis targets publicados e publicado sem rebuild;
 - publicação recusa archive ausente/extra e cada smoke recusa CLI ausente/extra;
-- artifacts contêm apenas `bin/*`.
+- artifacts contêm os executáveis em `bin/*` e `THIRD_PARTY_NOTICES.txt` na raiz.

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,6 +18,7 @@ import (
 
 	corecli "github.com/matheusvcouto/cli-tools/cli"
 	"github.com/matheusvcouto/cli-tools/internal/fscommit"
+	"github.com/matheusvcouto/cli-tools/internal/testenv"
 	productversion "github.com/matheusvcouto/cli-tools/internal/version"
 )
 
@@ -789,6 +791,13 @@ func generateContract(cmdRoot, name string) ([]byte, error) {
 			return nil, err
 		}
 	}
+	telemetryConfig := config
+	if runtime.GOOS == "windows" {
+		telemetryConfig = filepath.Join(config, "roaming")
+	}
+	if err := testenv.DisableGoTelemetry(home, telemetryConfig); err != nil {
+		return nil, err
+	}
 	gitConfig := filepath.Join(sandbox, "gitconfig")
 	if err := os.WriteFile(gitConfig, nil, 0o600); err != nil {
 		return nil, err
@@ -814,7 +823,6 @@ func generateContract(cmdRoot, name string) ([]byte, error) {
 		"GOPROXY=off",
 		"GOSUMDB=off",
 		"GOVCS=*:off",
-		"GOTELEMETRY=off",
 		"GOCACHE=" + buildCaches["GOCACHE"],
 		"GOMODCACHE=" + buildCaches["GOMODCACHE"],
 		"GOPATH=" + filepath.Join(sandbox, "gopath"),

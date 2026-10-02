@@ -46,6 +46,16 @@ mkdir -p \
   "$SANDBOX/git/hooks" \
   "$SANDBOX/git/template"
 
+# GOTELEMETRY is a read-only `go env` result, not an environment override.
+# Seed the isolated mode before invoking Go, so no background telemetry process
+# can race with cleanup. These are os.UserConfigDir locations on POSIX hosts.
+case "$(uname -s)" in
+  Darwin) TELEMETRY_CONFIG="$SANDBOX/home/Library/Application Support" ;;
+  *) TELEMETRY_CONFIG="$SANDBOX/xdg/config" ;;
+esac
+mkdir -p "$TELEMETRY_CONFIG/go/telemetry"
+printf 'off\n' > "$TELEMETRY_CONFIG/go/telemetry/mode"
+
 run_clean() {
   env -i \
     PATH="$SAFE_PATH" \
@@ -65,7 +75,6 @@ run_clean() {
     GOPROXY="$MODULE_PROXY" \
     GOSUMDB="$MODULE_SUMDB" \
     GOVCS="$MODULE_VCS" \
-    GOTELEMETRY=off \
     GOCACHE="$TOOL_CACHE/build" \
     GOMODCACHE="$TOOL_CACHE/mod" \
     GOPATH="$TOOL_CACHE/path" \

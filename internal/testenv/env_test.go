@@ -2,7 +2,9 @@ package testenv
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -59,4 +61,21 @@ func envMap(env []string) map[string]string {
 		}
 	}
 	return out
+}
+
+func TestNewDisablesEffectiveGoTelemetry(t *testing.T) {
+	env, err := New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	goName := "go"
+	if runtime.GOOS == "windows" {
+		goName += ".exe"
+	}
+	cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin", goName), "env", "GOTELEMETRY")
+	cmd.Env = env
+	out, err := cmd.Output()
+	if err != nil || strings.TrimSpace(string(out)) != "off" {
+		t.Fatalf("effective Go telemetry mode = %q, err = %v; want off", out, err)
+	}
 }

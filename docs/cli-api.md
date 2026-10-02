@@ -34,7 +34,7 @@ The external-package test `cli/public_api_external_test.go` compiles and exercis
 
 ## Compatibility policy
 
-The suite/module Git tag versions the public Go API. Go 1.27.1 is the minimum for this codebase. The next suite tag is `v1.1.0` on the existing import path `github.com/matheusvcouto/cli-tools`. The exported API lock is unchanged from `v1.0.1`. A future incompatible public API change requires a new major module path such as `/v2`.
+The suite/module Git tag versions the public Go API. Go 1.27.1 is the minimum for this codebase. The canonical import path remains `github.com/matheusvcouto/cli-tools` without a major suffix. Agents must not add /v2, /v3 or another /vN or rewrite imports during maintenance or release preparation. An unavoidable incompatible public API change requires an explicit user decision about major/module path before implementation; historical plans and generic release requests do not authorize that migration. The public API lock continues to guard compatibility.
 
 - removing an exported symbol or changing a locked declaration is allowed only after explicit review, a `module` change record and `api write --allow-breaking`;
 - additive exported API is allowed, but the API lock must be regenerated so the new symbol becomes protected too;
