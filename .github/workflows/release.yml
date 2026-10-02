@@ -7,6 +7,10 @@ on:
 # No implicit toolchain upgrade; a version mismatch must fail instead.
 env:
   GOTOOLCHAIN: local
+  GOFLAGS: -mod=readonly
+  GOPROXY: off
+  GOSUMDB: off
+  GOVCS: "*:off"
 
 concurrency:
   # Never cancel a release in the middle of uploading its assets.
@@ -34,7 +38,25 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: false
-          cache-dependency-path: go.mod
+          cache-dependency-path: |
+            go.mod
+            go.sum
+      - name: Prepare Go modules before offline checks
+        env:
+          GOPROXY: https://proxy.golang.org
+          GOSUMDB: sum.golang.org
+        shell: bash
+        run: |
+          set -euo pipefail
+          go mod download all
+          go mod verify
+          module_status=$(git status --porcelain --untracked-files=all -- go.mod go.sum)
+          if [ -n "$module_status" ]; then
+            git status --short -- go.mod go.sum
+            git diff -- go.mod go.sum
+            echo 'Module manifests changed during CI preparation; prepare and review them locally.' >&2
+            exit 1
+          fi
       - name: Validate version, changelog, module path and prepared changes before native matrix
         shell: bash
         run: |
@@ -84,20 +106,38 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: false
-          cache-dependency-path: go.mod
+          cache-dependency-path: |
+            go.mod
+            go.sum
+      - name: Prepare Go modules before offline checks
+        env:
+          GOPROXY: https://proxy.golang.org
+          GOSUMDB: sum.golang.org
+        shell: bash
+        run: |
+          set -euo pipefail
+          go mod download all
+          go mod verify
+          module_status=$(git status --porcelain --untracked-files=all -- go.mod go.sum)
+          if [ -n "$module_status" ]; then
+            git status --short -- go.mod go.sum
+            git diff -- go.mod go.sum
+            echo 'Module manifests changed during CI preparation; prepare and review them locally.' >&2
+            exit 1
+          fi
       - name: Format (Unix)
         if: runner.os != 'Windows'
         shell: bash
         run: |
           set -euo pipefail
-          unformatted="$(gofmt -l .)"
+          unformatted="$(gofmt -l cli cmd internal integration tools)"
           test -z "$unformatted" || { printf 'unformatted: %s\n' "$unformatted" >&2; exit 1; }
       - name: Format (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $unformatted = @(gofmt -l .)
+          $unformatted = @(gofmt -l cli cmd internal integration tools)
           if ($LASTEXITCODE -ne 0) { throw "gofmt failed with $LASTEXITCODE" }
           if ($unformatted.Count -ne 0) {
             $unformatted | ForEach-Object { Write-Error "unformatted: $_" }
@@ -138,7 +178,25 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: false
-          cache-dependency-path: go.mod
+          cache-dependency-path: |
+            go.mod
+            go.sum
+      - name: Prepare Go modules before offline checks
+        env:
+          GOPROXY: https://proxy.golang.org
+          GOSUMDB: sum.golang.org
+        shell: bash
+        run: |
+          set -euo pipefail
+          go mod download all
+          go mod verify
+          module_status=$(git status --porcelain --untracked-files=all -- go.mod go.sum)
+          if [ -n "$module_status" ]; then
+            git status --short -- go.mod go.sum
+            git diff -- go.mod go.sum
+            echo 'Module manifests changed during CI preparation; prepare and review them locally.' >&2
+            exit 1
+          fi
       - name: Install native completion test shells with verified Nushell
         shell: bash
         run: ./scripts/install-test-shells.sh
@@ -169,7 +227,25 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: false
-          cache-dependency-path: go.mod
+          cache-dependency-path: |
+            go.mod
+            go.sum
+      - name: Prepare Go modules before offline checks
+        env:
+          GOPROXY: https://proxy.golang.org
+          GOSUMDB: sum.golang.org
+        shell: bash
+        run: |
+          set -euo pipefail
+          go mod download all
+          go mod verify
+          module_status=$(git status --porcelain --untracked-files=all -- go.mod go.sum)
+          if [ -n "$module_status" ]; then
+            git status --short -- go.mod go.sum
+            git diff -- go.mod go.sum
+            echo 'Module manifests changed during CI preparation; prepare and review them locally.' >&2
+            exit 1
+          fi
       - name: Lint tagged release workflows
         shell: bash
         run: ./scripts/check-workflows.sh

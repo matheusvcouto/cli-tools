@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "module",
+      "impact": "patch",
+      "summary": "Prepare Go dependencies online and reuse dedicated caches for offline checks and contract generation; refresh development rules."
+    }
+  ]
+}

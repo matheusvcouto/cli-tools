@@ -22,6 +22,10 @@ Ao trabalhar em uma CLI existente, leia também o ADR específico:
 Se `plans/` contiver um plano ativo relacionado à tarefa, leia o `README.md` dele e siga sua ordem/checklist.
 
 `docs/history/` é histórico: não deve ser carregado por padrão. Consulte apenas para regressão, auditoria ou decisão antiga específica.
+Relatórios datados de revisões em `plans/` também são evidências da rodada em
+que foram escritos. Referências antigas a snapshots, /v2, releases ou falta de
+Go/rede não autorizam mudanças de contrato nem substituem o estado vigente em
+go.mod, manifests, docs ativas e CONTEXT.md.
 
 ## 2. Restrições inegociáveis
 
@@ -31,7 +35,8 @@ Se `plans/` contiver um plano ativo relacionado à tarefa, leia o `README.md` de
 - Nunca acessar Keychain, Credential Manager, Secret Service, tokens ou contas reais.
 - Nunca alterar Git config global/sistema.
 - Repositórios Git de teste devem existir somente sob diretório temporário controlado pelo teste.
-- A suíte atual não depende de rede.
+- A execução da suíte padrão não depende de rede. Preparação de toolchain e
+  dependências pode usar rede antes dos testes; essa preparação não é um teste.
 - Não copiar para fixtures/logs dados reais e depois “redigir”; fixtures já nascem sintéticas.
 - Não commitar, pushar, publicar release ou alterar configuração real do usuário sem pedido explícito.
 
@@ -92,6 +97,14 @@ Dependência externa só entra quando torna a implementação comprovadamente ma
 4. registrar a decisão no ADR da suíte ou da CLI afetada;
 5. adicionar teste que cubra a semântica motivadora.
 
+Gerenciar módulos com `go get pacote@versão`, `go mod tidy` quando necessário e
+`go.mod`/`go.sum`. Preparar as dependências declaradas com
+`./scripts/check-safe.sh prepare`, reutilizando `dist/go-cache/` (ignorado).
+O Go compatível deve estar no PATH antes da preparação. Downloads públicos
+são permitidos nessa etapa; manter validação de integridade habilitada.
+Não criar `vendor/` por causa de uma limitação antiga do ambiente. Vendoring
+exige uma necessidade própria, documentada, e não é o fluxo padrão.
+
 `golang.org/x/sys` é candidato aceitável para primitivas nativas de lock/replace, se necessário. Não adicionar Cobra/Viper apenas por conveniência.
 
 ## 7. Release e versionamento
@@ -101,7 +114,31 @@ Dependência externa só entra quando torna a implementação comprovadamente ma
 - `go run ./tools/release prepare --suite-version X.Y.Z` é preview; `--write` materializa manifests/changelogs/contracts e arquiva records.
 - `cli/` é API Go pública reutilizável; `cli/api.contract.json` protege a superfície exportada e `go run ./tools/release api check` é gate obrigatório antes de release.
 - API aditiva exige `api write` para passar a ser protegida; `api write --allow-breaking` exige quebra deliberada e change record de `module`.
-- Sufixo de módulo (`/v2`, `/v3` ou outro `/vN`), troca do path do módulo e mudança drástica de versão — major, salto de suíte, ou abandono da próxima versão já calculada — só acontecem quando o usuário disser isso explicitamente nesta conversa. Plano, ADR, snapshot, change record ou documentação antiga não autorizam essa mudança. Go mínimo continua `1.27.1`; não rebaixar a toolchain para passar em sandbox.
+
+### Identidade do módulo — não alterar automaticamente
+
+- O caminho canônico é exatamente `github.com/matheusvcouto/cli-tools`.
+- Não acrescentar `/v2`, `/v3` nem qualquer `/vN` ao módulo ou aos imports.
+  Não renomear o módulo, criar outro módulo versionado ou reescrever imports
+  como parte de manutenção, novas CLIs, dependências, refatoração ou release.
+- Atualizar a suíte ou um produto não autoriza mudar o caminho do módulo.
+  Versões como `1.3.1` e `1.3.2` permanecem no caminho canônico sem sufixo.
+- Plano, ADR, snapshot, change record, documentação antiga, recomendação de
+  ferramenta ou inferência do agente nunca autorizam essa migração.
+- Uma migração de major/path só pode ser executada após pedido explícito do
+  usuário que autorize essa mudança específica. Pedidos genéricos como
+  “atualize”, “prepare a release” ou “siga boas práticas” não a autorizam.
+- Se uma alteração pretendida exigir quebra da API Go pública, preservar a
+  compatibilidade quando possível. Caso a quebra seja indispensável, explicar
+  o motivo e os caminhos afetados e obter a decisão explícita do usuário antes
+  de mudar major, go.mod ou imports. Não publicar uma versão incompatível com
+  o caminho atual nem enfraquecer os gates para contornar a necessidade.
+- Saltos da suíte e abandono da próxima versão calculada também exigem pedido
+  explícito; nunca escolher uma mudança drástica de versão por conta própria.
+- Go mínimo continua `1.27.1`; não rebaixar a toolchain para passar em sandbox.
+
+### Demais garantias de release
+
 - Produto que cruza para `1.x` precisa declarar `stability: "stable"` no change record; estabilidade nunca pode regredir.
 - `release prepare --write` deve preservar rollback do conjunto em qualquer erro retornado; não reintroduzir mutações parciais sem teste de restauração.
 - Tags estáveis usam exatamente `vX.Y.Z`, nunca são reutilizadas/movidas e só apontam para commit já preparado com CI verde.
@@ -123,7 +160,15 @@ Conforme aplicável, prefira o runner sandboxed:
 configuração global antes de chamar a task. Agentes que precisam provar
 isolamento devem executar `scripts/check-safe.sh` diretamente.
 
-Os subcomandos `fmt`, `test`, `vet`, `shuffle`, `race` e `fuzz` também podem ser executados pelo mesmo script. O runner usa HOME/TMP/caches temporários, não herda secrets/configurações Git do usuário e bloqueia rede/download automático do Go durante os testes.
+Execute `./scripts/check-safe.sh prepare` antes dos checks quando houver
+novas dependências. Os subcomandos `fmt`, `test`, `vet`, `shuffle`, `race` e
+`fuzz` usam HOME/TMP/configuração de aplicação descartáveis e caches Go
+persistentes dedicados em `dist/go-cache/`. Não herdam secrets/configurações
+Git do usuário e bloqueiam downloads de módulos/toolchain durante os checks.
+Isso não constitui bloqueio integral da rede de processos de teste.
+Fuzz roda na worktree persistente para preservar casos de falha em testdata.
+Caches/builds são regeneráveis; casos de falha descobertos são evidências e
+não devem ser apagados automaticamente.
 
 No macOS, testes herméticos devem priorizar o Apple Git real em
 `/Library/Developer/CommandLineTools/usr/bin` quando ele existir. O executável
@@ -162,22 +207,17 @@ Durante uma migração ativa, atualizar também o checklist indicado pelo `READM
 
 ## 10. Regras adicionais de evidência
 
-Geração automática de snapshots desativada neste projeto por decisão do usuário.
-Não gerar ZIP de entrega, contexto separado de snapshot, Base64 ou checksums de
-snapshot durante as rodadas. As instruções antigas abaixo estão comentadas e
-inativas, inclusive quando repetidas em planos ou documentos históricos.
-Snapshots existentes ficam preservados e ignorados pelo Git.
+Não gerar snapshots ZIP, Base64, checksums de snapshot nem cópias separadas
+para entrega. A entrega normal é a alteração na worktree persistente, com diff,
+resultados dos checks e builds locais quando uma CLI foi alterada. Artifacts
+antigos permanecem preservados e ignorados; archives/checksums de release e
+fixtures de ZIP continuam sendo parte do produto, não snapshots de entrega.
 
-- Nunca inventar gates, testes, evidências, snapshots ou resultados CI. Revisão estática/documentação oficial é evidência **de revisão**, não de runtime.
-- Não degradar código de produção, garantias fail-closed, baseline Go ou segurança para adaptar ao sandbox; não substituir execuções bloqueadas por mocks.
+- Nunca inventar gates, testes, evidências ou resultados CI. Revisão estática/documentação oficial é evidência **de revisão**, não de runtime.
+- Não degradar produção, garantias fail-closed ou baseline Go para adaptar ao ambiente. Verificar as capacidades atuais antes de registrar bloqueios.
 - Ao finalizar um ponto, continuar para o próximo quando tecnicamente possível; registrar bloqueios e validações externas pendentes no `CONTEXT.md`.
-<!-- Inativo: geração e entrega automática de snapshots.
-- Para cada rodada, gerar ZIP completo do repositório e `CONTEXT.md` breve **separado** e **dentro** do ZIP. Entregar como arquivos reais quando a interface permitir, não apenas descrição textual ou cards personalizados.
-- Gerar também `SNAPSHOT-{NNN}_cli-tools_BASE64.md` com o ZIP codificado em **Base64 puro, sem code fences, cabeçalho ou Markdown**; verificar que a decodificação resulta nos mesmos bytes SHA-256 do ZIP. No macOS: `base64 -D -i SNAPSHOT-{NNN}_cli-tools_BASE64.md -o SNAPSHOT-{NNN}_cli-tools.zip`.
-- Quando a interface não oferecer anexos nativos, informar a limitação; arquivos de download somente no fim da resposta, sem cards. Nunca afirmar que o ZIP foi anexado se não houver confirmação.
--->
 
-## Continuação: Grok Build (SNAPSHOT-002_cli-tools)
+## Grok Build — contrato e segurança
 
 - O provider `grok` está implementado; ler `plans/grok-build/README.md`, `REPORT_AND_PLAN.md` e `VALIDATION.md` antes de alterar seu contrato.
 - A suíte padrão permanece offline e não deve executar `grok` real nem tocar `~/.grok`, tokens, MCPs, projetos ou contas reais do desenvolvedor.
@@ -189,18 +229,17 @@ Snapshots existentes ficam preservados e ignorados pelo Git.
 - Execuções reais com Grok oficial são opt-in/separadas, com versão/plataforma registradas; não usar credenciais pessoais como fixture.
 
 
-## Continuação: Grok Build code review (SNAPSHOT-003_cli-tools)
+## Grok Build — decisões de revisão
 
 - Ler `plans/grok-build/CODE_REVIEW_003.md` antes de reabrir decisões já corrigidas.
 - A referência oficial atual adicionou `compat.codex.skills` e `compat.codex.hooks`: default explicitamente `false`.
 - Remover env herdada de identidade e compatibilidade, mas preservar restrições administrativas `GROK_DISABLE_API_KEY_AUTH`, `GROK_FORCE_LOGIN_TEAM_ID`, sandbox e requirements.
 - Config local do perfil pode optar deliberadamente por compat Claude/Cursor/Codex; não forçar `false` via env.
-- Status real: validação estática local, sem Go 1.27.1/Grok autenticado/runner Windows nativo.
-<!-- Inativo: geração e entrega automática de snapshots.
-- Próxima entrega: `SNAPSHOT-{NNN}_cli-tools.zip`, `CONTEXT-{NNN}_cli-tools.md` separado e dentro do ZIP, Base64 puro opcional/backup e checksums.
--->
+- Evidências de revisões antigas não descrevem disponibilidade atual de ferramentas.
+  Consultar o estado vigente e distinguir launcher sintético de integração real.
 
-## Continuação: SNAPSHOT-004 / segurança do store e View Limits
+
+## Store e View Limits
 
 - O índice deve rejeitar aliases que apontem para o mesmo diretório físico; não relaxar `profileDirIdentity` para evitar data loss em `delete`. Arquivos JSON de metadados mantêm o limite de 8 MiB inclusive na leitura via `os.Root` e no recovery helper.
 - A lista `grokClearEnv` remove apenas redirecionamentos/identidade herdados; preservar requisitos/guardrails de organização (sandbox, login team, disable API key). Revalidar contra a referência oficial por versão.

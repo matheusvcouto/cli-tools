@@ -748,7 +748,31 @@ func contractToolNames(cmdRoot string) ([]string, error) {
 	return names, nil
 }
 
+// contractBuildCaches resolves the invoking Go environment before HOME is
+// isolated. Explicit prepared caches and ordinary Go/CI caches both work.
+func contractBuildCaches() (map[string]string, error) {
+	cmd := exec.Command(goCommandName(), "env", "-json", "GOCACHE", "GOMODCACHE")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("resolve contract build caches: %w", err)
+	}
+	var caches map[string]string
+	if err := json.Unmarshal(out, &caches); err != nil {
+		return nil, fmt.Errorf("decode contract build caches: %w", err)
+	}
+	for _, key := range []string{"GOCACHE", "GOMODCACHE"} {
+		if !filepath.IsAbs(caches[key]) {
+			return nil, fmt.Errorf("contract build cache %s must be an absolute path", key)
+		}
+	}
+	return caches, nil
+}
+
 func generateContract(cmdRoot, name string) ([]byte, error) {
+	buildCaches, err := contractBuildCaches()
+	if err != nil {
+		return nil, err
+	}
 	sandbox, err := os.MkdirTemp("", "cli-tools-contract-")
 	if err != nil {
 		return nil, err
@@ -785,13 +809,14 @@ func generateContract(cmdRoot, name string) ([]byte, error) {
 		"GIT_CONFIG_NOSYSTEM=1",
 		"GOENV=off",
 		"GOWORK=off",
+		"GOFLAGS=-mod=readonly",
 		"GOTOOLCHAIN=local",
 		"GOPROXY=off",
 		"GOSUMDB=off",
 		"GOVCS=*:off",
 		"GOTELEMETRY=off",
-		"GOCACHE=" + filepath.Join(cache, "go-build"),
-		"GOMODCACHE=" + filepath.Join(cache, "gomod"),
+		"GOCACHE=" + buildCaches["GOCACHE"],
+		"GOMODCACHE=" + buildCaches["GOMODCACHE"],
 		"GOPATH=" + filepath.Join(sandbox, "gopath"),
 	}
 	env = append(env, platformContractEnv(home, config, tmp)...)
@@ -803,7 +828,7 @@ func generateContract(cmdRoot, name string) ([]byte, error) {
 	cmd.Env = env
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("generate %s contract: %w", name, err)
+		return nil, fmt.Errorf("generate %s contract (prepare dependencies with go mod download all in the invoking cache): %w", name, err)
 	}
 	return out, nil
 }

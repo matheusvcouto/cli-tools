@@ -28,7 +28,7 @@ A superfície de uma CLI é uma `cli.App` declarativa compilada uma vez. É proi
 - help/version/schema/contract/completion gerada permanecem livres de I/O de domínio;
 - shell-specific behavior fica no adapter.
 - `cli/` é uma API Go pública reutilizável por outros módulos; `cli/internal/` não é contrato público;
-- `cli/api.contract.json` protege a superfície exportada: breaking exige revisão explícita, change record de `module` e `api write --allow-breaking`; breaking em versão estável exige major e novo sufixo `/vN`; a suíte atual permanece sem sufixo e a próxima tag é `v1.1.0`; adição exige atualizar o lock para passar a ser protegida;
+- `cli/api.contract.json` protege a superfície exportada: breaking exige revisão explícita, change record de `module` e `api write --allow-breaking`; breaking em versão estável exige decisão explícita do usuário sobre major/path antes de implementação; não adicionar `/vN` nem reescrever imports automaticamente; a suíte atual permanece sem sufixo e v1.3.0 é a base desta revisão e v1.3.2 depende da integração de v1.3.1; adição exige atualizar o lock para passar a ser protegida;
 
 ## Evidência
 
@@ -76,8 +76,16 @@ Schema versionado; decode valida invariantes; corrupção não vira estado vazio
 
 ## Dependências
 
-Política **stdlib-first, não stdlib-only**. CLI Core atualmente não exige library externa. Antes de adicionar qualquer dependência: provar lacuna, avaliar licença/manutenção/transitivas, preferir pacote focado, registrar decisão e testar a semântica motivadora. Não adicionar Cobra/Viper por conveniência.
+Política **stdlib-first, não stdlib-only**. Antes de adicionar qualquer dependência: provar lacuna, avaliar licença/manutenção/transitivas, preferir pacote focado, registrar decisão e testar a semântica motivadora. Não adicionar Cobra/Viper por conveniência.
 
 ## Toolchain e documentação
 
-`mise.toml` fixa a baseline; não executar `go env -w`; testes herméticos bloqueiam download automático. Docs ativas descrevem o estado implementado; planos concluídos podem ir para histórico depois do cutover.
+`go.mod` declara Go mínimo 1.27.1; `mise.toml` seleciona a instalação para
+desenvolvimento. Um Go compatível mais recente pode ser usado sem aumentar
+silenciosamente o mínimo. Não executar `go env -w` nem rebaixar o mínimo para
+contornar o ambiente. Instalação da toolchain e download de módulos pertencem
+à preparação; checks usam `GOTOOLCHAIN=local` e caches dedicados preenchidos.
+Dependências ficam em go.mod/go.sum, sem vendoring automático. Docs ativas
+registram o estado atual; indisponibilidade passada de Go/rede é histórico,
+não uma regra permanente. Entrega ocorre por diff/worktree e builds locais,
+sem snapshots de transferência entre ambientes.

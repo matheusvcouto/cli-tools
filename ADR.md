@@ -24,12 +24,16 @@ intencional: ele define o contrato reutilizável do CLI Core e pode ser importad
 por outros projetos. Novos pacotes públicos continuam exigindo necessidade real
 e decisão arquitetural explícita.
 
-A partir de `v1`, mudanças incompatíveis do pacote público exigem novo major e
-novo import path, conforme Go Semantic Import Versioning. Esta suíte permanece
-em `github.com/matheusvcouto/cli-tools`, sem sufixo. Go 1.27.1 e `os.Root` entram
-na próxima tag `v1.1.0`; o lock `cli/api.contract.json` não mudou em relação a
-`v1.0.1`. Um major futuro exigirá o sufixo `/vN` e o tooling de release recusa
-tag incompatível com esse path.
+O caminho canônico é `github.com/matheusvcouto/cli-tools`, sem sufixo. Não
+adicionar /v2, /v3 ou outro /vN nem reescrever imports automaticamente. Releases
+1.x e versões individuais dos produtos não autorizam mudar esse caminho.
+A política Go de mudanças incompatíveis da API pública não autoriza o agente
+a iniciar uma migração: primeiro preservar compatibilidade ou apresentar a
+necessidade ao usuário e obter autorização explícita para major/path. Planos e
+relatórios antigos não substituem essa decisão. O tooling continua recusando
+tags incompatíveis com o caminho do módulo.
+Go mínimo 1.27.1 e os.Root fazem parte da baseline atual; o lock
+cli/api.contract.json protege a API Go pública.
 
 ## D003 — Stdlib-first — Accepted
 
@@ -179,5 +183,18 @@ O preparador exige o bump calculado por padrão. Quando o usuário escolher
 expressamente um número superior, --allow-suite-version-override permite
 avançar além do mínimo dentro do mesmo major calculado. Não permite downgrade,
 não reduz impacto breaking, não altera versões individuais e não contorna a
-validação de module path, API, contratos ou rollback. Nesta tarefa o usuário
-escolheu v1.3.0 a partir de v1.1.0; media-get permanece experimental.
+validação de module path, API, contratos ou rollback. O avanço escolhido para v1.3.0 a partir de v1.1.0 foi materializado; media-get permanece experimental.
+
+## D023 — Preparação online e caches Go reutilizáveis — Accepted
+
+Módulos são gerenciados por go.mod/go.sum e ferramentas padrão do Go.
+Vendoring não é necessário para compensar limitações de um ambiente antigo.
+`check-safe.sh prepare` prepara módulos com rede e integridade verificada;
+os checks bloqueiam downloads e alterações implícitas dos manifests, usando
+caches persistentes de módulo/compilação em dist/go-cache. HOME/configuração
+Git/credenciais e estado de aplicação continuam isolados por execução.
+Geração de contratos reaproveita os caches do Go invocador, mantendo ambiente
+sintético e downloads bloqueados. Fuzz mantém crashers na worktree persistente.
+Esta separação permite dependências externas justificadas e reutilização de
+cache sem usar contas/perfis reais como fixtures. Downloads bloqueados no Go
+não significam isolamento integral de rede.

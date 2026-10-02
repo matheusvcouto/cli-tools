@@ -59,10 +59,16 @@ Cross-build comprova compilação; a evidência de runtime continua sendo o CI n
 As CLIs usam o `cli/` Core declarativo comum: parsing tipado, help, completion, schema, contracts e documentação são derivados do mesmo grafo compilado.
 
 ```sh
+./scripts/check-safe.sh prepare
 ./scripts/check-safe.sh all
 ```
 
-`mise run check` continua disponível como atalho interativo.
+Use Go 1.27.1 ou superior no PATH. A preparação baixa somente módulos
+faltantes, com verificação de integridade; os checks reutilizam os caches em
+`dist/go-cache/` e bloqueiam downloads. HOME/configuração de aplicação continuam
+isolados. Não é necessário versionar dependências em `vendor/`.
+
+`mise run prepare` e `mise run check` são atalhos interativos.
 
 Documentação técnica:
 
@@ -74,6 +80,7 @@ Documentação técnica:
 - [Release, changelog e mise](docs/release.md)
 - [Histórico de mudanças](CHANGELOG.md)
 - [Engenharia](docs/engineering.md)
+- [Preparação de dependências e revisão do fluxo Go](docs/go-workflow.md)
 - [API Go pública e lock de compatibilidade](docs/cli-api.md)
 - [Decisões arquiteturais da suíte](ADR.md)
 - [`ai-profile` ADR](cmd/ai-profile/ADR.md)

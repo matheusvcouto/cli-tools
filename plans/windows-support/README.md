@@ -1,6 +1,12 @@
 # Windows support plan
 
-Status: Windows runtime implemented in source; planned public Go module migration to `/v2` (Go 1.27.1). Native CI observation remains the support-promotion gate; legacy explicit ACLs remain a documented migration hardening risk in `CODE_REVIEW.md`. Cross-compilation is never runtime evidence.
+Status: Windows runtime implemented in source. Go minimum is 1.27.1; the
+module remains github.com/matheusvcouto/cli-tools without /v2. The earlier /v2
+proposal was superseded by the explicit version decision in ADR.md.
+Use docs/platforms.md and CONTEXT.md for current native evidence. Reports below
+record their original audits, not permanent toolchain/network restrictions.
+Legacy explicit ACLs remain a documented migration hardening risk in
+CODE_REVIEW.md. Cross-compilation is never runtime evidence.
 
 ## Goal
 

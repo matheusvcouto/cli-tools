@@ -53,8 +53,7 @@ corrompido. O link remoto não foi reproduzido nem usado como teste. Um comando
    estimativa, fluxo, dependências, argv/env, falha, cancelamento de descendentes,
    arquivos/symlinks adversariais, colisões e concorrência; congelar contrato.
 7. **Entrega:** docs/ADR/change record e gates herméticos.
-   <!-- Inativo por decisão do usuário: snapshot completo da árvore de fonte
-   com contexto separado/dentro do ZIP, Base64 e checksums. -->
+   Entrega na worktree persistente; sem snapshots de transferência.
 
 Layout:
 
@@ -123,7 +122,8 @@ existir o segundo adapter e seu comportamento puder ser testado.
 - [x] Revisão oficial corrigiu flag inexistente `--no-netrc` antes da entrega.
 - [x] README/ADR/manifest/change record adicionados.
 - [x] Gates completos após a última revisão e contrato final: PASS.
-- [x] Snapshot/contexto/Base64/checksums verificados em snapshots/009/.
+- Evidência histórica: artifacts da rodada 009 foram registrados à época;
+  o fluxo vigente não gera snapshots, contextos separados ou Base64.
 - [ ] Validação opt-in com mídia sintética e yt-dlp/FFmpeg reais no macOS.
 - [x] Launcher Linux nativo (x64/ARM64): CI `36933364310` PASS.
 - [ ] Downloads Windows: capability ainda não implementada.
