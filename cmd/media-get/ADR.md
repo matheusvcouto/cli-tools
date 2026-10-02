@@ -28,8 +28,8 @@ Debian/Ubuntu. Não instalar nada nem acionar ferramentas reais na suíte offlin
 Trabalho em pasta privada criada através da raiz confinada, no filesystem do
 destino. Revalidar identidade física antes/depois do processo. Rejeitar saídas
 múltiplas, links, vazias e extensões inesperadas. Hard link confinado publica
-sem substituir um destino existente; colisões recebem sufixo. Falha mantém a
-área de trabalho; sucesso remove somente a área gerada, revalidada. Não há
+sem substituir um destino existente; colisões recebem sufixo. Falha segue a política de descarte/retenção de M011; sucesso remove somente
+a área gerada, revalidada. Não há
 rollback de arquivos anteriores porque nunca são substituídos. Processo externo
 é uma dependência confiável do sistema, e não é tornado sandbox por `os.Root`.
 Não alegar proteção contra binário malicioso ou isolamento contra alterações
@@ -73,3 +73,137 @@ de transferência, processamento e publicação. Percentual/bytes/speed/ETA são
 stream em transferência; não prometer percentual global nem de FFmpeg. Aceitar
 apenas marcador fixo de processamento e campos numéricos validados do filho.
 Erros de saída preservam exec.ExitError internamente com mensagem segura.
+
+## M008 — Menus pesquisáveis e controle nativo de terminal — Accepted
+
+A interface numérica permanece fallback para saída redirecionada/TERM=dumb;
+macOS/Linux com stdin/stderr TTY usam selector com setas, Enter, busca textual e
+Esc. Interação injetada na composição; nenhum comando ou flag duplicado fora do
+CompiledApp. O core público permanece intacto. As linhas são limitadas à largura
+e removem controles/bidi de dados externos; redraw usa somente escapes próprios.
+
+A stdlib não oferece modo raw/restauração portáveis nem detecção real de TTY.
+Adotar golang.org/x/term v0.46.0 e x/sys v0.48.0 (Go oficial, BSD 3-Clause;
+x/sys única transitiva de x/term). x/sys também fornece Poll para cancelar reads
+Unix em até aproximadamente 50 ms sem goroutine leitora residual. Restaurar modo
+raw com defer inclusive em erro/Ctrl+C/SIGTERM e restaurar cursor. Downloads
+Windows seguem indisponíveis. Terminais normais de texto usam o port existente.
+
+Fontes upstream/README/licença/código Unix revisados em 2026-10-01. Bibliotecas
+não executam scripts de instalação; sys inclui geradores/fontes nativas para
+outros sistemas, mas os seis alvos usam código Go com CGO_ENABLED=0. go.sum fixa
+integridade e vendor permite checks totalmente offline; não rodar geradores.
+THIRD_PARTY_NOTICES.txt é incluído na raiz dos archives de release.
+
+## M009 — Configuração opcional e progresso honesto — Accepted
+
+Referer sai do fluxo inicial e fica em catálogo fechado na revisão final; falha
+na consulta oferece configurar/repetir/cancelar. Alterar Referer invalida cache
+e renova metadados e seleção. Fragmentos paralelos (1..8) afetam só download,
+default yt-dlp 1; alterar não repete queries. Nenhuma configuração é persistida
+nem habilita flags livres/cookies. --referer e demais flags ficam compatíveis.
+
+Uma goroutine desenha barra/status a cada 125 ms enquanto backend roda separado;
+eventos têm canal limitado. Callback não escreve diretamente no terminal.
+Templates do filho têm intervalo de 0.2 s. Percentual é por stream; total
+estimado recebe ≈ e ausência não inventa percentual. Processamento/publicação
+mostram animação. Erro de escrita no progresso cancela subprocesso e preserva
+incompletos. Falta de fragmento aborta para evitar publicação silenciosa parcial.
+Inspeção inicial/legendas tolera ausência de formatos de vídeo; seleções reais
+de vídeo/áudio continuam exigindo formatos disponíveis.
+
+Referências: https://pkg.go.dev/golang.org/x/term e
+https://github.com/yt-dlp/yt-dlp/blob/master/README.md .
+
+## M010 — Correção do progresso HLS e contabilização dos streams — Accepted
+
+A revisão após execução do usuário encontrou totais HLS fracionários descartados
+por ParseInt, perda da previsão selecionada entre wizard e renderer e limpeza
+da última linha em erro. Aceitar números finitos/bounded (inteiros, decimais e
+notação científica); enviar a previsão ao renderer; desenhar desde preparação,
+animar antes do primeiro byte e preservar a última linha na saída/cancelamento.
+
+O template agrega info.format_id em JSON. O adapter transforma IDs (até 128 bytes)
+em hashes SHA-256 opacos também usados no metadata; nenhum ID bruto é exibido.
+Ao existir previsão global, somar bytes por identidade (até 16 streams), sem
+somar eventos repetidos. Refinar partes previstas com totais recebidos, conservar
+≈ enquanto alguma parte ainda é aproximada e estimar ETA global a partir dos
+bytes restantes/speed. Na ausência de identidades de metadata, conservar a
+previsão global aproximada; na ausência de previsão, mostrar o stream atual.
+Não inferir fronteiras de streams apenas porque bytes diminuíram. Estimativa
+não certifica conclusão: limitar percentual aproximado a 99%, mostrar etapas
+reais de processamento/publicação e tamanho final somente após publicar.
+Esta decisão substitui a apresentação exclusivamente por stream de M007/M009.
+
+Após confirmar um selector nativo, substituir somente suas linhas por um resumo;
+não apagar histórico externo ao menu. Se todas as alturas de vídeo são conhecidas,
+melhor qualidade cobre o máximo e caps iguais/superiores são redundantes: omitir
+esses caps no menu/query sem remover valores das flags. Descartar formatos sem
+codec de vídeo ao formar alturas. Alturas desconhecidas mantêm caps.
+
+Check de áudio valida o ffprobe que yt-dlp realmente resolve ao lado do caminho
+ffmpeg fornecido. Um probe explícito diferente é rejeitado por identidade física
+(os.Stat + SameFile); não confiar só em basename ou PATH.
+
+Revisão oficial: yt-dlp/downloader/fragment.py calcula total_bytes_estimate com
+divisão real; downloader/common.py admite total/ETA numéricos e expõe info no
+template; YoutubeDL.py propaga format_id de cada formato separado ao downloader.
+Fontes consultadas em 2026-10-01 no repositório oficial yt-dlp. Sem inferir
+compatibilidade com uma instalação real somente por essa revisão.
+
+## M011 — Descarte padrão e retenção visível — Accepted
+
+Por solicitação do usuário, falhas/cancelamentos descartam incompletos por padrão.
+Request.KeepIncomplete delega uma decisão explícita à CLI interativa; o domínio
+retorna um handle privado após encerrar o backend. Renderer termina antes de
+mostrar a escolha, evitando escrita concorrente. A decisão usa novo contexto
+cancelável por sinais e prazo de 30 s, pois o contexto de download já pode estar
+cancelado. Enter/default, Esc, outra interrupção, EOF e timeout descartam; manter
+exige seleção afirmativa. --yes não delega, descarta sem interação.
+
+Pasta privada visível no mesmo filesystem: Media Get — Incompletos-<aleatório>.
+Handle guarda identidades da raiz e da pasta, revalidadas antes da remoção
+confinada. Tamanho soma arquivos regulares sem seguir symlinks. Falha de limpeza
+informa caminho; erro original/130 permanece reconhecível. Nunca varrer ou
+remover pastas de execuções anteriores. Não há retomada automática nem garantia
+de limpeza após SIGKILL/crash/desligamento; nenhum cleanup pode rodar nesse caso.
+Esta decisão substitui a preservação automática descrita em M004/M009.
+
+## M012 — Prefetch e menus não bloqueantes — Accepted
+
+Substituir lotes aguardados de M007 por sessão sincronizada em memória. Iniciar
+vídeo/áudio junto da inspeção inicial (duas estimativas mais metadata, máximo três
+probes ativos); após metadata enfileirar qualidades aplicáveis e eventual flag
+explícita, antes da escolha. Três workers, fila limitada, deduplicação por
+Selection e prazo de 20 s por fonte. Falhas/ausências são cacheadas. Legendas
+continuam na metadata inicial sem estimativa especulativa de SRT.
+
+Selector nativo aceita snapshot de labels e lê input com Poll de 150 ms para
+atualizar spinner/tamanhos sem goroutine escrevendo no terminal. Busca usa labels
+estáveis sem sufixo de tamanho; índice da opção não muda ao receber estimativa.
+Fallback numérico não espera e mostra snapshot estático; nunca escrever updates
+concorrentes sobre prompts de texto. Seleção/revisão não aguarda estimates.
+
+Manter sessão durante nome/confirmação. Encerrar/recolher workers antes de
+baixar, transferindo a última estimativa pronta à barra; não esperar tamanho
+pendente para iniciar download. Trocar Referer encerra probes/cache antigos
+antes de atualizar metadata; erro/cancelamento em qualquer passo também encerra
+workers. Não persistir URLs, estimates ou metadata; nenhuma dependência nova.
+Automação --yes mantém apenas a consulta da seleção solicitada.
+
+## M013 — Edição nativa de texto e cancelamento legível — Accepted
+
+O leitor de linha simples do core não interpreta setas. Somente a composição
+media-get em TTY Unix passa a editar runes com cursor, inserção, Backspace/Delete,
+Home/End e viewport horizontal de largura limitada. Usar o mesmo Poll/key decoder
+cancelável; consumir sequências CSI completas, incluindo modificadores e
+marcadores de paste, sem colocar escapes em nomes/URLs. Nenhuma dependência nova.
+Fallback numerado/redirecionado e API pública do core permanecem intactos.
+
+ask chama o editor nativo de forma síncrona: restauração raw deve terminar antes
+de devolver cancelamento ao entrypoint; o fallback mantém estratégia cancelável
+existente. Sanitizar controles/bidi no desenho. Limite de 8192 runes; não prometer
+edição por grapheme/word ou histórico. Valor padrão continua placeholder e Enter
+vazio o aceita. O diagnóstico de cancelamento não é falha técnica: exibir
+Cancelado e resultado de cleanup via erro tipado, conservando Unwrap e saída 130.
+Falhas normais continuam diagnósticos com causa; falha de cleanup mantém caminho.

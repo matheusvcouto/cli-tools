@@ -74,3 +74,10 @@ CI executa testes nativos em Linux, macOS, Windows x64 (`windows-2025`) e Window
 `go run ./tools/release contracts check` é um gate dedicado: gera cada contrato
 por `__cli contract` em ambiente sintético/offline e compara byte a byte com o
 lock versionado. Drift não é corrigido silenciosamente pelo CI.
+
+## Dependências Go offline
+
+x/term e x/sys são fixados em go.mod/go.sum e incluídos em vendor/; o Go usa
+vendor automaticamente na baseline 1.27.1. O runner mantém GOPROXY/GOSUMDB off
+e GOMODCACHE vazio. Atualizar dependências exige revisão de licença/fonte,
+regenerar vendor e rodar gates; testes não baixam módulos.

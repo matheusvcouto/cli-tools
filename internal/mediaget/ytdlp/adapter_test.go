@@ -8,7 +8,7 @@ import (
 )
 
 func TestDecodeFormatsAndTracks(t *testing.T) {
-	data := []byte(`{"title":"Synthetic","duration":8,"filesize":900,"formats":[{"height":1080},{"height":720},{"height":1080}],"requested_formats":[{"filesize":100},{"tbr":1}],"subtitles":{"pt":[{"name":"Português"}]},"automatic_captions":{"pt":[{"name":"Auto"}],"en-orig":[{"name":"English"}]}}`)
+	data := []byte(`{"title":"Synthetic","duration":8,"filesize":900,"formats":[{"height":1080},{"height":720},{"height":1080},{"height":2160,"vcodec":"none"}],"requested_formats":[{"filesize":100},{"tbr":1}],"subtitles":{"pt":[{"name":"Português"}]},"automatic_captions":{"pt":[{"name":"Auto"}],"en-orig":[{"name":"English"}]}}`)
 	info, err := decodeInfo(data)
 	if err != nil {
 		t.Fatal(err)
@@ -70,5 +70,21 @@ func TestProcessingMarkerNeverExposesChildText(t *testing.T) {
 	event, ok := parseProgress("MEDIA_GET_PROGRESS:100|200|NA|NaN|9223372036854775807")
 	if !ok || event.Speed != 0 || event.ETA != 0 {
 		t.Fatalf("%+v %t", event, ok)
+	}
+}
+
+func TestDecimalHLSTotalsETAAndOpaqueFormatIdentity(t *testing.T) {
+	p, ok := parseProgress(`MEDIA_GET_PROGRESS:1048576.0|NA|4294967296.75|1250000.25|3.75|"hls-720"`)
+	if !ok || p.Downloaded != 1048576 || p.Total != 4294967296 || !p.Estimated || p.ETA != 3 || p.StreamID != streamIdentity("hls-720") {
+		t.Fatalf("%+v %v", p, ok)
+	}
+	p, ok = parseProgress(`MEDIA_GET_PROGRESS:10|2.0e3|NA|1|NA|"format|part"`)
+	if !ok || p.Total != 2000 || p.Estimated || p.StreamID != streamIdentity("format|part") {
+		t.Fatalf("%+v %v", p, ok)
+	}
+	for _, raw := range []string{"NaN", "Inf", "-1", "1e100", "9223372036854775808", "secret"} {
+		if _, ok := progressBytes(raw); ok {
+			t.Fatalf("accepted unbounded/non-numeric %q", raw)
+		}
 	}
 }

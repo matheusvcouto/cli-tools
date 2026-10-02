@@ -465,11 +465,23 @@ func buildTarget(version, outDir, module string, bins []string, t target) error 
 			return err
 		}
 	}
+	if err := copyThirdPartyNotices(stage); err != nil {
+		return err
+	}
 	archive := releaseArchiveName(version, t)
 	if t.GOOS == "windows" {
 		return zipDir(filepath.Join(outDir, archive), stage)
 	}
 	return tarGzDir(filepath.Join(outDir, archive), stage)
+}
+
+// Notices must accompany binaries containing the vendored BSD Go libraries.
+func copyThirdPartyNotices(stage string) error {
+	notices, err := os.ReadFile("THIRD_PARTY_NOTICES.txt")
+	if err != nil {
+		return fmt.Errorf("third-party notices: %w", err)
+	}
+	return os.WriteFile(filepath.Join(stage, "THIRD_PARTY_NOTICES.txt"), notices, 0644)
 }
 
 func releaseArchiveName(version string, t target) string {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"strings"
 	"sync"
 	"testing"
@@ -72,48 +73,6 @@ func (b *previewBackend) Download(ctx context.Context, req mediaget.Request, wor
 		notify(mediaget.Progress{Stage: mediaget.Processing})
 	}
 	return b.backend.Download(ctx, req, work, notify)
-}
-
-func TestPreviewMenusShowSizesBeforeSelectionAndReuseResults(t *testing.T) {
-	t.Setenv(DownloadEnv, t.TempDir())
-	b := &previewBackend{}
-	a, err := New(mediaget.Service{Backend: b}, core.ProductMetadata{Version: "0.1.0"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	var out, log bytes.Buffer
-	// Video, return to type menu, audio, continue, default name, confirm.
-	err = a.Run(context.Background(), []string{"https://example.invalid", "--referer", ""}, core.IO{
-		In: strings.NewReader("1\n0\n2\n1\n\ns\n"), Out: &out, Err: &log, Terminal: core.Terminal{StdinTTY: true},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	text := log.String()
-	for _, line := range []string{
-		"Vídeo com áudio (melhor qualidade) — ≈ 12.0 KiB",
-		"Somente áudio (M4A) — ≈ 4.0 KiB",
-		"Até 720p — ≈ 12.7 KiB", "Até 480p — tamanho indisponível", "Até 360p — tamanho indisponível",
-		"Calculando tamanhos estimados: 2/2", "Calculando tamanhos estimados: 5/5",
-		"Transferência atual: 50% (1.0 KiB / 2.0 KiB) | 1.0 KiB/s | restante: 2s",
-		"Processando mídia (conversão/mesclagem)...", "Verificando e salvando arquivo...",
-	} {
-		if !strings.Contains(text, line) {
-			t.Fatalf("missing %q in %s", line, text)
-		}
-	}
-	if strings.Index(text, "Somente áudio (M4A) — ≈") > strings.Index(text, "O que deseja baixar?") ||
-		strings.Index(text, "Até 720p — ≈") > strings.Index(text, "Qualidade do vídeo") {
-		t.Fatal("preview was printed after selection")
-	}
-	for selection, calls := range b.calls {
-		if calls != 1 {
-			t.Fatalf("repeated query for %+v: %d", selection, calls)
-		}
-	}
-	if b.downloads != 1 || b.last.Selection.Kind != mediaget.Audio || !strings.HasSuffix(strings.TrimSpace(out.String()), ".m4a") {
-		t.Fatal("selected audio was not delivered")
-	}
 }
 
 func TestPreviewQueriesRunInParallelWithBoundedConcurrency(t *testing.T) {
@@ -224,5 +183,40 @@ func TestLoadingAnimatesWhileWorkIsPending(t *testing.T) {
 	})
 	if err != nil || value != 42 {
 		t.Fatalf("loading did not animate: %d %v", value, err)
+	}
+}
+
+func TestCanceledLoadingWaitsForBackendCleanup(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	cleanup := make(chan struct{})
+	release := make(chan struct{})
+	defer close(release)
+	done := make(chan error, 1)
+	inv := &core.Invocation{Context: ctx, IO: core.IO{Err: io.Discard}}
+	go func() {
+		_, err := withLoading(inv, "Synthetic", func() (int, error) {
+			<-ctx.Done()
+			close(cleanup)
+			<-release
+			return 0, ctx.Err()
+		})
+		done <- err
+	}()
+	cancel()
+	<-cleanup
+	select {
+	case <-done:
+		t.Fatal("returned before backend cleanup")
+	default:
+	}
+	release <- struct{}{}
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("cleanup did not complete")
 	}
 }

@@ -25,7 +25,10 @@ const (
 	Subtitle Kind = "subtitle"
 )
 
-type Source struct{ URL, Referer string }
+type Source struct {
+	URL, Referer        string
+	ConcurrentFragments int
+}
 type Track struct {
 	Lang, Name string
 	Auto       bool
@@ -35,14 +38,18 @@ type Selection struct {
 	Height int
 	Track  Track
 }
-type FormatSize struct{ Bytes, ApproxBytes, Bitrate float64 }
+type FormatSize struct {
+	Bytes, ApproxBytes, Bitrate float64
+	StreamID                    string // Opaque backend identity; never render source identifiers.
+}
 type Info struct {
-	Title    string
-	Duration float64
-	Size     FormatSize
-	Parts    []FormatSize
-	Heights  []int
-	Tracks   []Track
+	Title              string
+	Duration           float64
+	Size               FormatSize
+	Parts              []FormatSize
+	Heights            []int
+	Tracks             []Track
+	UnknownVideoHeight bool
 }
 type ProgressStage string
 
@@ -57,16 +64,20 @@ type Progress struct {
 	Downloaded, Total int64
 	Speed             float64
 	ETA               int
+	Estimated         bool
+	StreamID          string
 }
 type Request struct {
 	Source          Source
 	Selection       Selection
 	OutputDir, Name string
+	KeepIncomplete  bool // Caller takes responsibility for offering retention or discard after failure.
 }
 type Result struct {
 	Path           string
 	Bytes          int64
 	CleanupWarning error
+	Incomplete     *Incomplete
 }
 
 // Backend is the boundary for extraction and transfer. It does not publish the
@@ -80,6 +91,9 @@ type Backend interface {
 type Service struct{ Backend Backend }
 
 func ValidateSource(src Source) error {
+	if src.ConcurrentFragments < 0 || src.ConcurrentFragments > 8 {
+		return errors.New("fragmentos paralelos devem estar entre 1 e 8")
+	}
 	if err := validateURL(src.URL); err != nil {
 		return err
 	}
@@ -253,7 +267,7 @@ func (s Service) Download(ctx context.Context, req Request, progress func(Progre
 	defer root.Close()
 	// Random, private working directory in the destination filesystem. All
 	// material is created here, not moved from a system temporary directory.
-	workName := ".media-get-" + rand.Text()
+	workName := "Media Get — Incompletos-" + rand.Text()
 	if err = root.Mkdir(workName, 0700); err != nil {
 		return
 	}
@@ -277,16 +291,32 @@ func (s Service) Download(ctx context.Context, req Request, progress func(Progre
 		return nil
 	}
 	defer func() {
-		if result.Path == "" {
-			err = fmt.Errorf("%w; arquivos incompletos preservados em %s", err, work)
-			return
-		}
 		if e := sameWork(); e != nil {
 			result.CleanupWarning = e
+			if result.Path == "" {
+				err = fmt.Errorf("%w; limpeza bloqueada: %v; verifique %s", err, e, work)
+			}
+			return
+		}
+		if result.Path == "" && req.KeepIncomplete {
+			parent, e := root.Lstat(".")
+			if e != nil {
+				err = errors.Join(err, e)
+				return
+			}
+			result.Incomplete = &Incomplete{Path: work, parent: req.OutputDir, name: workName, original: original, parentIdentity: parent}
 			return
 		}
 		result.CleanupWarning = root.RemoveAll(workName)
+		if result.Path == "" {
+			if result.CleanupWarning != nil {
+				err = fmt.Errorf("%w; não foi possível descartar incompletos em %s: %v", err, work, result.CleanupWarning)
+			} else {
+				err = fmt.Errorf("%w; arquivos incompletos descartados", err)
+			}
+		}
 	}()
+
 	if err = sameWork(); err != nil {
 		return
 	}

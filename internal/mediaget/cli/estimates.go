@@ -17,8 +17,10 @@ const (
 )
 
 type transferEstimate struct {
-	bytes int64
-	known bool
+	bytes    int64
+	known    bool
+	parts    []mediaget.FormatSize
+	duration float64
 }
 
 func (e transferEstimate) label() string {
@@ -48,7 +50,11 @@ func withLoadingProgress[T any](inv *core.Invocation, message string, total int,
 		}
 		return message + "..."
 	}
-	fmt.Fprintln(inv.IO.Err, status())
+	if inv.Terminal.StderrTTY {
+		fmt.Fprintf(inv.IO.Err, "\r| %s", fitLine(status(), inv.Terminal.Width-3))
+	} else {
+		fmt.Fprintln(inv.IO.Err, status())
+	}
 	go func() {
 		value, err := work(func() { updates <- struct{}{} })
 		done <- result{value, err}
@@ -62,6 +68,8 @@ func withLoadingProgress[T any](inv *core.Invocation, message string, total int,
 	for {
 		select {
 		case <-inv.Context.Done():
+			// Wait for the context-aware backend to finish killing/reaping its child group.
+			<-done
 			var zero T
 			return zero, inv.Context.Err()
 		case r := <-done:
@@ -84,7 +92,7 @@ func withLoadingProgress[T any](inv *core.Invocation, message string, total int,
 			}
 		case <-ticker.C:
 			if inv.Terminal.StderrTTY {
-				fmt.Fprintf(inv.IO.Err, "\r%c %s", "|/-\\"[frame%4], status())
+				fmt.Fprintf(inv.IO.Err, "\r\x1b[2K%c %s", "|/-\\"[frame%4], fitLine(status(), inv.Terminal.Width-3))
 				frame++
 			}
 		}
@@ -134,6 +142,11 @@ func estimateOptions(inv *core.Invocation, service mediaget.Service, src mediage
 					results[i].err = err
 					if err == nil {
 						results[i].estimate.bytes, results[i].estimate.known = mediaget.EstimatedSize(info)
+						results[i].estimate.parts = info.Parts
+						if len(info.Parts) == 0 {
+							results[i].estimate.parts = []mediaget.FormatSize{info.Size}
+						}
+						results[i].estimate.duration = info.Duration
 					}
 					report()
 				}

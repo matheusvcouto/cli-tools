@@ -70,7 +70,7 @@ fi`
 }
 func TestRefererAndIsolationAppliedToBothCalls(t *testing.T) {
 	a, log := fixture(t)
-	src := mediaget.Source{URL: "https://example.invalid/media?a=1&b=2", Referer: "https://origin.invalid/page?x=1&y=2"}
+	src := mediaget.Source{URL: "https://example.invalid/media?a=1&b=2", Referer: "https://origin.invalid/page?x=1&y=2", ConcurrentFragments: 4}
 	if _, err := a.Inspect(context.Background(), src, mediaget.Selection{}); err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestRefererAndIsolationAppliedToBothCalls(t *testing.T) {
 		t.Fatalf("events=%+v", events)
 	}
 	data, _ := os.ReadFile(log)
-	if !strings.Contains(string(data), "bv*[height<=?720]+ba/b[height<=?720]") {
+	if !strings.Contains(string(data), "--concurrent-fragments\n4") || !strings.Contains(string(data), "--abort-on-unavailable-fragments") || !strings.Contains(string(data), "--progress-delta\n0.2") || !strings.Contains(string(data), "bv*[height<=?720]+ba/b[height<=?720]") {
 		t.Fatalf("selector: %s", data)
 	}
 }
@@ -106,7 +106,7 @@ func TestMissingDependencyBeforeChildStarts(t *testing.T) {
 	a, log := fixture(t)
 	t.Setenv("PATH", t.TempDir())
 	a.FFmpeg = ""
-	err := a.Download(context.Background(), mediaget.Request{Selection: mediaget.Selection{Kind: mediaget.Subtitle}}, t.TempDir(), nil)
+	err := a.Download(context.Background(), mediaget.Request{Source: mediaget.Source{URL: "https://example.invalid"}, Selection: mediaget.Selection{Kind: mediaget.Subtitle}}, t.TempDir(), nil)
 	if err == nil || !strings.Contains(err.Error(), "ffmpeg") || !strings.Contains(err.Error(), "install") {
 		t.Fatalf("%v", err)
 	}
@@ -205,5 +205,18 @@ func TestAudioAndSubtitleArguments(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestAudioProbeMustMatchFFmpegLocationBeforeChildStarts(t *testing.T) {
+	a, log := fixture(t)
+	other := t.TempDir()
+	a.FFprobe = executable(t, other, "ffprobe", "exit 0")
+	err := a.Check(context.Background(), mediaget.Selection{Kind: mediaget.Audio})
+	if err == nil || !strings.Contains(err.Error(), "ao lado de ffmpeg") {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(log); !errors.Is(err, os.ErrNotExist) {
+		t.Fatal("child started before coherent tool check")
 	}
 }

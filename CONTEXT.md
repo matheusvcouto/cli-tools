@@ -84,3 +84,83 @@ experimental; change records movidos integralmente para changes/archive/1.3.0.
 Falta confirmar CI do commit preparado, enviar tag nova e acompanhar smokes
 e publicação. Evidência real Twitch enviada pelo usuário cobre início de
 transferência, não arquivo final. Interface visual ficará para próxima etapa.
+
+## Experiência media-get — local, aguardando aprovação de v1.3.1
+
+v1.3.0 foi publicada na rodada anterior. Nesta rodada: menus com setas/busca,
+barra na mesma linha e totais exatos/aproximados/desconhecidos, animação durante
+processamento, Referer opcional na revisão (também após erro inicial) e catálogo
+fechado de Referer/fragmentos paralelos 1..8. Sem configs persistidas. Troca de
+Referer renova metadata/cache; configurar fragmentos não repete consultas.
+Dependências oficiais x/term/x/sys fixadas e vendorizadas para checks offline;
+notices BSD acompanham assets pela ferramenta de release.
+
+Gates completos locais PASS, mais testes focados após ajuste final do spinner.
+Cross-build seis alvos PASS; menus/barra/cancelamento/restauração testados em
+pseudo-terminal nativo macOS com backend sintético. Binário atualizado em
+`dist/media-get/media-get` e smokes isolados PASS. Evidência/limites detalhados em
+`plans/media-get/VALIDATION.md`. Sites reais, benchmark e novo CI não executados.
+Nenhum commit/push/tag/release prepare nesta rodada; aprovação de v1.3.1 pendente.
+Snapshots automáticos continuam desativados; instruções históricas acima são
+inativas conforme AGENTS.md. Nenhum snapshot rastreado ou gerado nesta rodada.
+
+## Correção após relato de progresso — aguardando teste real/aprovação
+
+Corrigidos bugs de totais/ETA HLS decimais, previsão perdida entre wizard e barra,
+e limpeza da linha ao interromper. Barra começa com previsão e mantém dados na
+saída; streams são contabilizados por ID opaco, sem duplicar bytes. Menus ficam
+resumidos após seleção; caps redundantes de altura conhecida não exigem queries;
+ffprobe validado na localização efetiva de FFmpeg por identidade física.
+
+Gates completos, race, contratos, cross-build seis alvos, rebuild/smokes do binário
+nativo e cinco cenários de pseudo-terminal macOS PASS. Incluem HLS decimal,
+áudio/vídeo+áudio e SIGINT real durante download mantendo barra/área incompleta.
+Detalhes/limites em plans/media-get/VALIDATION.md. Encerramento espontâneo não
+reproduzido; usuário confirmou ter pressionado Ctrl+C: o cancelamento 130 foi esperado. Ferramentas/sites reais não executados, incompletos pessoais intactos.
+Sem publicação/push/prepare; v1.3.1 ainda depende de aprovação. Sem snapshots.
+
+## Descarte padrão após falha/cancelamento (não publicado)
+
+Área privada agora visível (Media Get — Incompletos-<aleatório>). Interativo
+oferece descartar (default) ou manter após o renderer/backend encerrar; novo
+contexto de sinais e timeout de 30 s permite escolher depois do Ctrl+C. Esc,
+novo Ctrl+C/EOF/timeout descartam; --yes descarta sem prompt. Limpeza confinada
+revalida identidades e só remove a área desta execução. Caminho e tamanho são
+informados; falha de limpeza preserva diagnóstico/caminho. Pastas antigas nunca
+são varridas, e o incompleto pessoal citado permanece intocado.
+Gates completos, seis cross-builds, seis probes de terminal sintéticos e smokes
+nativos PASS; binário em dist/media-get/media-get atualizado. Sites reais não
+executados. v1.3.1 continua dependendo da aprovação; sem push/release/snapshots.
+
+## Prefetch e seleção sem espera (não publicado)
+
+Vídeo/áudio estimados junto da metadata inicial; qualidades enfileiradas após
+identificar formatos, antes de abrir seus menus. Três workers, 20 s por fonte,
+cache sincronizado em memória até nome/confirmação. Menus nativos atualizam
+spinner/tamanho por Poll de 150 ms e busca usa labels estáveis; fallback recebe
+snapshot não bloqueante. Selecionar ou continuar nunca espera por estimates.
+Referer cancela/recolhe sessão anterior; fragmentos mantêm cache. Antes do
+download, encerrar workers e transferir só estimate pronta ao renderer.
+Gates completos/race, seis cross-builds, smokes e seis probes de terminal com
+queries lentas sintéticas PASS. Binário local atualizado. Nenhuma ferramenta/site
+real, pasta pessoal, push/release ou snapshot. Próxima aprovação segue v1.3.1.
+
+## Edição de texto e cancelamento legível (não publicado)
+
+Campos nativos agora permitem mover cursor, inserir no meio, Home/End,
+Delete/Backspace, Unicode e viewport horizontal. CSI completos não viram texto.
+ask usa leitura nativa síncrona para restaurar raw antes do retorno por sinais.
+Ctrl+C mostra Cancelado e resultado de cleanup, conservando código 130/causa.
+Gates completos finais PASS; oito PTYs sintéticos PASS, incluindo nome editado,
+Ctrl+C/SIGTERM durante digitação, restauração e demais fluxos. Shuffle expôs
+suposição de ordem num teste do prefetch; readiness de todas as entradas passou
+a ser aguardada. Seis cross-builds e smokes PASS; binário dist atualizado.
+Nenhuma pasta/site/conta real alterada, nenhum push/release/snapshot.
+
+## Release v1.3.1 autorizada — em andamento
+
+Usuário autorizou push e publicação. Preview: suíte 1.3.0 -> 1.3.1,
+media-get 0.2.0 -> 0.2.1 experimental; demais produtos permanecem 1.1.0.
+main remoto corresponde a 14dfc950; tag/release v1.3.1 inexistentes na verificação.
+Enviar implementação, aguardar CI nativo, preparar manifests/changelogs,
+validar/reconstruir dist, enviar commit preparado e aguardar novo CI antes da tag.

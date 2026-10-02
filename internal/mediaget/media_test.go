@@ -137,8 +137,13 @@ func TestFailurePreservesPartialAndCause(t *testing.T) {
 	dir := t.TempDir()
 	sentinel := errors.New("transfer failed")
 	f := &fakeBackend{write: writeMedia, errorOnDownload: sentinel}
-	_, err := (Service{Backend: f}).Download(context.Background(), request(dir), nil)
-	if !errors.Is(err, sentinel) || !strings.Contains(err.Error(), "preservados") {
+	req := request(dir)
+	req.KeepIncomplete = true
+	result, err := (Service{Backend: f}).Download(context.Background(), req, nil)
+	if result.Incomplete == nil {
+		t.Fatal("missing partial handle")
+	}
+	if !errors.Is(err, sentinel) {
 		t.Fatalf("%v", err)
 	}
 	entries, readErr := os.ReadDir(dir)
@@ -204,8 +209,8 @@ func TestCancelBeforePublication(t *testing.T) {
 		t.Fatalf("%v %v", result, err)
 	}
 	entries, _ := os.ReadDir(dir)
-	if len(entries) != 1 || !entries[0].IsDir() {
-		t.Fatal("cancel published a file")
+	if len(entries) != 0 {
+		t.Fatal("cancel left incomplete files")
 	}
 }
 func TestExistingSymlinkIsNeverReplaced(t *testing.T) {
@@ -265,5 +270,74 @@ func TestUnsafeSubtitleIdentifierFailsBeforeAnyWrite(t *testing.T) {
 	entries, err := os.ReadDir(dir)
 	if err != nil || len(entries) != 0 {
 		t.Fatal("invalid language wrote files")
+	}
+}
+
+func TestDefaultFailureDiscardsOnlyCurrentDownload(t *testing.T) {
+	dir := t.TempDir()
+	existing := filepath.Join(dir, ".media-get-existing")
+	if err := os.Mkdir(existing, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(existing, "keep"), []byte("important"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	cause := errors.New("failed")
+	result, err := (Service{Backend: &fakeBackend{write: writeMedia, errorOnDownload: cause}}).Download(context.Background(), request(dir), nil)
+	if !errors.Is(err, cause) || result.Incomplete != nil || !strings.Contains(err.Error(), "descartados") {
+		t.Fatalf("%+v %v", result, err)
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil || len(entries) != 1 || entries[0].Name() != ".media-get-existing" {
+		t.Fatalf("%v %v", entries, err)
+	}
+}
+
+func TestRetainedIncompleteSizeAndSafeDiscard(t *testing.T) {
+	dir := t.TempDir()
+	req := request(dir)
+	req.KeepIncomplete = true
+	result, err := (Service{Backend: &fakeBackend{write: writeMedia, errorOnDownload: context.Canceled}}).Download(context.Background(), req, nil)
+	if !errors.Is(err, context.Canceled) || result.Incomplete == nil {
+		t.Fatalf("%+v %v", result, err)
+	}
+	partial := result.Incomplete
+	if strings.HasPrefix(filepath.Base(partial.Path), ".") {
+		t.Fatal("hidden incomplete")
+	}
+	if n, err := partial.Size(); err != nil || n != 15 {
+		t.Fatalf("%d %v", n, err)
+	}
+	if err := partial.Discard(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(partial.Path); !errors.Is(err, os.ErrNotExist) {
+		t.Fatal(err)
+	}
+}
+
+func TestIncompleteDiscardRejectsReplacement(t *testing.T) {
+	req := request(t.TempDir())
+	req.KeepIncomplete = true
+	result, _ := (Service{Backend: &fakeBackend{write: writeMedia, errorOnDownload: context.Canceled}}).Download(context.Background(), req, nil)
+	partial := result.Incomplete
+	if partial == nil {
+		t.Fatal("missing partial")
+	}
+	if err := os.Rename(partial.Path, partial.Path+"-original"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(partial.Path, 0700); err != nil {
+		t.Fatal(err)
+	}
+	keep := filepath.Join(partial.Path, "important")
+	if err := os.WriteFile(keep, []byte("keep"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := partial.Discard(); err == nil {
+		t.Fatal("deleted replacement")
+	}
+	if data, err := os.ReadFile(keep); err != nil || string(data) != "keep" {
+		t.Fatal("replacement changed")
 	}
 }
