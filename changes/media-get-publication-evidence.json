@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "module",
+      "impact": "none",
+      "summary": "Record verified v1.3.4 publication, isolated mise installation and completed media-get output checklist.",
+      "justification": "Publication evidence and checklist only; no production code, API, contracts or product versions change."
+    }
+  ]
+}

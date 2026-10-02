@@ -212,4 +212,5 @@ Decisões/limites/fontes em ../../docs/media-get-throughput.md e M014.
 - [x] MP4 compatível opcional, extensões explícitas e revisão final.
 - [x] Verificação de codecs/vídeo/áudio, conversão cancelável e sem clobber.
 - [x] Gates locais, builds e CI nativo da implementação (37055188631).
-- [ ] CI do commit preparado e publicação v1.3.4.
+- [x] CI do commit preparado (37055942843) e publicação v1.3.4 (37056511916).
+- [x] Mise público isolado e seis archives/SHA256SUMS confirmados.

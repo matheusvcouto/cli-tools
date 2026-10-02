@@ -215,3 +215,18 @@ checks/builds locais e CI do commit preparado antes de criar a tag.
 Árvore preparada: check-safe.sh all, preflight v1.3.4 e builds/smokes
 nativos das três CLIs PASS. Binários locais com suite_version=v1.3.4;
 media-get --version=0.3.1. CI do commit preparado, tag e release pendentes.
+
+## Publicação v1.3.4 concluída — 2026-10-02
+
+Release Latest: https://github.com/matheusvcouto/cli-tools/releases/tag/v1.3.4.
+Tag aponta para 73907e8, commit preparado aprovado pelo CI 37055942843.
+Workflow release 37056511916 success; seis archives e SHA256SUMS publicados,
+com smokes dos mesmos bytes em seis runners. Instalação pública via mise PASS
+em HOME/MISE_*/GH_CONFIG_DIR sintéticos para as três CLIs, sem ativação global.
+Produto media-get 0.3.1 experimental; ai-profile/repo-zip 1.1.0 preservados.
+TXT/SRT, MP4 compatível e extensões explícitas documentados no README específico.
+FFmpeg real com mídia sintética verificou imagem/áudio; o arquivo real relatado
+pelo usuário não foi inspecionado, convertido nem usado como fixture. Não
+declarar reprodução em todo player ou download Windows: capability preservada.
+Receipt e logs: dist/release-validation/1.3.4/publication-receipt.json.
+Binários nativos atualizados em dist/<tool>/<tool>; main contém a implementação.
