@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -66,6 +67,8 @@ func New(service mediaget.Service, product core.ProductMetadata, interaction ...
 				}},
 				{ID: prefix + "kind", Long: "kind", Summary: "video with audio, audio only, or subtitle", Value: core.EnumValue(core.Choice{Value: "video"}, core.Choice{Value: "audio"}, core.Choice{Value: "subtitle"})},
 				{ID: prefix + "quality", Long: "quality", Summary: "video height limit; best has no height limit", Value: qualityValue()},
+				{ID: prefix + "subtitle-format", Long: "subtitle-format", Summary: "subtitle output: srt or plain txt", Value: core.EnumValue(core.Choice{Value: "srt"}, core.Choice{Value: "txt"})},
+				{ID: prefix + "video-format", Long: "video-format", Summary: "auto container or compatible MP4 (H.264/AAC; may re-encode)", Value: core.EnumValue(core.Choice{Value: "auto"}, core.Choice{Value: "mp4"})},
 				{ID: prefix + "lang", Long: "subtitle-lang", Summary: "exact subtitle language from metadata", Value: core.StringValue()},
 				{ID: prefix + "auto", Long: "auto-subs", Summary: "choose an automatic subtitle track", Action: core.FlagSwitch},
 				{ID: prefix + "name", Long: "name", Summary: "base filename (default: media title)", Value: core.StringValue()},
@@ -74,10 +77,16 @@ func New(service mediaget.Service, product core.ProductMetadata, interaction ...
 			Constraints: []core.Constraint{
 				{Kind: core.Requires, IDs: []string{prefix + "yes", prefix + "url"}, Message: "--yes exige URL"},
 				{Kind: core.Requires, IDs: []string{prefix + "yes", prefix + "kind"}, Message: "--yes exige --kind"},
-				{Kind: core.ValuePredicate, PredicateID: prefix + "selection-options", IDs: []string{prefix + "kind", prefix + "quality", prefix + "lang", prefix + "auto"}, Validate: func(values core.ConstraintValues) error {
+				{Kind: core.ValuePredicate, PredicateID: prefix + "selection-options", IDs: []string{prefix + "kind", prefix + "quality", prefix + "lang", prefix + "auto", prefix + "subtitle-format", prefix + "video-format"}, Validate: func(values core.ConstraintValues) error {
 					kind, _ := core.ConstraintValueAs[string](values, prefix+"kind")
 					if values.Present(prefix+"quality") && kind != "video" {
 						return errors.New("--quality exige --kind video")
+					}
+					if values.Present(prefix+"video-format") && kind != "video" {
+						return errors.New("--video-format exige --kind video")
+					}
+					if values.Present(prefix+"subtitle-format") && kind != "subtitle" {
+						return errors.New("--subtitle-format exige --kind subtitle")
 					}
 					if (values.Present(prefix+"lang") || values.Present(prefix+"auto")) && kind != "subtitle" {
 						return errors.New("--subtitle-lang e --auto-subs exigem --kind subtitle")
@@ -147,8 +156,9 @@ func run(inv *core.Invocation, service mediaget.Service) error {
 		fmt.Fprintln(inv.IO.Err, "Mídia:", mediaget.SafeName(info.Title))
 	}
 	selectedEstimate := transferEstimate{}
-	sel := mediaget.Selection{Kind: mediaget.Kind(kind)}
+	sel := mediaget.Selection{Kind: mediaget.Kind(kind), SubtitleFormat: value(inv, "subtitle-format"), VideoFormat: value(inv, "video-format")}
 	if automatic {
+		_, sel = mediaget.OutputSelection(value(inv, "name"), sel)
 		if sel.Kind == mediaget.Video {
 			sel.Height, _ = core.ValueAs[int](inv, prefix+"quality")
 		}
@@ -185,6 +195,7 @@ func run(inv *core.Invocation, service mediaget.Service) error {
 			return err
 		}
 	}
+	name, sel = mediaget.OutputSelection(name, sel)
 	review := downloadReview{Name: name, Dir: dir, Selection: sel, Estimate: selectedEstimate}
 	if automatic {
 		err = printDownloadSummary(inv, info, src, sel, selectedEstimate, name, dir)
@@ -291,7 +302,7 @@ chooseMedia:
 		labels := []string{"Vídeo com áudio (melhor qualidade)", "Somente áudio (M4A)"}
 		if len(info.Tracks) > 0 {
 			kinds = append(kinds, mediaget.Subtitle)
-			labels = append(labels, "Somente legenda (SRT)")
+			labels = append(labels, "Somente legenda (SRT ou TXT)")
 		}
 		if sel.Kind == "" {
 			selections := []mediaget.Selection{{Kind: mediaget.Video}, {Kind: mediaget.Audio}}
@@ -302,13 +313,13 @@ chooseMedia:
 			if err != nil {
 				return sel, err
 			}
-			sel.Kind = kinds[index]
+			sel = mediaget.Selection{Kind: kinds[index]}
 		}
 		switch sel.Kind {
 		case mediaget.Video:
 			if honorFlags && inv.Present(prefix+"quality") {
 				sel.Height, _ = core.ValueAs[int](inv, prefix+"quality")
-				break
+				goto outputFormat
 			}
 			heights, options := videoQualities(*info)
 			selections := make([]mediaget.Selection, len(heights))
@@ -331,7 +342,7 @@ chooseMedia:
 					return sel, err
 				}
 				sel.Track = track
-				break
+				goto outputFormat
 			}
 			if len(info.Tracks) == 0 {
 				return sel, usage("esta mídia não oferece faixas de legenda")
@@ -353,6 +364,39 @@ chooseMedia:
 				continue
 			}
 			sel.Track = info.Tracks[index]
+		}
+	outputFormat:
+		if sel.Kind == mediaget.Subtitle {
+			if honorFlags && inv.Present(prefix+"subtitle-format") {
+				sel.SubtitleFormat = value(inv, "subtitle-format")
+			} else {
+				index, err := choose(inv, "Formato da legenda", []string{"SRT — com tempos e numeração", "TXT — somente texto"}, true)
+				if err != nil {
+					return sel, err
+				}
+				if index < 0 {
+					sel.Kind = ""
+					continue
+				}
+				sel.SubtitleFormat = []string{"srt", "txt"}[index]
+			}
+		}
+		if sel.Kind == mediaget.Video {
+			if honorFlags && inv.Present(prefix+"video-format") {
+				sel.VideoFormat = value(inv, "video-format")
+			} else if honorFlags && strings.EqualFold(filepath.Ext(value(inv, "name")), ".mp4") {
+				sel.VideoFormat = "mp4"
+			} else {
+				index, err := choose(inv, "Formato do vídeo", []string{"Automático — mantém os codecs da fonte", "MP4 compatível — H.264/AAC; pode recodificar e demorar mais"}, true)
+				if err != nil {
+					return sel, err
+				}
+				if index < 0 {
+					sel.Kind = ""
+					continue
+				}
+				sel.VideoFormat = []string{"auto", "mp4"}[index]
+			}
 		}
 		for {
 			if err := service.Check(inv.Context, sel); err != nil {

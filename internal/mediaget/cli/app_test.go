@@ -175,7 +175,7 @@ func TestSubtitleSelectionAndDecline(t *testing.T) {
 	if b.last.Selection.Track.Lang != "pt" {
 		t.Fatal(b.last)
 	}
-	input := "3\n1\n1\n\n3\n" // Subtitle, track, continue, name, decline.
+	input := "3\n1\n1\n1\n\n3\n" // Subtitle, track, continue, name, decline.
 	if err := a.Run(context.Background(), []string{"https://example.invalid"}, core.IO{In: strings.NewReader(input), Terminal: core.Terminal{StdinTTY: true}}); err != nil {
 		t.Fatal(err)
 	}

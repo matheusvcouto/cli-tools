@@ -81,7 +81,7 @@ func TestFlagsSkipNamePromptAndReviewBeforeConfirmation(t *testing.T) {
 func TestFinalReviewEditsFlagValuesAndRejectsInvalidDestination(t *testing.T) {
 	initialDir, finalDir := t.TempDir(), t.TempDir()
 	b := &backend{info: mediaget.Info{Title: "Synthetic", Heights: []int{360}}}
-	input := "1\n2\n2\nnew-name\n2\n3\n" + initialDir + "/missing\n" + finalDir + "\n2\n4\nfrag\n1\n128\n2\n1\n2\n1\n1\n"
+	input := "1\n1\n2\n2\nnew-name\n2\n3\n" + initialDir + "/missing\n" + finalDir + "\n2\n4\nfrag\n1\n128\n2\n1\n2\n1\n1\n"
 	var log bytes.Buffer
 	err := app(t, b).Run(context.Background(), []string{"https://example.invalid", "--kind", "video", "--quality", "360", "--name", "original", "--concurrent-fragments", "25", "--output-dir", initialDir}, core.IO{In: strings.NewReader(input), Err: &log, Terminal: core.Terminal{StdinTTY: true}})
 	if err != nil {

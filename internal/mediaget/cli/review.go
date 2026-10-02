@@ -17,6 +17,7 @@ type downloadReview struct {
 // or environment. Nothing is saved globally and no transfer starts in this loop.
 func reviewDownload(inv *core.Invocation, service mediaget.Service, src *mediaget.Source, info *mediaget.Info, review *downloadReview, prefetch **estimateSession) error {
 	for {
+		review.Name, review.Selection = mediaget.OutputSelection(review.Name, review.Selection)
 		review.Estimate = (*prefetch).get(review.Selection).estimate
 		if err := printDownloadSummary(inv, *info, *src, review.Selection, review.Estimate, review.Name, review.Dir); err != nil {
 			return err

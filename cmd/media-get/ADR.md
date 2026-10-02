@@ -274,3 +274,28 @@ sessão/cache salvo Referer alterado, que encerra workers e renova metadata.
 Wizard de edição ignora seeds de qualidade/legenda das flags. --yes preserva
 fluxo automático. Sem gravação global. Regressões sintéticas verificam pedido
 final efetivo, destino inválido, resumos atualizados, voltar e cancelar sem baixar.
+
+## M018 — Saídas TXT e MP4 compatível (v1.3.4)
+
+Corrigir a ausência de escolha do formato de legenda e da compatibilidade de
+vídeo. Selection recebe SubtitleFormat srt/txt e VideoFormat auto/mp4;
+flags/menu/resumo compartilham esses campos. Extensões explícitas suportadas no
+nome são pedidos de formato e prevalecem na revisão e no domínio, evitando
+extensões duplicadas. Defaults de automação preservados (SRT/automático).
+
+TXT é derivado de SRT validado, UTF-8 até 32 MiB, dentro da raiz confinada;
+remove estrutura/markup e une somente palavras sobrepostas em cues simultâneos.
+Dados malformados/vazios falham antes de publicar. Não adicionar dependências.
+
+MP4 usa yt-dlp com preferência H.264/AAC e FFmpeg/ffprobe já instalados.
+Verificar vídeo/áudio, copiar codecs compatíveis, recodificar somente os
+incompatíveis (H.264 yuv420p CRF18/medium, AAC192k). Revalidar o resultado e a
+presença do áudio original antes de descartar o intermediário gerado. Cancelar
+com o grupo de processo existente; stderr bruto não chega à interface.
+A extensão MP4 sozinha não prova compatibilidade: o remux anteriormente sugerido
+preserva codecs que certos players não decodificam. Não inferir os codecs do
+arquivo real do usuário a partir desse relato. Escolha e custo da recodificação
+aparecem antes do download; resultados publicados permanecem sem clobber.
+
+Referências: https://github.com/yt-dlp/yt-dlp#format-selection,
+https://ffmpeg.org/ffmpeg.html#Streamcopy e https://ffmpeg.org/ffprobe.html.

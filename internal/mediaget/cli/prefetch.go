@@ -68,6 +68,10 @@ func (s *estimateSession) enqueue(selections ...mediaget.Selection) {
 }
 func (s *estimateSession) close() { s.cancel(); s.workers.Wait() }
 func (s *estimateSession) get(sel mediaget.Selection) estimateEntry {
+	if sel.VideoFormat == "auto" {
+		sel.VideoFormat = ""
+	}
+	s.enqueue(sel)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if sel.Kind == mediaget.Subtitle {

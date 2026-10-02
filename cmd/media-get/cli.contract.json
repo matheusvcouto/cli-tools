@@ -132,11 +132,47 @@
         "sensitive": true
       },
       {
+        "id": "mediaget.subtitle-format",
+        "long": "subtitle-format",
+        "summary": "subtitle output: srt or plain txt",
+        "type": "enum",
+        "hint": "enum",
+        "action": "set",
+        "choices": [
+          {
+            "Value": "srt",
+            "Description": ""
+          },
+          {
+            "Value": "txt",
+            "Description": ""
+          }
+        ]
+      },
+      {
         "id": "mediaget.lang",
         "long": "subtitle-lang",
         "summary": "exact subtitle language from metadata",
         "type": "string",
         "action": "set"
+      },
+      {
+        "id": "mediaget.video-format",
+        "long": "video-format",
+        "summary": "auto container or compatible MP4 (H.264/AAC; may re-encode)",
+        "type": "enum",
+        "hint": "enum",
+        "action": "set",
+        "choices": [
+          {
+            "Value": "auto",
+            "Description": ""
+          },
+          {
+            "Value": "mp4",
+            "Description": ""
+          }
+        ]
       },
       {
         "id": "mediaget.yes",
@@ -170,7 +206,9 @@
           "mediaget.kind",
           "mediaget.quality",
           "mediaget.lang",
-          "mediaget.auto"
+          "mediaget.auto",
+          "mediaget.subtitle-format",
+          "mediaget.video-format"
         ],
         "predicate_id": "mediaget.selection-options"
       }

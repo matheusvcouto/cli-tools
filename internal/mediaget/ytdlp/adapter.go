@@ -68,7 +68,7 @@ func (a Adapter) Check(ctx context.Context, sel mediaget.Selection) error {
 	if err != nil {
 		return err
 	}
-	if sel.Kind == mediaget.Audio {
+	if sel.Kind == mediaget.Audio || sel.Kind == mediaget.Video && sel.VideoFormat == "mp4" {
 		// --ffmpeg-location makes yt-dlp use this sibling, not an unrelated PATH probe.
 		sibling, err := dependency("ffprobe", filepath.Join(filepath.Dir(ffmpeg), "ffprobe"))
 		if err != nil {
@@ -139,6 +139,9 @@ func (a Adapter) Inspect(ctx context.Context, src mediaget.Source, sel mediaget.
 	if f := format(sel); f != "" {
 		args = append(args, "-f", f)
 	}
+	if sel.Kind == mediaget.Video && sel.VideoFormat == "mp4" {
+		args = append(args, "-S", "vcodec:h264,acodec:aac")
+	}
 	args = append(args, "--", src.URL)
 	cmd := command(ctx, path, args)
 	var out bytes.Buffer
@@ -174,6 +177,9 @@ func (a Adapter) Download(ctx context.Context, req mediaget.Request, work string
 	switch req.Selection.Kind {
 	case mediaget.Video:
 		args = append(args, "-f", format(req.Selection), "--merge-output-format", "mp4/mkv")
+		if req.Selection.VideoFormat == "mp4" {
+			args = append(args, "-S", "vcodec:h264,acodec:aac")
+		}
 	case mediaget.Audio:
 		args = append(args, "-f", format(req.Selection), "-x", "--audio-format", "m4a", "--audio-quality", "256K")
 	case mediaget.Subtitle:
@@ -196,6 +202,9 @@ func (a Adapter) Download(ctx context.Context, req mediaget.Request, work string
 	cmd.Stderr = output
 	if err := cmd.Run(); err != nil {
 		return processError(ctx, err, "baixar mídia")
+	}
+	if req.Selection.Kind == mediaget.Video && req.Selection.VideoFormat == "mp4" {
+		return a.compatibleMP4(ctx, work, progress)
 	}
 	return nil
 }

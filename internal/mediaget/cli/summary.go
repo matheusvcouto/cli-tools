@@ -20,6 +20,11 @@ func printDownloadSummary(inv *core.Invocation, info mediaget.Info, src mediaget
 			quality = fmt.Sprintf("Até %dp", sel.Height)
 		}
 		rows = append(rows, "Tipo: Vídeo com áudio", "Qualidade: "+quality)
+		format := "Automático (contêiner/codecs da fonte)"
+		if sel.VideoFormat == "mp4" {
+			format = "MP4 compatível (H.264/AAC; pode recodificar)"
+		}
+		rows = append(rows, "Formato: "+format)
 	case mediaget.Audio:
 		rows = append(rows, "Tipo: Áudio M4A")
 	case mediaget.Subtitle:
@@ -27,7 +32,11 @@ func printDownloadSummary(inv *core.Invocation, info mediaget.Info, src mediaget
 		if sel.Track.Auto {
 			origin = "automática"
 		}
-		rows = append(rows, "Tipo: Legenda SRT", "Idioma: "+sel.Track.Lang+" ("+origin+")")
+		format := "SRT"
+		if sel.SubtitleFormat == "txt" {
+			format = "TXT — somente texto"
+		}
+		rows = append(rows, "Tipo: Legenda "+format, "Idioma: "+sel.Track.Lang+" ("+origin+")")
 	}
 	if sel.Kind != mediaget.Subtitle {
 		size := estimate.label() + " (o arquivo final pode variar)"

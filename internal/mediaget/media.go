@@ -37,9 +37,11 @@ type Track struct {
 	Auto       bool
 }
 type Selection struct {
-	Kind   Kind
-	Height int
-	Track  Track
+	Kind           Kind
+	Height         int
+	Track          Track
+	SubtitleFormat string // Empty means SRT.
+	VideoFormat    string // Empty/auto preserves the backend container; mp4 requests H.264/AAC.
 }
 type FormatSize struct {
 	Bytes, ApproxBytes, Bitrate float64
@@ -217,6 +219,12 @@ func HumanSize(n int64) string {
 	return ""
 }
 func validateSelection(sel Selection) error {
+	if sel.SubtitleFormat != "" && (sel.Kind != Subtitle || sel.SubtitleFormat != "srt" && sel.SubtitleFormat != "txt") {
+		return errors.New("formato de legenda inválido; use srt ou txt")
+	}
+	if sel.VideoFormat != "" && (sel.Kind != Video || sel.VideoFormat != "auto" && sel.VideoFormat != "mp4") {
+		return errors.New("formato de vídeo inválido; use auto ou mp4")
+	}
 	switch sel.Kind {
 	case Video:
 		if sel.Height != 0 && sel.Height != 360 && sel.Height != 480 && sel.Height != 720 && sel.Height != 1080 && sel.Height != 2160 {
@@ -255,6 +263,7 @@ func (s Service) Download(ctx context.Context, req Request, progress func(Progre
 	if err = ValidateSource(req.Source); err != nil {
 		return
 	}
+	req.Name, req.Selection = OutputSelection(req.Name, req.Selection)
 	if err = validateSelection(req.Selection); err != nil {
 		return
 	}
@@ -374,6 +383,16 @@ func (s Service) Download(ctx context.Context, req Request, progress func(Progre
 	if !allowed[ext] {
 		return result, errors.New("formato de saída inesperado")
 	}
+	if req.Selection.Kind == Video && req.Selection.VideoFormat == "mp4" && ext != ".mp4" {
+		return result, errors.New("backend não produziu o MP4 solicitado")
+	}
+	if req.Selection.Kind == Subtitle && req.Selection.SubtitleFormat == "txt" {
+		sourceName, file, err = subtitleText(root, sourceName, workName)
+		if err != nil {
+			return
+		}
+		ext = ".txt"
+	}
 	base := SafeName(req.Name)
 	for n := 0; n < 10000; n++ {
 		if err = ctx.Err(); err != nil {
@@ -392,4 +411,19 @@ func (s Service) Download(ctx context.Context, req Request, progress func(Progre
 		}
 	}
 	return result, errors.New("muitas colisões de nome no destino")
+}
+
+// OutputSelection interprets supported explicit extensions as output requests,
+// not as part of the base name. It is applied before summary and before transfer.
+func OutputSelection(name string, sel Selection) (string, Selection) {
+	ext := strings.ToLower(filepath.Ext(name))
+	if sel.Kind == Video && ext == ".mp4" {
+		sel.VideoFormat = "mp4"
+		name = strings.TrimSuffix(name, filepath.Ext(name))
+	}
+	if sel.Kind == Subtitle && (ext == ".txt" || ext == ".srt") {
+		sel.SubtitleFormat = ext[1:]
+		name = strings.TrimSuffix(name, filepath.Ext(name))
+	}
+	return name, sel
 }

@@ -190,3 +190,19 @@ com o usuário; nunca garantir ausência de conflitos de checksum sem evidência
 PASS. Logs em dist/release-validation/1.3.3/{all,native}.log. Código e manifests
 de produto preservados; binários reconstruídos com suite_version=v1.3.3.
 CI remoto, tag e publicação da correção ainda pendentes nesta etapa.
+
+## Correção de formatos — v1.3.4 (pedido explícito)
+
+Usuário autorizou implementação/testes/commit/push/publicação da suíte v1.3.4.
+Corrigir escolha ausente SRT/TXT e oferecer MP4 compatível H.264/AAC; extensões
+explícitas selecionam formato. Produto previsto 0.3.1 experimental, demais
+produtos preservados; API pública do módulo sem alterações. Nenhuma mídia/conta
+real é fixture. Gates e publicação pendentes; não declarar runtime real sem teste.
+
+Gates locais da correção PASS: fmt/test/vet/shuffle/race/API pública/contracts/
+change records; preview calcula exatamente suite 1.3.4 e media-get 0.3.1.
+FFmpeg real local com mídia inteiramente sintética: remux H.264/AAC e conversão
+VP9/Opus PASS, com decodificação de vídeo/áudio final. Testes negativos de
+codecs, ausência de vídeo, perda de áudio, cancelamento e TXT inválido PASS.
+Binários nativos reconstruídos e smokes isolados PASS (suite 1.3.3+dev).
+Evidências em dist/release-validation/1.3.4; CI remoto ainda pendente.

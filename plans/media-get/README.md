@@ -204,3 +204,11 @@ Decisões/limites/fontes em ../../docs/media-get-throughput.md e M014.
 - [x] Preferência por env, flag > env > default, teto 256 e documentação (M016).
 
 - [x] Menu final Baixar / Editar opções / Cancelar; edição local e resumo atualizado (M017).
+
+## Correção de saídas — v1.3.4 autorizada
+
+- [x] Escolha SRT/TXT após selecionar a faixa; flags e resumo.
+- [x] TXT validado sem tempos/numeração/markup, mantendo números falados.
+- [x] MP4 compatível opcional, extensões explícitas e revisão final.
+- [x] Verificação de codecs/vídeo/áudio, conversão cancelável e sem clobber.
+- [ ] Gates locais, builds, CI nativo e publicação v1.3.4.

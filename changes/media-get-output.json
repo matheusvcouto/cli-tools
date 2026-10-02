@@ -1,0 +1,4 @@
+{
+ "schema_version": 1,
+ "changes": [{"component":"media-get","impact":"patch","summary":"Fix missing plain TXT subtitle output and offer validated compatible MP4 output, including explicit filename extensions."}]
+}

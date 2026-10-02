@@ -9,7 +9,7 @@ completion continuam disponíveis sem yt-dlp, FFmpeg ou acesso ao HOME.
 ## Dependências
 
 Não há instalação automática. A inspeção requer `yt-dlp`. Vídeo com áudio e
-conversão de legenda para SRT requerem `ffmpeg`; extração de áudio também requer
+conversão de legenda para SRT requerem `ffmpeg`; MP4 compatível e extração de áudio também requerem
 `ffprobe` do mesmo diretório utilizado por FFmpeg. Ausências produzem erro indicando o comando:
 
 ```sh
@@ -83,11 +83,11 @@ bloquear o download. Legendas têm estimativa indisponível.
 
 - **Vídeo:** vídeo com áudio, melhor qualidade ou limite de altura. Streams
   separados são mesclados em MP4 quando possível, com MKV como alternativa.
-  O arquivo mantém a extensão realmente produzida. Não há garantia de H.264,
+  O arquivo mantém a extensão realmente produzida. No modo automático não há garantia de H.264,
   reprodução no QuickTime ou conversão forçada do vídeo.
 - **Áudio:** extração em M4A; qualidade de conversão 256 kbps quando há recodificação.
 - **Legenda:** faixa manual ou automática em SRT. A faixa manual é preferida
-  quando há ambas no mesmo idioma. TXT e traduções especiais ficam para depois.
+  quando há ambas no mesmo idioma. O formato TXT está disponível; traduções especiais ficam para depois.
 
 ## Destino e arquivos
 
@@ -295,3 +295,41 @@ iniciar a transferência. O novo diretório deve existir e é validado antes de 
 aceito. Trocar somente nome, destino ou fragmentos reaproveita metadata; mudar
 Referer renova a consulta e as escolhas. `--yes` mantém o fluxo automático com
 resumo e dispensa o menu final.
+
+## Legendas em SRT ou TXT
+
+Ao escolher somente legenda, selecione a faixa/idioma e depois o formato:
+SRT preserva tempos e numeração; TXT contém apenas o texto em UTF-8, sem
+marcações de tempo, números de blocos ou tags de formatação. Números falados
+são preservados. Trechos repetidos em legendas automáticas sobrepostas são
+unidos; repetições em momentos distintos permanecem. Não resume nem traduz.
+
+```sh
+media-get 'https://example.com/video' --kind subtitle --subtitle-lang en-orig --auto-subs --subtitle-format txt --name transcricao --yes
+```
+
+`--subtitle-format srt` é o padrão para automação. Um nome terminado em `.txt`
+ou `.srt` também seleciona o formato, tem precedência sobre a escolha anterior
+e não duplica a extensão. O resumo final mostra a opção efetiva.
+
+## Vídeo MP4 compatível
+
+Depois da qualidade, o menu oferece Automático ou MP4 compatível. Automático
+mantém os codecs da fonte e pode resultar em MKV, MP4 ou outro contêiner.
+MP4 prioriza H.264/AAC na seleção do yt-dlp e verifica os codecs com ffprobe.
+Quando possível copia as faixas sem perda; recodifica somente as faixas
+incompatíveis para H.264 em yuv420p/AAC. Recodificação pode demorar, consumir CPU,
+alterar a qualidade e mudar o tamanho final. É explicitada no menu/resumo.
+Não há garantia de reprodução em todo dispositivo/player.
+
+```sh
+media-get 'https://example.com/video' --kind video --video-format mp4 --name video --yes
+media-get 'https://example.com/video' --kind video --name video.mp4 --yes
+```
+
+Um nome terminado em `.mp4` solicita MP4 compatível, inclusive quando editado na
+revisão final, e a extensão aparece uma única vez. Tem precedência sobre
+`--video-format auto`. MP4 requer ffmpeg e ffprobe do mesmo pacote, com encoders
+libx264/AAC disponíveis se for preciso recodificar. Falhas não publicam resultado
+parcial nem substituem arquivos existentes; o fluxo de incompletos é mantido.
+A conversão usa a área privada do download e é cancelável junto aos subprocessos.
