@@ -185,3 +185,22 @@ Resultados finais e pendências ficam em `VALIDATION.md` e `CONTEXT.md` da rodad
 - [x] Restore síncrono antes de retornar Ctrl+C/SIGTERM em campo nativo.
 - [x] Cancelamento legível com resultado de cleanup, mantendo causa/código 130.
 - [x] Gates finais, edição real no PTY, cancelamento no nome e rebuild: PASS.
+
+## Revisão de throughput após v1.3.2 (local, ainda não publicada)
+
+- [x] Consultar yt-dlp e os dois repositórios citados sem instalar aplicativos.
+- [x] Explicar a projeção HLS variável; preservar ≈ quando não houver total exato.
+- [x] Dar prioridade a metadata/total real sobre amostras aproximadas posteriores.
+- [x] Default 4 fragmentos, override 1..256 e flag validada antes de consultas.
+- [x] Remover duplicação de previsão e resumo das configurações.
+- [x] Gates completos, seis cross-builds e binário nativo/smoke isolado PASS.
+- [ ] Medição opt-in de throughput real e CI remoto da nova branch.
+
+Decisões/limites/fontes em ../../docs/media-get-throughput.md e M014.
+
+- [x] Resumo final antes da transferência, flags sem pergunta de nome repetida (M015).
+- [ ] Medição real de throughput pelo usuário antes de publicar a próxima release.
+
+- [x] Preferência por env, flag > env > default, teto 256 e documentação (M016).
+
+- [x] Menu final Baixar / Editar opções / Cancelar; edição local e resumo atualizado (M017).

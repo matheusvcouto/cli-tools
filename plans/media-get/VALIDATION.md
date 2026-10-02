@@ -271,3 +271,57 @@ Nenhuma pasta pessoal foi alterada, nenhum push/tag/release/snapshot gerado.
 - Preview e prepare --write: suíte v1.3.1, media-get 0.2.1 experimental; demais
   produtos 1.1.0. Records consumidos preservados em changes/archive/1.3.1.
 - CI do commit preparado e workflow de release ainda pendentes nesta etapa.
+
+## Revisão local de throughput após v1.3.2
+
+Base publicada 9cf9f97; branch codex/media-get-throughput. Gates locais completos
+PASS, incluindo regressões de total exato/HLS variável e default/override/faixa
+antes de consultas. API pública e contratos PASS. Seis cross-builds PASS; build
+nativo/help/versões isolados PASS com SuiteVersion=v1.3.2+dev. Windows download
+continua indisponível; cross-build não comprova runtime. Nenhuma execução real
+de Twitch/YouTube/FFmpeg ou medição de rede; CI remoto dessa branch não executado.
+Relatório e fontes pinadas: ../../docs/media-get-throughput.md. Não publicada.
+
+## Resumo e paralelismo ampliado — 2026-10-02
+
+Gates completos locais PASS nesta árvore: fmt/test/vet/shuffle/race/API/contratos/
+changes. Seis cross-builds PASS e smokes nativos PASS. Regressões sintéticas
+cobrem 25/64 válidos, 65 rejeitado antes de consultar, flags sem repetir nome,
+resumo antes da confirmação, largura, privacidade e falha de escrita que impede
+transferência. Executável dist/media-get/media-get, suite v1.3.2+dev. Logs:
+ dist/release-validation/media-summary-{all,native,cross}.log.
+Sem CI remoto, benchmark real, push ou nova release. Teste de rede pelo usuário
+continua pendente; não inferir ganho de throughput dos testes sintéticos.
+
+## Env e teto 256 — validação local 2026-10-02
+
+CLI_TOOLS_MEDIA_GET_CONCURRENT_FRAGMENTS implementado com provider canônico;
+flag > env > default 4. Faixa atual 1..256. Regressões de precedência, env vazio/
+inválido, endpoints estáticos e repasse de 128/256 PASS. Gates completos locais
+check-safe.sh all PASS (fmt/test/vet/shuffle/race/API/contratos/changes),
+git diff --check PASS; build nativo e help/versões das três CLIs PASS. Logs
+dist/release-validation/media-env-{all,native}.log. Executável atualizado em
+dist/media-get/media-get, suite v1.3.2+dev. README específico atualizado.
+Nenhuma configuração global ou mídia real foi tocada pelo agente; sem publicação.
+Cross-build específico deste ajuste e CI remoto: não executados.
+
+## Revisão final editável — 2026-10-02
+
+Menu Baixar / Editar opções / Cancelar substitui s/N. Edições locais de tipo/
+qualidade/legenda, nome, destino, Referer e fragmentos; flags/env substituíveis
+nessa execução. Resumo reexibido, destino validado e cache preservado salvo
+mudança de fonte. Regressões sintéticas de múltiplas edições, destino inválido,
+resumo/pedido final, voltar e cancelamento PASS. check-safe.sh all PASS (fmt/
+test/vet/shuffle/race/API/contratos/changes), git diff --check PASS. Build nativo
+e smokes das três CLIs PASS. Logs media-review-{all,native}.log em
+dist/release-validation. Executável dist/media-get/media-get reconstruído com
+suite_version=v1.3.2+dev; sem release, CI remoto ou nova medição de throughput.
+
+## Publicação autorizada — preparo v1.4.0
+
+Usuário validou o fluxo local e autorizou integrar main/publicar/voltar ao checkout
+principal. Preview canônico: suite 1.3.2 -> 1.4.0 minor, media-get 0.2.1 -> 0.3.0
+experimental; demais produtos 1.1.0. Prepare --write concluído, records preservados
+em changes/archive/1.4.0. Gates completos da árvore preparada, preflight e smokes
+nativos das três CLIs PASS. Logs dist/release-validation/v1.4.0-{all,native}.log.
+Commit final, CI remoto, tag e publicação ainda pendentes nesta etapa.

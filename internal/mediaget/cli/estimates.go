@@ -141,12 +141,7 @@ func estimateOptions(inv *core.Invocation, service mediaget.Service, src mediage
 					info, err := service.Inspect(ctx, src, pending[i])
 					results[i].err = err
 					if err == nil {
-						results[i].estimate.bytes, results[i].estimate.known = mediaget.EstimatedSize(info)
-						results[i].estimate.parts = info.Parts
-						if len(info.Parts) == 0 {
-							results[i].estimate.parts = []mediaget.FormatSize{info.Size}
-						}
-						results[i].estimate.duration = info.Duration
+						results[i].estimate = estimateFromInfo(info)
 					}
 					report()
 				}
@@ -173,4 +168,14 @@ func printTransferEstimate(inv *core.Invocation, estimate transferEstimate) {
 	} else {
 		fmt.Fprintln(inv.IO.Err, "Não foi possível calcular o tamanho; o download pode continuar.")
 	}
+}
+
+// Keep synchronous automation and background previews on the same size rules.
+func estimateFromInfo(info mediaget.Info) transferEstimate {
+	e := transferEstimate{duration: info.Duration, parts: append([]mediaget.FormatSize(nil), info.Parts...)}
+	e.bytes, e.known = mediaget.EstimatedSize(info)
+	if len(e.parts) == 0 {
+		e.parts = []mediaget.FormatSize{info.Size}
+	}
+	return e
 }

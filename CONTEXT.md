@@ -84,3 +84,80 @@ três binários reconstruídos com SuiteVersion=v1.3.2 e smokes isolados PASS.
 CI do commit preparado e workflow de publicação ainda pendentes.
 Depois da publicação, iniciar a revisão de estimativas e velocidade do media-get
 pedida pelo usuário; não instalar os aplicativos citados como referência.
+
+## Publicação concluída e próxima revisão
+
+Release v1.3.2 pública: https://github.com/matheusvcouto/cli-tools/releases/tag/v1.3.2.
+Commit 9cf9f97: CI 36948413603 success; publicação 36948751821 success.
+Seis archives + SHA256SUMS; smokes nativos dos archives PASS em toda a matriz.
+Mise v1.3.2 PASS para as três CLIs em ambiente sintético, sem ativação pessoal.
+Branch de revisão seguinte: codex/media-get-throughput, nesta mesma worktree.
+Escopo autorizado: auditar estimativas, partes críticas, duplicação e velocidade.
+Não mover v1.3.2 nem publicar outra versão sem autorização específica.
+
+## Revisão local de media-get concluída
+
+Default de fragmentos 4; override 1..8 interativo/flag, opção única no argv.
+Tamanho exato tem prioridade; HLS desconhecido continua aproximado/variável.
+Construção de previsões e resumo de configurações sem duplicação entre fluxos.
+Regressões sintéticas e check-safe.sh all PASS; contrato atualizado, API pública
+preservada, git diff --check PASS. Seis cross-builds PASS; smoke nativo PASS.
+Binário: dist/media-get/media-get, suite_version=v1.3.2+dev. Produto fica 0.2.1
+até prepare futuro, sem bump manual. Relatório: docs/media-get-throughput.md.
+Nenhum aplicativo de referência instalado/executado, mídia real baixada ou conta
+acessada. Throughput real e CI remoto desta branch não executados. Melhorias
+locais ainda sem commit/push/release; v1.3.2 continua apontando para 9cf9f97.
+
+## Build local para teste do usuário — 2026-10-02
+
+Pedido atual: aceitar 25 fragmentos/flags, melhorar resumo e concluir antes de
+criar release. Teto 64, default 4; 65 rejeitado antes de consultas. Resumo final
+antes da confirmação e transferência, também em --yes; --name explícito não
+repete pergunta. Stderr com quadro responsivo/texto redirecionado, controles
+sanitizados e Referer/URL ocultos; erro de escrita impede baixar.
+
+Validação desta árvore: check-safe.sh all PASS, git diff --check PASS,
+seis cross-builds PASS e smoke nativo das três CLIs PASS. Logs em
+ dist/release-validation/media-summary-{all,native,cross}.log.
+Regressões: 25/64/65, flags/resumo antes da confirmação, privacidade, largura e
+falha de saída. Primeiro teste apontou contrato desatualizado e caso antigo
+usando 9 como inválido; corrigidos, gates finais verdes. Invocação inicial pelo
+shim mise bloqueou por configuração não confiada; usar Go 1.27.1 direto no PATH,
+sem tocar trust/configuração pessoal.
+
+Executável atual: dist/media-get/media-get, suite_version=v1.3.2+dev, produto
+0.2.1 até futuro release prepare. Sem commit/push/tag/release das melhorias.
+CI remoto e medição real de throughput não executados; aguardar teste do usuário.
+
+## Env e teto 256 — validação local 2026-10-02
+
+CLI_TOOLS_MEDIA_GET_CONCURRENT_FRAGMENTS implementado com provider canônico;
+flag > env > default 4. Faixa atual 1..256. Regressões de precedência, env vazio/
+inválido, endpoints estáticos e repasse de 128/256 PASS. Gates completos locais
+check-safe.sh all PASS (fmt/test/vet/shuffle/race/API/contratos/changes),
+git diff --check PASS; build nativo e help/versões das três CLIs PASS. Logs
+dist/release-validation/media-env-{all,native}.log. Executável atualizado em
+dist/media-get/media-get, suite v1.3.2+dev. README específico atualizado.
+Nenhuma configuração global ou mídia real foi tocada pelo agente; sem publicação.
+Cross-build específico deste ajuste e CI remoto: não executados.
+
+## Revisão final editável — 2026-10-02
+
+Menu Baixar / Editar opções / Cancelar substitui s/N. Edições locais de tipo/
+qualidade/legenda, nome, destino, Referer e fragmentos; flags/env substituíveis
+nessa execução. Resumo reexibido, destino validado e cache preservado salvo
+mudança de fonte. Regressões sintéticas de múltiplas edições, destino inválido,
+resumo/pedido final, voltar e cancelamento PASS. check-safe.sh all PASS (fmt/
+test/vet/shuffle/race/API/contratos/changes), git diff --check PASS. Build nativo
+e smokes das três CLIs PASS. Logs media-review-{all,native}.log em
+dist/release-validation. Executável dist/media-get/media-get reconstruído com
+suite_version=v1.3.2+dev; sem release, CI remoto ou nova medição de throughput.
+
+## Publicação autorizada — preparo v1.4.0
+
+Usuário validou o fluxo local e autorizou integrar main/publicar/voltar ao checkout
+principal. Preview canônico: suite 1.3.2 -> 1.4.0 minor, media-get 0.2.1 -> 0.3.0
+experimental; demais produtos 1.1.0. Prepare --write concluído, records preservados
+em changes/archive/1.4.0. Gates completos da árvore preparada, preflight e smokes
+nativos das três CLIs PASS. Logs dist/release-validation/v1.4.0-{all,native}.log.
+Commit final, CI remoto, tag e publicação ainda pendentes nesta etapa.

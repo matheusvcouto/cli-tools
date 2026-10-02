@@ -19,7 +19,7 @@ func TestConfigurationRefererRefreshesMetadataAndSizes(t *testing.T) {
 	b := &backend{info: mediaget.Info{Title: "Synthetic", Size: mediaget.FormatSize{Bytes: 4096}}}
 	var log bytes.Buffer
 	// Audio, add config, search Referer, pick it, value, reselect audio, continue.
-	input := "2\n4\nref\n1\nhttps://origin.invalid/page\n2\n1\n\ns\n"
+	input := "2\n4\nref\n1\nhttps://origin.invalid/page\n2\n1\n\n1\n"
 	err := app(t, b).Run(context.Background(), []string{"https://example.invalid/media"}, core.IO{In: strings.NewReader(input), Err: &log, Terminal: core.Terminal{StdinTTY: true}})
 	if err != nil {
 		t.Fatal(err)
@@ -46,7 +46,7 @@ func TestFragmentConfigurationDoesNotRepeatQueriesOrSelections(t *testing.T) {
 	t.Setenv(DownloadEnv, t.TempDir())
 	b := &backend{info: mediaget.Info{Title: "Synthetic"}}
 	var log bytes.Buffer
-	input := "2\n4\nfrag\n1\n9\n4\n1\n\ns\n"
+	input := "2\n4\nfrag\n1\n257\n4\n1\n\n1\n"
 	err := app(t, b).Run(context.Background(), []string{"https://example.invalid/media"}, core.IO{In: strings.NewReader(input), Err: &log, Terminal: core.Terminal{StdinTTY: true}})
 	if err != nil {
 		t.Fatal(err)
@@ -159,7 +159,7 @@ func TestFailedInitialLookupCanRecoverWithReferer(t *testing.T) {
 		t.Fatal(err)
 	}
 	var log bytes.Buffer
-	input := "1\nref\n1\nhttps://origin.invalid\n2\n1\n\ns\n"
+	input := "1\nref\n1\nhttps://origin.invalid\n2\n1\n\n1\n"
 	err = a.Run(context.Background(), []string{"https://example.invalid"}, core.IO{In: strings.NewReader(input), Err: &log, Terminal: core.Terminal{StdinTTY: true}})
 	if err != nil {
 		t.Fatal(err)
@@ -203,7 +203,7 @@ func TestVideoAndAudioProgressAggregatesWithoutDoubleCounting(t *testing.T) {
 	r := newDownloadRenderer(&core.Invocation{})
 	r.setEstimate(transferEstimate{bytes: 5000, known: true, parts: []mediaget.FormatSize{{Bytes: 4000, StreamID: "video"}, {Bytes: 1000, StreamID: "audio"}}})
 	r.accept(mediaget.Progress{Stage: mediaget.Transferring, StreamID: "video", Downloaded: 4000, Total: 4000})
-	if r.current.Total != 5000 || r.current.Downloaded != 4000 || !r.current.Estimated {
+	if r.current.Total != 5000 || r.current.Downloaded != 4000 || r.current.Estimated {
 		t.Fatal(r.current)
 	}
 	r.accept(mediaget.Progress{Stage: mediaget.Transferring, StreamID: "audio", Downloaded: 500, Total: 1000, Speed: 250})
@@ -253,4 +253,33 @@ type canceledProgressBackend struct{ backend }
 func (b *canceledProgressBackend) Download(_ context.Context, _ mediaget.Request, _ string, notify func(mediaget.Progress)) error {
 	notify(mediaget.Progress{Stage: mediaget.Transferring, Downloaded: 1024, StreamID: "synthetic"})
 	return context.Canceled
+}
+
+func TestExactTransferSizeSurvivesProvisionalHLSEstimate(t *testing.T) {
+	r := newDownloadRenderer(&core.Invocation{})
+	r.setEstimate(transferEstimate{bytes: 5000, known: true, parts: []mediaget.FormatSize{{Bytes: 4000, StreamID: "video"}, {Bytes: 1000, StreamID: "audio"}}})
+	r.accept(mediaget.Progress{Stage: mediaget.Transferring, StreamID: "video", Downloaded: 100, Total: 6000, Estimated: true})
+	if r.current.Total != 5000 || r.current.Estimated {
+		t.Fatalf("exact metadata replaced by estimate: %+v", r.current)
+	}
+	// An exact downloader total is authoritative, including corrections to metadata.
+	r.accept(mediaget.Progress{Stage: mediaget.Transferring, StreamID: "video", Downloaded: 4100, Total: 4100})
+	r.accept(mediaget.Progress{Stage: mediaget.Transferring, StreamID: "video", Downloaded: 4100, Total: 7000, Estimated: true})
+	if r.current.Total != 5100 || r.current.Estimated || r.current.Downloaded != 4100 {
+		t.Fatalf("exact downloader total degraded: %+v", r.current)
+	}
+}
+func TestUnknownHLSTotalRemainsProvisionalUntilExactEvent(t *testing.T) {
+	r := newDownloadRenderer(&core.Invocation{})
+	r.setEstimate(transferEstimate{bytes: 4000, known: true, parts: []mediaget.FormatSize{{ApproxBytes: 4000, StreamID: "video"}}})
+	for _, total := range []int64{4500, 4700, 4300} {
+		r.accept(mediaget.Progress{Stage: mediaget.Transferring, StreamID: "video", Downloaded: 100, Total: total, Estimated: true})
+		if r.current.Total != total || !r.current.Estimated {
+			t.Fatalf("invented exact HLS total: %+v", r.current)
+		}
+	}
+	r.accept(mediaget.Progress{Stage: mediaget.Transferring, StreamID: "video", Downloaded: 4400, Total: 4400})
+	if r.current.Total != 4400 || r.current.Estimated {
+		t.Fatal(r.current)
+	}
 }

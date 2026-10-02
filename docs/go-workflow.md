@@ -129,3 +129,7 @@ As duas falhas anteriores foram resolvidas; preparo de v1.3.2 liberado.
 
 Preparo v1.3.2: gates locais completos, preflight e smokes dos três binários
 com SuiteVersion=v1.3.2 PASS. Commit preparado deve passar CI antes da tag.
+
+Release concluída: v1.3.2 / 9cf9f97, CI 36948413603 e publicação 36948751821
+success. Seis archives e SHA256SUMS públicos. Mise isolado PASS para as três
+CLIs com suite_version=v1.3.2. A revisão seguinte de media-get é separada.

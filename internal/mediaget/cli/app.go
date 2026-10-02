@@ -15,6 +15,7 @@ import (
 
 const prefix = "mediaget."
 const DownloadEnv = "CLI_TOOLS_MEDIA_GET_DOWNLOAD_DIR"
+const FragmentsEnv = "CLI_TOOLS_MEDIA_GET_CONCURRENT_FRAGMENTS"
 
 func qualityValue() core.Value {
 	choices := []core.Choice{{Value: "best"}, {Value: "2160"}, {Value: "1080"}, {Value: "720"}, {Value: "480"}, {Value: "360"}}
@@ -51,6 +52,7 @@ func New(service mediaget.Service, product core.ProductMetadata, interaction ...
 		Root: core.Command{ID: prefix + "root", Name: "media-get", OptionPolicy: core.OptionsInterspersed,
 			Args: []core.Arg{{ID: prefix + "url", Name: "url", Summary: "HTTP(S) media URL (prompt when omitted)", Value: core.StringValue(), Sensitive: true}},
 			Flags: []core.Flag{
+				{ID: prefix + "fragments", Long: "concurrent-fragments", Summary: fmt.Sprintf("parallel native HLS/DASH fragments (1 to %d)", mediaget.MaxConcurrentFragments), Value: fragmentsValue(), Providers: []core.ResolutionProvider{core.EnvProvider(FragmentsEnv)}, Default: []string{strconv.Itoa(mediaget.DefaultConcurrentFragments)}},
 				{ID: prefix + "referer", Long: "referer", Summary: "optional origin page; omitted means none", Value: core.StringValue(), Sensitive: true},
 				{ID: prefix + "output", Long: "output-dir", Short: 'o', Summary: "existing download directory", Value: core.DirectoryValue(), Providers: []core.ResolutionProvider{
 					core.EnvProvider(DownloadEnv),
@@ -107,7 +109,8 @@ func run(inv *core.Invocation, service mediaget.Service) error {
 		return &core.Diagnostic{Code: core.CodeNonInteractive, Kind: "interaction", Message: "use um terminal ou informe URL, --kind e --yes", Class: core.ExitUnavailable}
 	}
 	kind := value(inv, "kind")
-	src := mediaget.Source{URL: value(inv, "url"), Referer: value(inv, "referer")}
+	fragments, _ := core.ValueAs[int](inv, prefix+"fragments")
+	src := mediaget.Source{URL: value(inv, "url"), Referer: value(inv, "referer"), ConcurrentFragments: fragments}
 	var err error
 	if src.URL == "" {
 		src.URL, err = ask(inv, "Cole a URL da mídia", "")
@@ -140,7 +143,9 @@ func run(inv *core.Invocation, service mediaget.Service) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(inv.IO.Err, "Mídia:", mediaget.SafeName(info.Title))
+	if !automatic {
+		fmt.Fprintln(inv.IO.Err, "Mídia:", mediaget.SafeName(info.Title))
+	}
 	selectedEstimate := transferEstimate{}
 	sel := mediaget.Selection{Kind: mediaget.Kind(kind)}
 	if automatic {
@@ -157,11 +162,11 @@ func run(inv *core.Invocation, service mediaget.Service) error {
 		if err := service.Check(inv.Context, sel); err != nil {
 			return err
 		}
-		if err := printEstimate(inv, service, src, sel, &selectedEstimate); err != nil {
+		if err := inspectEstimate(inv, service, src, sel, &selectedEstimate); err != nil {
 			return err
 		}
 	} else {
-		sel, err = wizard(inv, service, &src, &info, sel, &selectedEstimate, &prefetch)
+		sel, err = wizard(inv, service, &src, &info, sel, &selectedEstimate, &prefetch, true)
 		if errors.Is(err, errDeclined) {
 			fmt.Fprintln(inv.IO.Err, "Cancelado.")
 			return nil
@@ -174,20 +179,26 @@ func run(inv *core.Invocation, service mediaget.Service) error {
 	if name == "" {
 		name = info.Title
 	}
-	if !automatic {
+	if !automatic && !inv.Present(prefix+"name") {
 		name, err = ask(inv, "Nome do arquivo", mediaget.SafeName(name))
 		if err != nil {
 			return err
 		}
-		answer, err := ask(inv, "Baixar em "+dir+"? (s/N)", "n")
-		if err != nil {
-			return err
-		}
-		if !isYes(answer) {
-			fmt.Fprintln(inv.IO.Err, "Cancelado.")
-			return nil
-		}
 	}
+	review := downloadReview{Name: name, Dir: dir, Selection: sel, Estimate: selectedEstimate}
+	if automatic {
+		err = printDownloadSummary(inv, info, src, sel, selectedEstimate, name, dir)
+	} else {
+		err = reviewDownload(inv, service, &src, &info, &review, &prefetch)
+	}
+	if errors.Is(err, errDeclined) {
+		fmt.Fprintln(inv.IO.Err, "Cancelado.")
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	name, dir, sel, selectedEstimate = review.Name, review.Dir, review.Selection, review.Estimate
 	if prefetch != nil {
 		selectedEstimate = prefetch.get(sel).estimate
 		prefetch.close()
@@ -214,14 +225,6 @@ func run(inv *core.Invocation, service mediaget.Service) error {
 }
 
 var errDeclined = errors.New("cancelado pelo usuário")
-
-func isYes(s string) bool {
-	switch strings.ToLower(strings.TrimSpace(s)) {
-	case "s", "sim", "y", "yes":
-		return true
-	}
-	return false
-}
 
 // Returning on cancellation lets the entrypoint exit even while a terminal
 // reader is blocked. Only one prompt is active; it cannot read future prompts.
@@ -280,7 +283,7 @@ func choose(inv *core.Invocation, message string, choices []string, back bool) (
 		fmt.Fprintln(inv.IO.Err, "Escolha um número da lista.")
 	}
 }
-func wizard(inv *core.Invocation, service mediaget.Service, src *mediaget.Source, info *mediaget.Info, sel mediaget.Selection, selectedEstimate *transferEstimate, prefetch **estimateSession) (mediaget.Selection, error) {
+func wizard(inv *core.Invocation, service mediaget.Service, src *mediaget.Source, info *mediaget.Info, sel mediaget.Selection, selectedEstimate *transferEstimate, prefetch **estimateSession, honorFlags bool) (mediaget.Selection, error) {
 	scheduleQualities(inv, *prefetch, *info)
 chooseMedia:
 	for {
@@ -303,7 +306,7 @@ chooseMedia:
 		}
 		switch sel.Kind {
 		case mediaget.Video:
-			if inv.Present(prefix + "quality") {
+			if honorFlags && inv.Present(prefix+"quality") {
 				sel.Height, _ = core.ValueAs[int](inv, prefix+"quality")
 				break
 			}
@@ -322,7 +325,7 @@ chooseMedia:
 			}
 			sel.Height = heights[index]
 		case mediaget.Subtitle:
-			if value(inv, "lang") != "" {
+			if honorFlags && value(inv, "lang") != "" {
 				track, err := findTrack(*info, value(inv, "lang"), flag(inv, "auto"))
 				if err != nil {
 					return sel, err
@@ -361,12 +364,7 @@ chooseMedia:
 			} else {
 				fmt.Fprintln(inv.IO.Err, "Tamanho sendo calculado em segundo plano; você pode continuar.")
 			}
-			if src.Referer != "" {
-				fmt.Fprintln(inv.IO.Err, "Configuração: Referer definido (valor oculto)")
-			}
-			if src.ConcurrentFragments > 1 {
-				fmt.Fprintf(inv.IO.Err, "Configuração: %d fragmentos paralelos\n", src.ConcurrentFragments)
-			}
+			printDownloadConfiguration(inv, *src, sel.Kind)
 			index, err := chooseLive(inv, "Continuar?", func() []string {
 				entry := (*prefetch).get(sel)
 				size := "calculando…"
@@ -419,18 +417,11 @@ func findTrack(info mediaget.Info, lang string, auto bool) (mediaget.Track, erro
 	}
 	return mediaget.Track{}, usage("faixa de legenda indisponível; confira o idioma e --auto-subs")
 }
-func printEstimate(inv *core.Invocation, service mediaget.Service, src mediaget.Source, sel mediaget.Selection, selectedEstimate *transferEstimate) error {
+func inspectEstimate(inv *core.Invocation, service mediaget.Service, src mediaget.Source, sel mediaget.Selection, selectedEstimate *transferEstimate) error {
 	estimates := make(map[mediaget.Selection]transferEstimate)
 	if err := estimateOptions(inv, service, src, []mediaget.Selection{sel}, estimates); err != nil {
 		return err
 	}
 	*selectedEstimate = estimates[sel]
-	printTransferEstimate(inv, estimates[sel])
-	if src.Referer != "" {
-		fmt.Fprintln(inv.IO.Err, "Configuração: Referer definido (valor oculto)")
-	}
-	if src.ConcurrentFragments > 1 {
-		fmt.Fprintf(inv.IO.Err, "Configuração: %d fragmentos paralelos\n", src.ConcurrentFragments)
-	}
 	return nil
 }

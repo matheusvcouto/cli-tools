@@ -208,3 +208,69 @@ edição por grapheme/word ou histórico. Valor padrão continua placeholder e E
 vazio o aceita. O diagnóstico de cancelamento não é falha técnica: exibir
 Cancelado e resultado de cleanup via erro tipado, conservando Unwrap e saída 130.
 Falhas normais continuam diagnósticos com causa; falha de cleanup mantém caminho.
+
+## M014 — Paralelismo limitado e prioridade de tamanho exato — Accepted
+
+Pedido do usuário: revisar totais variáveis e melhorar velocidade após concluir
+v1.3.2. Fonte oficial confirma N=1 como default do yt-dlp e paralelismo em
+hlsnative/DASH. media-get passa a adotar quatro fragmentos, com faixa existente
+1..8 e override explícito por --concurrent-fragments e pelo catálogo interativo.
+Zero no modelo interno resolve o mesmo default; zero explícito na flag é erro.
+Enviar a opção uma única vez, preservar modo serial e abortar fragmentos ausentes.
+Nenhum limit-rate, downloader externo, componente remoto ou configuração pessoal
+é acrescentado. M009 é substituída apenas quanto ao default e à flag; alterar
+concorrência continua sem invalidar metadata, pois selectors não mudam.
+
+Totais reais (filesize/total_bytes) prevalecem sobre total_bytes_estimate. Eventos
+exatos podem corrigir metadata; amostras aproximadas posteriores não degradam o
+valor exato. HLS desconhecido continua oscilando com ≈; não congelar um número
+como se fosse real. Somar por StreamID e substituir snapshots, sem contar eventos
+repetidos. Unificar construção da previsão entre automação e prefetch.
+
+OpenSelena/omniget foi referência de leitura para N limitado/controle por host;
+nenhum código GPL foi copiado nem programa instalado. Não adotar automaticamente
+seu tuner/aria2c/chunk size/clientes/flags: não são universais. O extrator oficial
+YouTube documenta formats=dashy, mas seu código pode omitir HTTP sem filesize
+quando solicitado; ativação automática alteraria formatos disponíveis e exige
+validação específica. Não aplicar nesta rodada. Medição real de throughput/site
+continua pendente; argv/testes sintéticos comprovam política, não ganho de rede.
+Fontes pinadas e análise: docs/media-get-throughput.md.
+
+## M015 — Paralelismo até 64 e revisão final (2026-10-02)
+
+Pedido explícito para aceitar 25 fragmentos e revisar opções antes do download.
+Substitui apenas o teto 8 de M014 por 64, preservando default 4 e validação única.
+Não deduzir throughput da potência do computador; o downloader/servidor determinam
+o ganho real. Nenhum limite de velocidade ou backend adicional é introduzido.
+
+Resumo final em stderr antes da confirmação/transferência, também em --yes:
+mídia, tipo, qualidade/faixa, estimativa, paralelismo, nome base e destino.
+Quadro limitado à largura do terminal, texto simples quando redirecionado;
+sanear controles e ocultar URLs/Referer. Falha de escrita aborta antes do download.
+--name explícito dispensa a pergunta de nome; --yes permanece opt-in explícito.
+Cobrir faixa 25/64/65, revisão antes da confirmação, largura, privacidade e falha
+com regressões sintéticas. Teste real de desempenho continua pendente do usuário.
+
+## M016 — Preferência de fragmentos por ambiente e teto 256 (2026-10-02)
+
+Pedido explícito para variável global e valores acima de 64. Usar o provider
+canônico CLI_TOOLS_MEDIA_GET_CONCURRENT_FRAGMENTS, resolvido lazily pelo CLI Core:
+flag > env > default 4. O catálogo pode mudar a preferência somente na execução.
+Env definido vazio/inválido falha antes de probes; flag explícita evita resolver
+env, inclusive inválido. Endpoints estáticos não o leem/validam. Não escrever no
+shell do usuário. Substitui teto 64 de M015 por 256 como limite operacional de
+recursos, sem promessa de throughput. Codec numérico validado, sem enumerar 256
+valores nos contratos/completions. Testes sintéticos cobrem limites, precedência,
+resumo efetivo, endpoints estáticos e repasse único ao yt-dlp.
+
+## M017 — Edição depois do resumo final (2026-10-02)
+
+Pedido explícito para editar na etapa final. Substituir s/N por seletor Baixar /
+Editar opções / Cancelar, usando interação existente. Permitir nome, destino,
+tipo/qualidade/legenda e catálogo Referer/fragmentos. Flags/env sem --yes apenas
+inicializam valores; edição explícita pode substituí-los durante esta execução.
+Reexibir resumo após editar/voltar. Validar destino antes de aceitá-lo; reutilizar
+sessão/cache salvo Referer alterado, que encerra workers e renova metadata.
+Wizard de edição ignora seeds de qualidade/legenda das flags. --yes preserva
+fluxo automático. Sem gravação global. Regressões sintéticas verificam pedido
+final efetivo, destino inválido, resumos atualizados, voltar e cancelar sem baixar.

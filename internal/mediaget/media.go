@@ -25,6 +25,9 @@ const (
 	Subtitle Kind = "subtitle"
 )
 
+const DefaultConcurrentFragments = 4
+const MaxConcurrentFragments = 256
+
 type Source struct {
 	URL, Referer        string
 	ConcurrentFragments int
@@ -90,9 +93,17 @@ type Backend interface {
 }
 type Service struct{ Backend Backend }
 
+// FragmentConcurrency resolves the zero-value source to the bounded default.
+func (src Source) FragmentConcurrency() int {
+	if src.ConcurrentFragments == 0 {
+		return DefaultConcurrentFragments
+	}
+	return src.ConcurrentFragments
+}
+
 func ValidateSource(src Source) error {
-	if src.ConcurrentFragments < 0 || src.ConcurrentFragments > 8 {
-		return errors.New("fragmentos paralelos devem estar entre 1 e 8")
+	if src.FragmentConcurrency() < 1 || src.FragmentConcurrency() > MaxConcurrentFragments {
+		return fmt.Errorf("fragmentos paralelos devem estar entre 1 e %d", MaxConcurrentFragments)
 	}
 	if err := validateURL(src.URL); err != nil {
 		return err

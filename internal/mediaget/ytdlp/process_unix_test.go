@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -218,5 +219,35 @@ func TestAudioProbeMustMatchFFmpegLocationBeforeChildStarts(t *testing.T) {
 	}
 	if _, err := os.Stat(log); !errors.Is(err, os.ErrNotExist) {
 		t.Fatal("child started before coherent tool check")
+	}
+}
+
+func TestDownloadConcurrencyDefaultAndSerialOverride(t *testing.T) {
+	for _, tc := range []struct{ input, want int }{{0, 4}, {1, 1}, {25, 25}, {64, 64}, {128, 128}, {256, 256}} {
+		a, log := fixture(t)
+		req := mediaget.Request{Source: mediaget.Source{URL: "https://example.invalid", ConcurrentFragments: tc.input}, Selection: mediaget.Selection{Kind: mediaget.Video}}
+		if err := a.Download(context.Background(), req, t.TempDir(), nil); err != nil {
+			t.Fatal(err)
+		}
+		data, err := os.ReadFile(log)
+		if err != nil {
+			t.Fatal(err)
+		}
+		args := strings.Split(strings.TrimSpace(string(data)), "\n")
+		count := 0
+		for i, arg := range args {
+			if arg == "--concurrent-fragments" {
+				count++
+				if i+1 == len(args) || args[i+1] != strconv.Itoa(tc.want) {
+					t.Fatalf("wrong concurrency: %s", data)
+				}
+			}
+			if arg == "--limit-rate" || arg == "--downloader" || arg == "--no-check-certificates" {
+				t.Fatalf("unexpected download policy: %s", data)
+			}
+		}
+		if count != 1 {
+			t.Fatalf("concurrency supplied %d times: %s", count, data)
+		}
 	}
 }

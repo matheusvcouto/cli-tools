@@ -25,7 +25,7 @@ func (r *downloadRenderer) setEstimate(e transferEstimate) {
 			r.expected = nil
 			return
 		}
-		r.expected[part.StreamID] = mediaget.Progress{Total: n, Estimated: true}
+		r.expected[part.StreamID] = mediaget.Progress{Total: n, Estimated: part.Bytes < 1 || part.Bytes >= float64(math.MaxInt64) || math.IsNaN(part.Bytes)}
 	}
 }
 func (r *downloadRenderer) accept(p mediaget.Progress) {
@@ -40,6 +40,10 @@ func (r *downloadRenderer) accept(p mediaget.Progress) {
 		// The supported video/audio selections require at most a few streams. Never
 		// allocate indefinitely for identifiers from an untrusted external process.
 		if _, exists := r.streams[p.StreamID]; exists || len(r.streams) < 16 {
+			// Provisional HLS samples must not erase an authoritative size.
+			if previous, exists := r.streams[p.StreamID]; exists && previous.Total > 0 && !previous.Estimated && p.Estimated {
+				p.Total, p.Estimated = previous.Total, false
+			}
 			r.streams[p.StreamID] = p
 		}
 		downloaded := int64(0)
@@ -58,7 +62,7 @@ func (r *downloadRenderer) accept(p mediaget.Progress) {
 			}
 		}
 		for id, expected := range r.expected {
-			if event, ok := r.streams[id]; ok && event.Total > 0 {
+			if event, ok := r.streams[id]; ok && event.Total > 0 && (expected.Estimated || !event.Estimated) {
 				expected = event
 			}
 			if total > math.MaxInt64-expected.Total {

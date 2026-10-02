@@ -162,9 +162,8 @@ func (a Adapter) Download(ctx context.Context, req mediaget.Request, work string
 		return err
 	}
 	args := append(baseArgs(req.Source), "--newline", "--progress", "--progress-delta", "0.2", "--progress-template", "download:MEDIA_GET_PROGRESS:%(progress.downloaded_bytes)s|%(progress.total_bytes)s|%(progress.total_bytes_estimate)s|%(progress.speed)s|%(progress.eta)s|%(info.format_id)j", "--progress-template", "postprocess:MEDIA_GET_PROCESSING", "--paths", work, "--paths", "temp:"+work, "-o", "media.%(ext)s", "--no-overwrites")
-	if req.Source.ConcurrentFragments > 0 {
-		args = append(args, "--concurrent-fragments", strconv.Itoa(req.Source.ConcurrentFragments))
-	}
+	// Supply this option exactly once; never override an explicit serial choice.
+	args = append(args, "--concurrent-fragments", strconv.Itoa(req.Source.FragmentConcurrency()))
 	// Let yt-dlp locate both ffmpeg and ffprobe in the explicitly resolved
 	// ffmpeg directory; fixtures use the same layout as system packages.
 	ffmpeg, err := dependency("ffmpeg", a.FFmpeg)

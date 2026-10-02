@@ -6,6 +6,16 @@ versões seguem [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-02
+
+### Adicionado
+
+- **media-get:** Use bounded parallel fragment downloads by default, allow 1–256 fragments through validated flags and an environment preference, show an editable final download summary, respect explicit names, preserve exact transfer totals and unify preview estimates.
+
+### Alterado
+
+- **module:** Record verified v1.3.2 publication and the separate media-get performance audit.
+
 ## [1.3.2] - 2026-10-02
 
 ### Alterado

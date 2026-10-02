@@ -40,12 +40,7 @@ func newEarlyEstimateSession(ctx context.Context, service mediaget.Service, src 
 					var estimate transferEstimate
 					metadata, err := service.Inspect(ctx, src, sel)
 					if err == nil {
-						estimate.bytes, estimate.known = mediaget.EstimatedSize(metadata)
-						estimate.parts = metadata.Parts
-						if len(metadata.Parts) == 0 {
-							estimate.parts = []mediaget.FormatSize{metadata.Size}
-						}
-						estimate.duration = metadata.Duration
+						estimate = estimateFromInfo(metadata)
 					}
 					session.mu.Lock()
 					session.entries[sel] = estimateEntry{estimate: estimate, ready: true}

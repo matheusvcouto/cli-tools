@@ -26,6 +26,22 @@
         "action": "switch"
       },
       {
+        "id": "mediaget.fragments",
+        "long": "concurrent-fragments",
+        "summary": "parallel native HLS/DASH fragments (1 to 256)",
+        "type": "fragment_concurrency",
+        "action": "set",
+        "defaults": [
+          "4"
+        ],
+        "sources": [
+          {
+            "source": "env",
+            "name": "CLI_TOOLS_MEDIA_GET_CONCURRENT_FRAGMENTS"
+          }
+        ]
+      },
+      {
         "id": "mediaget.kind",
         "long": "kind",
         "summary": "video with audio, audio only, or subtitle",

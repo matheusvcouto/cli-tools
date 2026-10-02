@@ -16,3 +16,9 @@
 
 - Novo downloader experimental com fluxo interativo, Referer opcional,
   dependências do sistema, estimativa e publicação sem substituir arquivos.
+
+## [0.3.0] - 2026-10-02
+
+### Adicionado
+
+- **media-get:** Use bounded parallel fragment downloads by default, allow 1–256 fragments through validated flags and an environment preference, show an editable final download summary, respect explicit names, preserve exact transfer totals and unify preview estimates.

@@ -44,7 +44,7 @@ Na revisão, **Adicionar configuração** abre um catálogo pesquisável com:
 - **Referer:** URL da página de origem; Enter remove. Alterar o Referer renova os
   metadados, as opções disponíveis e as estimativas. Se a primeira consulta falhar,
   também é possível configurar o Referer antes de tentar novamente.
-- **Fragmentos paralelos:** 1 a 8, padrão 1. Traduz para `--concurrent-fragments`
+- **Fragmentos paralelos:** 1 a 256, padrão 4. Traduz para `--concurrent-fragments`
   do yt-dlp e pode acelerar HLS/DASH; não garante ganho em qualquer protocolo.
 
 As configurações valem somente para este download. Não há argumentos livres,
@@ -72,7 +72,8 @@ opção de melhor qualidade, evitando consultas redundantes; quando há altura
 desconhecida, os limites ficam disponíveis. Flags continuam aceitando todos os
 limites documentados. Legendas são identificadas na consulta inicial, com tamanho
 indisponível quando não há dados para calcular.
-A confirmação aceita s/sim/y/yes; Enter cancela. Ctrl+C encerra os processos e
+Após o resumo, escolha **Baixar com estas opções**, **Editar opções** ou
+**Cancelar**. Enter confirma a opção selecionada. Ctrl+C encerra os processos e
 retorna 130; o estado do terminal e a visibilidade do cursor são restaurados.
 
 A estimativa corresponde à transferência antes de merge/conversão. Soma todos
@@ -180,3 +181,117 @@ Backspace/Delete removem antes/depois do cursor. Texto longo usa janela horizont
 para manter a edição na mesma linha. Enter vazio conserva o valor padrão.
 Ctrl+C/Esc cancela e restaura o terminal. Cancelamento mostra “Cancelado.”,
 com o resultado de descarte/retenção, e continua retornando código 130.
+
+## Velocidade e totais HLS/DASH
+
+O download usa quatro fragmentos paralelos por padrão, sem limite de velocidade.
+Esse paralelismo só vale para formatos processados pelo downloader HLS/DASH
+nativo do yt-dlp; HTTP progressivo não ganha conexões adicionais por essa opção.
+Pode reduzir o efeito de latência/limites por conexão, mas não garante saturar
+sua rede nem superar o limite do servidor. Se houver bloqueio ou instabilidade,
+use um fragmento. A faixa de 1 a 256 permite experimentar valores como 25:
+
+```sh
+media-get --concurrent-fragments 25 'https://example.invalid/video'
+media-get --concurrent-fragments 1 --kind video --yes 'https://example.invalid/video'
+```
+
+A flag e a configuração interativa compartilham a validação de 1 a 256. Zero,
+negativos e valores fora da faixa falham antes de consultar a mídia. Alterar a
+concorrência não repete as consultas de estimativa. Nenhuma configuração é salva.
+
+Em HLS (como VODs do Twitch), os tamanhos dos fragmentos variam. A estimativa
+inicial usa filesize/filesize_approx ou duração × bitrate; durante a transferência,
+o yt-dlp extrapola os fragmentos observados. Por isso o total marcado com ≈,
+o percentual e o ETA podem subir ou descer. Um total exato de metadata ou do
+downloader tem prioridade sobre amostras aproximadas posteriores. O tamanho do
+arquivo final só é conhecido depois de mesclagem/conversão e publicação.
+Não há promessa de bytes exatos antecipados para HLS sem consultar todos os
+fragmentos, o que adicionaria requisições e atraso.
+
+Revisão, fontes e limites de validação: [auditoria](../../docs/media-get-throughput.md).
+
+## Resumo antes do download
+
+Flags respondem às opções antecipadamente, sem repetir a pergunta de nome:
+
+```sh
+media-get 'https://example.invalid/video' --kind video --quality 360 \
+  --concurrent-fragments 25 --name meu-video --output-dir /caminho/downloads
+```
+
+Antes da confirmação final, o resumo reúne mídia, tipo, qualidade, transferência
+estimada, paralelismo, nome base e destino. Em terminal, aparece em um quadro
+adaptado à largura; em saída redirecionada, usa texto simples. Referer aparece
+somente como definido; seu valor e a URL de origem ficam fora do resumo.
+`--yes` elimina perguntas e confirmação, mas mantém o resumo antes da transferência.
+O nome é uma base: extensão/container dependem da mídia e do processamento.
+
+256 é um teto de configuração do media-get, não uma medida da capacidade do Mac.
+Mais conexões podem ajudar em HLS/DASH, mas também aumentar contenção ou provocar
+limitação do servidor. Compare 4, 8, 16 e 25 na mesma fonte para escolher um valor;
+o padrão continua 4. HTTP progressivo não usa esse paralelismo.
+
+## Fragmentos por variável de ambiente
+
+`CLI_TOOLS_MEDIA_GET_CONCURRENT_FRAGMENTS` define o paralelismo padrão de vídeo e
+áudio quando `--concurrent-fragments` não foi informado. Aceita inteiros de 1 a
+256. A prioridade é **flag > variável de ambiente > padrão 4**. Durante o fluxo
+interativo, você ainda pode editar esse valor para o download atual; o resumo
+mostra o valor efetivo. O programa não grava configuração global.
+
+Para todos os comandos iniciados a partir da sessão atual (zsh/bash):
+
+```sh
+export CLI_TOOLS_MEDIA_GET_CONCURRENT_FRAGMENTS=25
+media-get
+```
+
+Para persistir entre sessões, adicione essa linha `export` ao seu `~/.zshrc`
+(ou `~/.bashrc` se usar bash) e abra um novo terminal. Isso alcança os processos
+que herdam esse ambiente; aplicativos iniciados fora desse shell podem não
+herdá-lo. O media-get não modifica esses arquivos automaticamente.
+
+Para somente uma execução, inclusive acima do teto anterior de 64:
+
+```sh
+CLI_TOOLS_MEDIA_GET_CONCURRENT_FRAGMENTS=128 media-get
+```
+
+Para substituir a variável em uma execução, use a flag:
+
+```sh
+media-get --concurrent-fragments 8
+```
+
+Para voltar ao padrão 4:
+
+```sh
+unset CLI_TOOLS_MEDIA_GET_CONCURRENT_FRAGMENTS
+```
+
+Variável definida mas vazia, zero, números negativos, texto e valores acima de
+256 geram erro antes das consultas/download. Use `unset`, não valor vazio, para
+remover a preferência. Uma flag válida tem prioridade mesmo se a variável for
+inválida. Help/version/schema/contract/completion estática não validam essa
+variável nem inicializam o downloader.
+
+O teto de 256 limita o uso de threads/conexões; não é uma recomendação de usar o
+máximo. O paralelismo atua nos downloads HLS/DASH nativos, conforme a
+[documentação do yt-dlp](https://github.com/yt-dlp/yt-dlp#download-options).
+Mais fragmentos podem aumentar memória, arquivos abertos e contenção, ou levar
+o servidor a limitar as requisições. Compare os resultados na mesma fonte.
+
+## Editar após o resumo
+
+No menu final, **Editar opções** permite alterar tipo/qualidade/legenda, nome,
+diretório de download, Referer e fragmentos paralelos. Valores vindos de flags
+ou env são apenas os valores iniciais: a edição vale para este download e não
+altera a variável de ambiente nem grava preferências globais.
+
+Após editar, o resumo é exibido novamente antes de escolher **Baixar com estas
+opções**. **Voltar** no menu de edição mantém os valores; **Cancelar** encerra sem
+iniciar a transferência. O novo diretório deve existir e é validado antes de ser
+aceito. Trocar somente nome, destino ou fragmentos reaproveita metadata; mudar
+Referer renova a consulta e as escolhas. `--yes` mantém o fluxo automático com
+resumo e dispensa o menu final.

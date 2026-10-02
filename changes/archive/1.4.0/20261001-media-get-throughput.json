@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "media-get",
+      "impact": "minor",
+      "summary": "Use bounded parallel fragment downloads by default, allow 1–256 fragments through validated flags and an environment preference, show an editable final download summary, respect explicit names, preserve exact transfer totals and unify preview estimates."
+    },
+    {
+      "component": "module",
+      "impact": "none",
+      "summary": "Record verified v1.3.2 publication and the separate media-get performance audit.",
+      "justification": "Publication evidence and review documentation only; public Go API and module path are unchanged."
+    }
+  ]
+}
