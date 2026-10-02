@@ -164,3 +164,12 @@ media-get 0.2.0 -> 0.2.1 experimental; demais produtos permanecem 1.1.0.
 main remoto corresponde a 14dfc950; tag/release v1.3.1 inexistentes na verificação.
 Enviar implementação, aguardar CI nativo, preparar manifests/changelogs,
 validar/reconstruir dist, enviar commit preparado e aguardar novo CI antes da tag.
+
+## Release v1.3.1 — implementação verde e versão preparada
+
+Commit 80a20415a560647d20c5ed778f3562ebcf37fbf7 enviado para main.
+CI nativo 36944693037: success nos seis runners e todos os gates auxiliares.
+https://github.com/matheusvcouto/cli-tools/actions/runs/36944693037
+release prepare --suite-version v1.3.1 --write concluído: media-get 0.2.1
+experimental, demais produtos 1.1.0; records arquivados em changes/archive/1.3.1.
+Próximo gate obrigatório é CI do commit preparado antes de tag/publicação.

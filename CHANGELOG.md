@@ -6,6 +6,13 @@ versões seguem [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-02
+
+### Corrigido
+
+- **media-get:** Improve interactive menus with search and compact selected answers, late Referer and bounded fragment concurrency; fix decimal HLS totals, carry selected forecasts into immediate animated bars, account for video/audio streams without duplicate bytes, preserve progress on interruption, avoid redundant quality queries, validate coherent FFmpeg/ffprobe and retain automation flags; discard only current incomplete files by default on failure/cancellation, offer explicit retention in a visible private folder with size and identity-checked cleanup; prefetch estimates alongside initial metadata with bounded workers and in-memory session cache, update sizes in live menus without blocking selection and cancel all probes before download; edit native text fields with cursor arrows and deletion, restore terminal before canceled prompts return and show readable cancellation outcomes while retaining exit 130
+- **module:** Vendor focused official Go terminal libraries for offline reproducible checks and include BSD third-party notices alongside release binaries without changing the public CLI Core API
+
 ## [1.3.0] - 2026-10-01
 
 ### Adicionado

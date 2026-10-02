@@ -262,3 +262,12 @@ Nenhuma pasta pessoal foi alterada, nenhum push/tag/release/snapshot gerado.
 - Gates completos finais (fmt/test/vet/shuffle/race/API/contratos/changes): PASS.
 - Cross-build nos seis alvos e smokes nativos: PASS; binário reconstruído em
   dist/media-get/media-get. Sem push/publicação/snapshots.
+
+## Publicação v1.3.1 autorizada — preparo
+
+- Implementação enviada: 80a20415a560647d20c5ed778f3562ebcf37fbf7.
+- CI real 36944693037: success em todos os jobs, incluindo seis runners nativos,
+  race, contratos, API pública, workflows, completions e cross-build.
+- Preview e prepare --write: suíte v1.3.1, media-get 0.2.1 experimental; demais
+  produtos 1.1.0. Records consumidos preservados em changes/archive/1.3.1.
+- CI do commit preparado e workflow de release ainda pendentes nesta etapa.
