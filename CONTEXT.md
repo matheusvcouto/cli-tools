@@ -67,10 +67,20 @@ Run 36946751109: Linux amd64/arm64, macOS arm64 e Windows arm64 PASS.
 macOS Intel falhou na limpeza de telemetria do Go; Windows amd64 falhou na
 leitura prematura de PID sintético. Correções: semear o modo off na configuração
 isolada antes de invocar Go (GOTELEMETRY não é variável configurável), e publicar
-o PID completo por rename no teste Windows. Nova execução nativa pendente.
+o PID completo por rename no teste Windows. Correções confirmadas em todos os jobs nativos do run 36947625672 (success).
 Mise v1.3.1 PASS em HOME/MISE_*/GH_CONFIG_DIR sintéticos, sem configuração global.
 Referências de API pública e conteúdo dos archives corrigidas em docs/cli-api.md
 e docs/security.md. Nenhum comportamento de produto foi modificado.
 
 Árvore corrigida: check-safe.sh all PASS e builds/smokes das três CLIs PASS.
-Nova confirmação nativa remota pendente; ainda não preparar/taguear v1.3.2.
+CI nativo completo do commit 93c4e97 PASS (run 36947625672). Liberado preparo v1.3.2; commit preparado ainda deve passar CI antes da tag.
+
+## Release preparada
+
+v1.3.2 materializada; records arquivados em changes/archive/1.3.2.
+Data do changelog em UTC, consistente com v1.3.1: 2026-10-02.
+Árvore preparada: check-safe.sh all PASS, preflight v1.3.2 PASS,
+três binários reconstruídos com SuiteVersion=v1.3.2 e smokes isolados PASS.
+CI do commit preparado e workflow de publicação ainda pendentes.
+Depois da publicação, iniciar a revisão de estimativas e velocidade do media-get
+pedida pelo usuário; não instalar os aplicativos citados como referência.

@@ -6,6 +6,17 @@ versões seguem [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-10-02
+
+### Alterado
+
+- **ai-profile:** Publish the synthetic Windows descendant PID only after its complete write.
+- **media-get:** Document terminal dependencies with prepared Go caches instead of vendoring.
+
+### Corrigido
+
+- **module:** Prepare Go dependencies online and reuse dedicated caches for offline checks and contract generation; refresh development rules.
+
 ## [1.3.1] - 2026-10-02
 
 ### Corrigido

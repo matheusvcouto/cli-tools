@@ -123,3 +123,9 @@ regressão consulta o modo efetivo. No Windows amd64, o leitor observou o arquiv
 de PID sintético vazio entre criação e escrita. O teste publica o arquivo
 completo por rename; cancelamento de produção não mudou. A correção depende
 de confirmação nos respectivos jobs nativos antes de preparar a release.
+
+Confirmação nativa: run 36947625672 / commit 93c4e97 success em toda a matriz.
+As duas falhas anteriores foram resolvidas; preparo de v1.3.2 liberado.
+
+Preparo v1.3.2: gates locais completos, preflight e smokes dos três binários
+com SuiteVersion=v1.3.2 PASS. Commit preparado deve passar CI antes da tag.
