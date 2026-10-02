@@ -206,3 +206,12 @@ VP9/Opus PASS, com decodificação de vídeo/áudio final. Testes negativos de
 codecs, ausência de vídeo, perda de áudio, cancelamento e TXT inválido PASS.
 Binários nativos reconstruídos e smokes isolados PASS (suite 1.3.3+dev).
 Evidências em dist/release-validation/1.3.4; CI remoto ainda pendente.
+
+CI nativo 37055188631 do commit 85c1927: success em todos os 12 jobs,
+incluindo seis runners de testes. Preparo v1.3.4 materializado pelo tooling,
+media-get 0.3.1 experimental e demais produtos preservados. Próximo gate:
+checks/builds locais e CI do commit preparado antes de criar a tag.
+
+Árvore preparada: check-safe.sh all, preflight v1.3.4 e builds/smokes
+nativos das três CLIs PASS. Binários locais com suite_version=v1.3.4;
+media-get --version=0.3.1. CI do commit preparado, tag e release pendentes.

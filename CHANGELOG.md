@@ -6,6 +6,12 @@ versões seguem [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [1.3.4] - 2026-10-02
+
+### Corrigido
+
+- **media-get:** Fix missing plain TXT subtitle output and offer validated compatible MP4 output, including explicit filename extensions.
+
 ## [1.3.3] - 2026-10-02
 
 ### Adicionado

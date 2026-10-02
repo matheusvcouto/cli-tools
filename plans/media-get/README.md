@@ -211,4 +211,5 @@ Decisões/limites/fontes em ../../docs/media-get-throughput.md e M014.
 - [x] TXT validado sem tempos/numeração/markup, mantendo números falados.
 - [x] MP4 compatível opcional, extensões explícitas e revisão final.
 - [x] Verificação de codecs/vídeo/áudio, conversão cancelável e sem clobber.
-- [ ] Gates locais, builds, CI nativo e publicação v1.3.4.
+- [x] Gates locais, builds e CI nativo da implementação (37055188631).
+- [ ] CI do commit preparado e publicação v1.3.4.

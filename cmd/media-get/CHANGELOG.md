@@ -22,3 +22,9 @@
 ### Adicionado
 
 - **media-get:** Use bounded parallel fragment downloads by default, allow 1–256 fragments through validated flags and an environment preference, show an editable final download summary, respect explicit names, preserve exact transfer totals and unify preview estimates.
+
+## [0.3.1] - 2026-10-02
+
+### Corrigido
+
+- **media-get:** Fix missing plain TXT subtitle output and offer validated compatible MP4 output, including explicit filename extensions.
