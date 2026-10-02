@@ -99,3 +99,10 @@ CI executa testes nativos em Linux, macOS, Windows x64 (`windows-2025`) e Window
 `go run ./tools/release contracts check` é um gate dedicado: gera cada contrato
 por `__cli contract` em ambiente sintético/offline e compara byte a byte com o
 lock versionado. Drift não é corrigido silenciosamente pelo CI.
+
+## Dependências de terminal
+
+x/term e x/sys são fixados em go.mod/go.sum. `check-safe.sh prepare` preenche o
+cache dedicado com integridade verificada; checks/contratos usam esse cache
+com downloads bloqueados. Vendor não é necessário. Atualizações de versões
+exigem revisão de fonte/licença, diff dos manifests e gates relevantes.

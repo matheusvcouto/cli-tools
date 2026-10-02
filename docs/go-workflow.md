@@ -4,7 +4,7 @@
 
 Base isolada: tag v1.3.0 / 14dfc95; branch codex/go-workflow-1.3.2.
 O checkout original permanece com o trabalho independente para v1.3.1.
-Esta revisão não prepara manifests, changelog ou tags antes de integrar v1.3.1.
+v1.3.1 / 5ba6009 foi integrada; gates da árvore combinada precedem o preparo de v1.3.2.
 
 | Regra/comportamento anterior | Decisão e motivo |
 | --- | --- |
@@ -99,13 +99,16 @@ A identidade do módulo foi reforçada em AGENTS.md: manter exatamente
 inevitável da API pública requer decisão específica do usuário antes de mudar
 major/path. ADR e engenharia foram alinhados; go.mod e imports não mudaram.
 
-## Integração com v1.3.1
+## Integração com v1.3.1 — aplicada
 
-Integrar após o outro agente concluir e registrar seu trabalho. Revalidar
-sobreposição em tools/release/changes.go, docs/testing.md, planos/media-get e
-regras de vendor. Preservar UX, cancelamento de terminal e versões da v1.3.1.
-Preparar as dependências do go.mod combinado no novo cache e executar todos
-os gates novamente antes de preparar v1.3.2. Não remover vendor automaticamente:
-a remoção exige identificar os caminhos e cumprir a política de exclusão.
-O change record desta revisão é module:patch; produtos não recebem bump por
-uma alteração exclusiva do fluxo de desenvolvimento.
+v1.3.1 / 5ba6009 integrada sem alterar a nova UX/cancelamento/prefetch do produto.
+Docs de dependências atualizadas para cache preparado. 381 arquivos de vendor
+são idênticos aos módulos oficiais; os 382 arquivos, incluindo modules.txt,
+foram movidos para dist/recovery/_vendor-1.3.1. Lista prévia em
+ dist/dependency-audit/vendor-paths.txt. Notices preservados na distribuição.
+Módulos oficiais baixados com checksum database e go mod verify PASS.
+Gates integrados PASS, actionlint PASS, três builds/smokes nativos PASS.
+CI remoto da integração pendente antes de preparar v1.3.2.
+v1.3.1 publicada com workflow 36945709150 success e todos os assets.
+O change record cobre module:patch e documentação media-get:none, sem mudar
+versões de produtos ou sua API. Usuário autorizou commit/push/publicação.

@@ -110,7 +110,7 @@
       {
         "id": "mediaget.referer",
         "long": "referer",
-        "summary": "optional origin page; empty disables the prompt",
+        "summary": "optional origin page; omitted means none",
         "type": "string",
         "action": "set",
         "sensitive": true

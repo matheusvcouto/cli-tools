@@ -1,17 +1,23 @@
 # Contexto atual — revisão do fluxo Go para v1.3.2
 
-Data: 2026-10-01. Base: v1.3.0 / 14dfc95. Branch: codex/go-workflow-1.3.2.
+Data: 2026-10-01. Base inicial: v1.3.0 / 14dfc95. Integração: v1.3.1 / 5ba6009. Branch: codex/go-workflow-1.3.2.
 Worktree: /Users/matheus/matheusvcouto/root/__worktrees/cli-tools/go-workflow.
 
 ## Escopo e integração
 
 Regras, preparação de dependências, caches, geração de contratos e CI.
-Outro agente altera media-get no checkout original para v1.3.1; suas mudanças
-não foram copiadas nem alteradas. v1.3.2 é o destino autorizado, mas manifests,
-changelog e tags só devem ser preparados após integrar v1.3.1 e revalidar.
-Pontos de sobreposição prováveis: docs/testing.md, tools/release e regras de
-vendoring/dependências. Preservar a funcionalidade nova de media-get na integração.
-Não há autorização de commit/push/publicação nesta tarefa.
+v1.3.1 / 5ba6009 integrada nesta worktree, preservando a UX, edição de texto,
+cancelamento, cleanup, prefetch e notices do media-get. Contrato/produto
+media-get 0.2.1 preservados. Usuário autorizou commit, push e publicação de
+v1.3.2 após gates verdes; autorização recebida nesta conversa.
+Release v1.3.1 publicada; workflow 36945709150 success, seis assets e
+SHA256SUMS confirmados em https://github.com/matheusvcouto/cli-tools/releases/tag/v1.3.1. Não mover/reutilizar sua tag nem contornar seus gates.
+
+Conflitos documentais resolvidos: prevalece preparação online e cache dedicado,
+sem vendor como requisito. 381 arquivos de vendor comparados byte a byte com
+módulos oficiais; vendor/modules.txt corresponde às versões pinadas. Os 382
+arquivos foram movidos para dist/recovery/_vendor-1.3.1, não apagados. Lista em
+dist/dependency-audit/vendor-paths.txt. Notices/licenças permanecem nos archives.
 
 ## Ambiente e regras vigentes
 
@@ -45,3 +51,13 @@ Revisão completa e comandos: docs/go-workflow.md.
 
 O contexto anterior está preservado em docs/history/go-workflow/context-before-1.3.2.md
 como histórico, sem valor normativo para snapshots ou disponibilidade atual.
+
+## Validação da integração
+
+Preparação real de x/sys v0.48.0 e x/term v0.46.0 via proxy oficial e checksum
+database PASS; go mod verify PASS. Gates da árvore integrada PASS: fmt/test/vet/shuffle/race/API/contratos/changes.
+Actionlint PASS; builds nativos das três CLIs e smokes isolados PASS.
+Builds reconstruídos a partir da árvore integrada antes do push.
+Depois observar CI nativo, preparar v1.3.2, repetir CI e enviar tag/publicação.
+Histórico do agente anterior preservado em
+ docs/history/go-workflow/context-v1.3.1.md; não restaura regras de snapshots.

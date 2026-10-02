@@ -5,6 +5,12 @@
       "component": "module",
       "impact": "patch",
       "summary": "Prepare Go dependencies online and reuse dedicated caches for offline checks and contract generation; refresh development rules."
+    },
+    {
+      "component": "media-get",
+      "impact": "none",
+      "summary": "Document terminal dependencies with prepared Go caches instead of vendoring.",
+      "justification": "Only dependency workflow documentation changed; terminal behavior and product contract are preserved."
     }
   ]
 }

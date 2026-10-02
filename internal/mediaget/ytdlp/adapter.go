@@ -4,6 +4,7 @@ package ytdlp
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -62,19 +64,39 @@ func (a Adapter) Check(ctx context.Context, sel mediaget.Selection) error {
 	if sel.Kind == "" {
 		return nil
 	} // Inspection uses only yt-dlp.
-	if _, err := dependency("ffmpeg", a.FFmpeg); err != nil {
+	ffmpeg, err := dependency("ffmpeg", a.FFmpeg)
+	if err != nil {
 		return err
 	}
 	if sel.Kind == mediaget.Audio {
-		if _, err := dependency("ffprobe", a.FFprobe); err != nil {
+		// --ffmpeg-location makes yt-dlp use this sibling, not an unrelated PATH probe.
+		sibling, err := dependency("ffprobe", filepath.Join(filepath.Dir(ffmpeg), "ffprobe"))
+		if err != nil {
 			return err
+		}
+		if a.FFprobe != "" {
+			requested, err := dependency("ffprobe", a.FFprobe)
+			if err != nil {
+				return err
+			}
+			actualInfo, err := os.Stat(sibling)
+			if err != nil {
+				return err
+			}
+			requestedInfo, err := os.Stat(requested)
+			if err != nil {
+				return err
+			}
+			if !os.SameFile(actualInfo, requestedInfo) {
+				return errors.New("ffprobe deve corresponder ao executável ao lado de ffmpeg; instale ambos no mesmo pacote")
+			}
 		}
 	}
 	return nil
 }
 func baseArgs(src mediaget.Source) []string {
 	// netrc is opt-in in the official parser; there is no --no-netrc flag.
-	args := []string{"--ignore-config", "--no-plugin-dirs", "--no-cache-dir", "--no-remote-components", "--no-playlist", "--playlist-items", "1", "--color", "never", "--socket-timeout", "20"}
+	args := []string{"--ignore-config", "--no-plugin-dirs", "--no-cache-dir", "--no-remote-components", "--no-playlist", "--playlist-items", "1", "--color", "never", "--socket-timeout", "20", "--abort-on-unavailable-fragments"}
 	if src.Referer != "" {
 		args = append(args, "--referer", src.Referer)
 	}
@@ -111,6 +133,9 @@ func (a Adapter) Inspect(ctx context.Context, src mediaget.Source, sel mediaget.
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	args := append(baseArgs(src), "--dump-single-json", "--skip-download")
+	if sel.Kind == "" || sel.Kind == mediaget.Subtitle {
+		args = append(args, "--ignore-no-formats-error")
+	}
 	if f := format(sel); f != "" {
 		args = append(args, "-f", f)
 	}
@@ -126,6 +151,9 @@ func (a Adapter) Inspect(ctx context.Context, src mediaget.Source, sel mediaget.
 }
 
 func (a Adapter) Download(ctx context.Context, req mediaget.Request, work string, progress func(mediaget.Progress)) error {
+	if err := mediaget.ValidateSource(req.Source); err != nil {
+		return err
+	}
 	if err := a.Check(ctx, req.Selection); err != nil {
 		return err
 	}
@@ -133,7 +161,10 @@ func (a Adapter) Download(ctx context.Context, req mediaget.Request, work string
 	if err != nil {
 		return err
 	}
-	args := append(baseArgs(req.Source), "--newline", "--progress", "--progress-delta", "1", "--progress-template", "download:MEDIA_GET_PROGRESS:%(progress.downloaded_bytes)s|%(progress.total_bytes)s|%(progress.total_bytes_estimate)s|%(progress.speed)s|%(progress.eta)s", "--progress-template", "postprocess:MEDIA_GET_PROCESSING", "--paths", work, "--paths", "temp:"+work, "-o", "media.%(ext)s", "--no-overwrites")
+	args := append(baseArgs(req.Source), "--newline", "--progress", "--progress-delta", "0.2", "--progress-template", "download:MEDIA_GET_PROGRESS:%(progress.downloaded_bytes)s|%(progress.total_bytes)s|%(progress.total_bytes_estimate)s|%(progress.speed)s|%(progress.eta)s|%(info.format_id)j", "--progress-template", "postprocess:MEDIA_GET_PROCESSING", "--paths", work, "--paths", "temp:"+work, "-o", "media.%(ext)s", "--no-overwrites")
+	if req.Source.ConcurrentFragments > 0 {
+		args = append(args, "--concurrent-fragments", strconv.Itoa(req.Source.ConcurrentFragments))
+	}
 	// Let yt-dlp locate both ffmpeg and ffprobe in the explicitly resolved
 	// ffmpeg directory; fixtures use the same layout as system packages.
 	ffmpeg, err := dependency("ffmpeg", a.FFmpeg)
@@ -219,8 +250,8 @@ func (b *boundedWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
-// Only numerical fields from our progress template reach the UI. Raw child
-// output may contain signed URLs, Referer or terminal escapes and is discarded.
+// Only bounded numerical fields reach the UI. A format ID becomes an opaque
+// hash for stream accounting; raw child text/URLs/escapes are never rendered.
 type progressWriter struct {
 	mu     sync.Mutex
 	line   []byte
@@ -249,17 +280,18 @@ func parseProgress(line string) (mediaget.Progress, bool) {
 	if !strings.HasPrefix(line, "MEDIA_GET_PROGRESS:") {
 		return mediaget.Progress{}, false
 	}
-	fields := strings.Split(strings.TrimPrefix(line, "MEDIA_GET_PROGRESS:"), "|")
-	if len(fields) != 5 {
+	fields := strings.SplitN(strings.TrimPrefix(line, "MEDIA_GET_PROGRESS:"), "|", 6)
+	if len(fields) != 5 && len(fields) != 6 {
 		return mediaget.Progress{}, false
 	}
-	downloaded, err := strconv.ParseInt(fields[0], 10, 64)
-	if err != nil || downloaded < 0 {
+	downloaded, valid := progressBytes(fields[0])
+	if !valid {
 		return mediaget.Progress{}, false
 	}
-	total, _ := strconv.ParseInt(fields[1], 10, 64)
+	total, _ := progressBytes(fields[1])
+	estimated := total <= 0
 	if total <= 0 {
-		total, _ = strconv.ParseInt(fields[2], 10, 64)
+		total, _ = progressBytes(fields[2])
 	}
 	if total < 0 {
 		total = 0
@@ -268,14 +300,43 @@ func parseProgress(line string) (mediaget.Progress, bool) {
 	if speed < 0 || speed > 1e15 || math.IsNaN(speed) || math.IsInf(speed, 0) {
 		speed = 0
 	}
-	eta, _ := strconv.Atoi(fields[4])
+	etaBytes, _ := progressBytes(fields[4])
+	eta := int(etaBytes)
 	if eta < 0 || eta > 365*24*60*60 {
 		eta = 0
 	}
-	return mediaget.Progress{Stage: mediaget.Transferring, Downloaded: downloaded, Total: total, Speed: speed, ETA: eta}, true
+	stream := ""
+	if len(fields) == 6 {
+		var id string
+		if json.Unmarshal([]byte(fields[5]), &id) == nil {
+			stream = streamIdentity(id)
+		}
+	}
+	return mediaget.Progress{Stage: mediaget.Transferring, Downloaded: downloaded, Total: total, Speed: speed, ETA: eta, Estimated: estimated, StreamID: stream}, true
+}
+
+// HLS totals and smoothed ETA are floats in yt-dlp. Accept bounded finite
+// numeric values without forwarding child text or converting overflow to negatives.
+func progressBytes(raw string) (int64, bool) {
+	if n, err := strconv.ParseInt(raw, 10, 64); err == nil && n >= 0 {
+		return n, true
+	}
+	n, err := strconv.ParseFloat(raw, 64)
+	if err != nil || math.IsNaN(n) || math.IsInf(n, 0) || n < 0 || n >= float64(math.MaxInt64) {
+		return 0, false
+	}
+	return int64(n), true
+}
+func streamIdentity(id string) string {
+	if id == "" || len(id) > 128 {
+		return ""
+	}
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(id)))
 }
 
 type rawFormat struct {
+	ID      string  `json:"format_id"`
+	Vcodec  string  `json:"vcodec"`
 	Size    float64 `json:"filesize"`
 	Approx  float64 `json:"filesize_approx"`
 	Bitrate float64 `json:"tbr"`
@@ -304,7 +365,7 @@ func decodeInfo(data []byte) (mediaget.Info, error) {
 		return mediaget.Info{}, errors.New("playlists e coleções ainda não são suportadas; informe a URL de uma mídia individual")
 	}
 	size := func(f rawFormat) mediaget.FormatSize {
-		return mediaget.FormatSize{Bytes: f.Size, ApproxBytes: f.Approx, Bitrate: f.Bitrate}
+		return mediaget.FormatSize{Bytes: f.Size, ApproxBytes: f.Approx, Bitrate: f.Bitrate, StreamID: streamIdentity(f.ID)}
 	}
 	info := mediaget.Info{Title: raw.Title, Duration: raw.Duration, Size: size(raw.rawFormat)}
 	for _, f := range raw.Parts {
@@ -312,6 +373,12 @@ func decodeInfo(data []byte) (mediaget.Info, error) {
 	}
 	heights := map[int]bool{}
 	for _, f := range raw.Formats {
+		if f.Vcodec == "none" {
+			continue
+		}
+		if f.Height <= 0 && f.Vcodec != "none" {
+			info.UnknownVideoHeight = true
+		}
 		if f.Height > 0 {
 			heights[f.Height] = true
 		}

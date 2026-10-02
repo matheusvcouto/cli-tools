@@ -579,3 +579,20 @@ func TestWriteReleaseNotesReplacesSymlinkInsteadOfFollowingIt(t *testing.T) {
 		t.Fatalf("notes=%q want notes", gotNotes)
 	}
 }
+
+func TestReleaseIncludesThirdPartyNotices(t *testing.T) {
+	t.Chdir("../..")
+	stage := t.TempDir()
+	if err := copyThirdPartyNotices(stage); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(stage, "THIRD_PARTY_NOTICES.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, text := range []string{"golang.org/x/term", "golang.org/x/sys", "Redistribution", "DISCLAIMED"} {
+		if !strings.Contains(string(got), text) {
+			t.Fatalf("missing %q", text)
+		}
+	}
+}

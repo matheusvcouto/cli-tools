@@ -16,9 +16,9 @@ corrompido. O link remoto não foi reproduzido nem usado como teste. Um comando
 
 - Nome `media-get`; manifest inicial experimental `0.1.0`, sem mudar versões
   de ferramentas existentes ou o módulo.
-- Interativo: URL → Referer vazio por padrão → vídeo com áudio / áudio / SRT →
-  qualidade ou faixa (com estimativas nos menus) → transferência estimada → continuar/ajustar/cancelar →
-  nome → confirmação. Menus numerados/Enter; voltar em qualidade/legenda.
+- Interativo: URL → vídeo com áudio / áudio / SRT →
+  qualidade ou faixa (com estimativas nos menus) → transferência estimada → continuar/ajustar/cancelar/configurar →
+  nome → confirmação. Menus com setas/busca/Enter em TTY Unix e numerados no fallback; voltar em qualidade/legenda.
 - Automatizável por `--kind`, `--quality`, `--subtitle-lang`, `--auto-subs`,
   `--name`, `--referer`, `--output-dir` e `--yes`. Sem TTY, exigir URL/kind/yes
   antes de acessar a rede ou escrever.
@@ -48,7 +48,7 @@ corrompido. O link remoto não foi reproduzido nem usado como teste. Um comando
    de domínio, HOME e executáveis. Stdout caminho final; stderr interação.
 5. **Segurança e falhas:** pasta privada no filesystem do destino, identidade
    física revalidada, arquivo único regular/não vazio, publicação por hard link.
-   Em erro preservar incompletos; nunca sobrescrever ou apagar destino antigo.
+   Em erro descartar por padrão, com retenção interativa explícita; nunca sobrescrever ou apagar destino antigo.
 6. **Testes:** fixtures já sintéticas, nenhum download real. Rodar testes de
    estimativa, fluxo, dependências, argv/env, falha, cancelamento de descendentes,
    arquivos/symlinks adversariais, colisões e concorrência; congelar contrato.
@@ -105,7 +105,7 @@ contenção nativa de processos e confirmar suas capabilities em testes reais.
 ## Evolução posterior
 
 Histórico SQLite, TXT, transcodificação H.264 forçada/QuickTime, retomada, limpeza
-assistida, playlists, cookies, seleção de múltiplos áudios e UI com setas ficam
+assistida, playlists, cookies e seleção de múltiplos áudios ficam
 para decisões próprias. A primeira versão não precisa de library TUI, registry
 por site ou abstração global. Backend futuro recebe os mesmos modelos e deixa
 publicação e interação intactas; acrescentar um resolver de site somente quando
@@ -139,3 +139,49 @@ Resultados finais e pendências ficam em `VALIDATION.md` e `CONTEXT.md` da rodad
   etapas explícitas de processamento e publicação.
 - [x] Gates da atualização: testes/vet/shuffle/race/API/contratos/changes PASS;
   resultado em VALIDATION.md.
+
+## Complemento — experiência interativa (incluído em v1.3.1)
+
+- [x] Menus nativos com setas/busca/Esc e restauração do terminal.
+- [x] Referer opcional na revisão; recuperar consulta inicial bloqueada.
+- [x] Atualizar metadados/cache/seleção após editar Referer.
+- [x] Configuração fechada de fragmentos paralelos (1 a 8, default 1).
+- [x] Barra na mesma linha; total aproximado/desconhecido explícito e animação
+  durante processamento/publicação; logs simples fora de TTY.
+- [x] Dependências oficiais pequenas, fixadas em go.mod/go.sum; cache preparado e notices na release.
+- [x] Gates completos, build nativo/smokes e cross-build; evidência em VALIDATION.md.
+- [x] Usuário autorizou push/preparo/publicação de v1.3.1 em 2026-10-01.
+
+## Revisão após execução do usuário
+
+- [x] Corrigir parsing de totais/ETA HLS decimais e notação científica.
+- [x] Levar previsão do wizard ao início da barra, com fallback conhecido.
+- [x] Contabilizar streams por identidade opaca, sem duplicar eventos/bytes.
+- [x] Preservar última linha de progresso em cancelamento/erro.
+- [x] Compactar menus concluídos e evitar caps redundantes com altura conhecida.
+- [x] Validar ffprobe efetivamente utilizado junto a FFmpeg.
+- [x] Validação final, cross-build e rebuild/smokes; resultados em VALIDATION.md.
+- [x] Usuário confirmou Ctrl+C: cancelamento/130 esperado, sem evidência de
+  encerramento espontâneo.
+
+## Descarte de incompletos (incluído em v1.3.1)
+
+- [x] Descarte padrão após falha/cancelamento, sem tocar pastas antigas.
+- [x] Escolha interativa após renderer/backend encerrarem; manter explícito.
+- [x] Pasta visível, caminho/tamanho e identidade revalidada antes da limpeza.
+- [x] Gates completos e teste nativo da decisão pós-Ctrl+C: PASS.
+
+## Prefetch e escolha imediata (incluído em v1.3.1)
+
+- [x] Vídeo/áudio começam com metadata; qualidades enfileiradas antes da seleção.
+- [x] Menus sem espera de estimativas e labels/spinner atualizados em TTY.
+- [x] Cache em memória até confirmação final; deduplicação e workers limitados.
+- [x] Cancelamento/Referer recolhem probes; download sem consultas pendentes.
+- [x] Gates completos, terminal lento sintético e rebuild/cross-build: PASS.
+
+## Edição de campos de texto (incluído em v1.3.1)
+
+- [x] Setas/cursor, inserção, Home/End, Backspace/Delete e viewport horizontal.
+- [x] Restore síncrono antes de retornar Ctrl+C/SIGTERM em campo nativo.
+- [x] Cancelamento legível com resultado de cleanup, mantendo causa/código 130.
+- [x] Gates finais, edição real no PTY, cancelamento no nome e rebuild: PASS.

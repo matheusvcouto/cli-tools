@@ -21,12 +21,14 @@ type backend struct {
 	estimateErr      error
 	last             mediaget.Request
 	info             mediaget.Info
+	sources          []mediaget.Source
 }
 
 func (b *backend) Check(context.Context, mediaget.Selection) error { return nil }
 func (b *backend) Inspect(_ context.Context, src mediaget.Source, sel mediaget.Selection) (mediaget.Info, error) {
 	b.mu.Lock()
 	b.calls++
+	b.sources = append(b.sources, src)
 	b.mu.Unlock()
 	if sel.Kind != "" && b.estimateErr != nil {
 		return mediaget.Info{}, b.estimateErr
@@ -151,8 +153,8 @@ func TestInteractiveRefererDefaultAndBack(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv(DownloadEnv, dir)
 	b := &backend{info: mediaget.Info{Title: "Wizard"}}
-	// URL, no Referer, video, back, audio, continue, default name, confirm.
-	input := "https://example.invalid/media\n\n1\n0\n2\n1\n\ns\n"
+	// URL, video, back, audio, continue, default name, confirm.
+	input := "https://example.invalid/media\n1\n0\n2\n1\n\ns\n"
 	var out, log bytes.Buffer
 	err := app(t, b).Run(context.Background(), nil, core.IO{In: strings.NewReader(input), Out: &out, Err: &log, Terminal: core.Terminal{StdinTTY: true}})
 	if err != nil {
@@ -172,7 +174,7 @@ func TestSubtitleSelectionAndDecline(t *testing.T) {
 	if b.last.Selection.Track.Lang != "pt" {
 		t.Fatal(b.last)
 	}
-	input := "\n3\n1\n1\n\nn\n" // Referer, subtitle, track, continue, name, decline.
+	input := "3\n1\n1\n\nn\n" // Subtitle, track, continue, name, decline.
 	if err := a.Run(context.Background(), []string{"https://example.invalid"}, core.IO{In: strings.NewReader(input), Terminal: core.Terminal{StdinTTY: true}}); err != nil {
 		t.Fatal(err)
 	}

@@ -41,11 +41,9 @@ go run ./tools/release api check
 `api check` protege a API Go pública de `cli/` na versão corrente. Adições são compatíveis, mas precisam ser gravadas no lock com `api write` para também ficarem protegidas nas releases seguintes. Remoção/mudança de assinatura existente é breaking; `api write --allow-breaking` só deve ser usado após revisão explícita e com change record de `module`. A partir de `v1`, uma quebra pública do módulo exige novo major e sufixo `/vN` no `go.mod` e em todos os imports.
 
 A baseline atual exige Go 1.27.1 e permanece no módulo sem sufixo /v2.
-A base desta revisão é v1.3.0. Os ajustes de media-get destinados à v1.3.1
-estão em trabalho separado; esta melhoria tem destino v1.3.2. Integre primeiro
-v1.3.1 e depois recalcule a preparação de v1.3.2 com os records combinados,
-preservando os manifests e changelogs da release anterior. Não preparar/taguear
-v1.3.2 nesta branch baseada em v1.3.0 antes dessa integração.
+v1.3.1 / 5ba6009 foi integrada na branch desta melhoria, preservando a versão
+0.2.1 do media-get. O destino é v1.3.2; preparar seus manifests/changelogs somente
+após gates nativos verdes da árvore integrada e revalidar o commit preparado.
 
 `contracts check` regenera os contratos em HOME/XDG/TMP sintéticos, reutilizando os caches Go do invocador, com downloads e
 VCS de módulos desabilitados, e falha se algum `cli.contract.json` estiver fora
