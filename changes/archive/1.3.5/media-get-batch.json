@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "media-get",
+      "impact": "minor",
+      "summary": "Import versioned and discovery JSON manifests, validate them offline, review each output and safely download a bounded concurrent batch with typed Origin headers, cancellation and partial-failure handling. Show output format and extension in every download summary, and safely create missing destination directories only when the confirmed download begins. Expose direct output-format editing and a batch-wide MP4 choice; show metadata loading counts and a concurrent progress panel with reusable active slots."
+    },
+    {
+      "component": "module",
+      "impact": "none",
+      "summary": "Prepare the embedded JSON Schema validator dependency and record batch workflow documentation.",
+      "justification": "Only private media-get packages, dependency manifests, notices and documentation change; the public cli Go API and module path are preserved."
+    }
+  ]
+}

@@ -32,7 +32,7 @@ func reviewDownload(inv *core.Invocation, service mediaget.Service, src *mediage
 		if action == 2 {
 			return errDeclined
 		}
-		field, err := choose(inv, "O que deseja editar?", []string{"Tipo, qualidade ou legenda", "Nome do arquivo", "Diretório de download", "Referer ou fragmentos paralelos"}, true)
+		field, err := choose(inv, "O que deseja editar?", []string{"Tipo, qualidade ou legenda", "Nome do arquivo", "Diretório de download", "Referer ou fragmentos paralelos", "Formato de saída"}, true)
 		if err != nil {
 			return err
 		}
@@ -44,7 +44,7 @@ func reviewDownload(inv *core.Invocation, service mediaget.Service, src *mediage
 		case 2:
 			for {
 				var dir string
-				dir, err = ask(inv, "Diretório de download (deve existir)", review.Dir)
+				dir, err = ask(inv, "Diretório de download (será criado se necessário)", review.Dir)
 				if err != nil {
 					break
 				}
@@ -54,6 +54,21 @@ func reviewDownload(inv *core.Invocation, service mediaget.Service, src *mediage
 				}
 				review.Dir = dir
 				break
+			}
+		case 4:
+			if review.Selection.Kind == mediaget.Video {
+				review.Selection.VideoFormat, err = chooseVideoFormat(inv)
+			} else if review.Selection.Kind == mediaget.Subtitle {
+				var f int
+				f, err = choose(inv, "Formato da legenda", []string{"SRT — com tempos e numeração", "TXT — somente texto"}, false)
+				if err == nil {
+					review.Selection.SubtitleFormat = []string{"srt", "txt"}[f]
+				}
+			} else {
+				fmt.Fprintln(inv.IO.Err, "Áudio usa M4A.")
+			}
+			if err == nil {
+				_, err = withLoading(inv, "Verificando formato de saída", func() (struct{}, error) { return struct{}{}, service.Check(inv.Context, review.Selection) })
 			}
 		case 3:
 			var changed bool

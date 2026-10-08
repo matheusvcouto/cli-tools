@@ -100,6 +100,9 @@ func baseArgs(src mediaget.Source) []string {
 	if src.Referer != "" {
 		args = append(args, "--referer", src.Referer)
 	}
+	if src.Origin != "" {
+		args = append(args, "--add-headers", "Origin:"+src.Origin)
+	}
 	return args
 }
 func format(sel mediaget.Selection) string {
@@ -204,6 +207,16 @@ func (a Adapter) Download(ctx context.Context, req mediaget.Request, work string
 		return processError(ctx, err, "baixar mídia")
 	}
 	if req.Selection.Kind == mediaget.Video && req.Selection.VideoFormat == "mp4" {
+		if progress != nil {
+			progress(mediaget.Progress{Stage: mediaget.Processing})
+		}
+		if req.AcquireProcessing != nil {
+			release, err := req.AcquireProcessing(ctx)
+			if err != nil {
+				return err
+			}
+			defer release()
+		}
 		return a.compatibleMP4(ctx, work, progress)
 	}
 	return nil

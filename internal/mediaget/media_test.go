@@ -35,6 +35,73 @@ func writeMedia(_ Request, dir string) error {
 	return os.WriteFile(filepath.Join(dir, "media.mp4"), []byte("synthetic media"), 0600)
 }
 
+func TestMissingDestinationValidationIsReadOnlyAndDownloadCreatesIt(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "new", "nested")
+	s := Service{Backend: &fakeBackend{write: writeMedia}}
+	if err := s.ValidateDestination(dir); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatal("validation mutated destination", err)
+	}
+	result, err := s.Download(t.Context(), request(dir), nil)
+	if err != nil || filepath.Dir(result.Path) != dir {
+		t.Fatal(result, err)
+	}
+	files, err := os.ReadDir(dir)
+	if err != nil || len(files) != 1 {
+		t.Fatal(files, err)
+	}
+}
+
+func TestMissingDestinationIsNotCreatedForInvalidOrCanceledRequest(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "new", "nested")
+	s := Service{Backend: &fakeBackend{write: writeMedia}}
+	r := request(dir)
+	r.Source.URL = "file:///synthetic"
+	if _, err := s.Download(t.Context(), r, nil); err == nil {
+		t.Fatal("invalid source accepted")
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if _, err := s.Download(ctx, request(dir), nil); !errors.Is(err, context.Canceled) {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Dir(dir)); !os.IsNotExist(err) {
+		t.Fatal("request created directories", err)
+	}
+}
+
+func TestMissingDestinationRejectsFileAndSymlinkAncestors(t *testing.T) {
+	parent := t.TempDir()
+	file := filepath.Join(parent, "file")
+	if err := os.WriteFile(file, []byte("keep"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	s := Service{Backend: &fakeBackend{write: writeMedia}}
+	for _, path := range []string{file, filepath.Join(file, "child"), ""} {
+		if err := s.ValidateDestination(path); err == nil {
+			t.Fatal("invalid destination accepted", path)
+		}
+	}
+	outside := t.TempDir()
+	link := filepath.Join(parent, "link")
+	if err := os.Symlink(outside, link); err != nil {
+		t.Skip(err)
+	}
+	want := filepath.Join(link, "new", "nested")
+	if err := s.ValidateDestination(want); err == nil {
+		t.Fatal("symlink accepted")
+	}
+	if _, err := s.Download(t.Context(), request(want), nil); err == nil {
+		t.Fatal("download followed symlink")
+	}
+	files, err := os.ReadDir(outside)
+	if err != nil || len(files) != 0 {
+		t.Fatal("outside modified", files, err)
+	}
+}
+
 func TestEstimatedSizeRequiresEveryPart(t *testing.T) {
 	cases := []struct {
 		name  string

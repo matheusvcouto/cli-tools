@@ -210,6 +210,13 @@ Uma mudança só está pronta quando:
 
 Durante uma migração ativa, atualizar também o checklist indicado pelo `README.md` daquela migração.
 
+### Consulta de pendências ao concluir
+
+- Ao concluir uma tarefa solicitada pelo usuário, consultar o `tasks.md` da raiz e verificar os itens ainda pendentes.
+- Se houver pendências, apresentar um resumo breve e perguntar explicitamente se o usuário gostaria de implementá-las, indicando quais itens seriam incluídos.
+- Essa consulta não autoriza iniciar outra tarefa ou publicar outra versão. Aguardar a escolha do usuário, salvo quando a implementação já tiver sido autorizada na conversa.
+- Atualizar o checklist quando um item for efetivamente concluído; não marcar como concluído apenas por ter sido registrado ou planejado.
+
 ## 10. Regras adicionais de evidência
 
 Não gerar snapshots ZIP, Base64, checksums de snapshot nem cópias separadas

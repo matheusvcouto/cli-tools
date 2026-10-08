@@ -1,5 +1,112 @@
 # media-get
 
+## Download em lote por JSON
+
+O lote aceita o manifesto nativo versionado ou um export de descoberta com
+`videos`, `title`, `url`, `referer` e `origin`. O arquivo é lido sem modificá-lo.
+Títulos informados são usados como nomes; não é necessário digitá-los novamente.
+
+```sh
+media-get batch /caminho/lote.json --output-dir "$HOME/Downloads"
+media-get batch /caminho/lote.json --jobs 3 --concurrent-fragments 8
+media-get batch /caminho/lote.json --yes
+media-get batch validate /caminho/lote.json
+media-get batch schema > media-get-batch.schema.json
+media-get batch example > lote-exemplo.json
+```
+
+`validate` verifica estrutura e opções **offline**, sem consultar mídias nem
+validar a existência do destino. `schema` e `example` imprimem o contrato e um
+exemplo sintético, sem ler HOME ou iniciar yt-dlp. Os dois últimos comandos
+usam redirecionamento explícito do shell para criar arquivos.
+
+Exemplo nativo:
+
+```json
+{
+  "schemaVersion": 1,
+  "defaults": { "kind": "video", "quality": "best", "videoFormat": "auto" },
+  "execution": { "jobs": 2, "onError": "continue" },
+  "items": [
+    {
+      "url": "https://example.invalid/primeiro/playlist.m3u8",
+      "name": "Primeiro vídeo",
+      "referer": "https://example.invalid/pagina",
+      "origin": "https://example.invalid"
+    },
+    {
+      "url": "https://example.invalid/segundo/playlist.m3u8",
+      "title": "Segundo vídeo",
+      "options": { "videoFormat": "mp4" }
+    }
+  ]
+}
+```
+
+O schema completo está em [schema.json](../../internal/mediaget/batch/schema.json).
+`defaults` e `items[].options` aceitam `kind`, `quality`, `videoFormat`,
+`subtitleFormat`, `subtitleLang`, `autoSubs`, `concurrentFragments`, `outputDir`,
+`referer` e `origin`. Referer/Origin também podem ser definidos diretamente no
+item e prevalecem sobre os respectivos campos em `options`. Campos são herdados
+individualmente; `false` substitui `true`; header vazio remove o valor herdado.
+Null, propriedades desconhecidas, chaves duplicadas, nomes de campos com casing
+diferente, versões desconhecidas e valores fora do contrato são recusados.
+Opções incompatíveis com o tipo de saída falham; defaults de vídeo com opções
+exclusivas de vídeo não servem para um item de áudio sem retirar essas opções.
+`metadata` é um objeto opcional de proveniência, sem efeito na execução.
+IDs opcionais devem ser únicos. Limites: 1000 itens, 8 MiB e 32 níveis de JSON.
+
+A precedência é **edição na revisão > flags explícitas de batch > item > defaults
+do JSON > env existente > defaults do programa**. Coloque flags depois de
+`batch`; `--name` global não é aceito. Sem configuração, o lote baixa vídeo na
+melhor qualidade, contêiner automático, 2 downloads simultâneos e 4 fragmentos
+por download (ou a env de fragmentos existente). O destino usa a env de destino
+existente ou `~/Downloads`. Paths relativos no JSON usam o diretório atual;
+`~` no arquivo não é expandido.
+
+Nome: `name` > `title` > título consultado. Sem nenhum nome/título, o terminal
+pede um; com `--yes`, a preparação falha antes da transferência. Extensões
+`.mp4`, `.txt` e `.srt` no nome selecionam os respectivos formatos como no
+download individual. Nomes são saneados; colisões nunca sobrescrevem arquivos.
+
+Antes de baixar, todos os itens são consultados, com até 3 consultas simultâneas.
+O resumo mostra cada arquivo previsto, formato/extensão, qualidade/idioma,
+destino, estimativa, fragmentos e headers definidos, sem expor URLs/headers.
+No modo automático de vídeo, a extensão é confirmada após processamento.
+Valores desconhecidos não são somados como zero. O menu permite baixar,
+editar/excluir itens, escolher **Formato de saída de todos os vídeos**, configurar
+simultaneidade ou cancelar. Em **Editar ou excluir um item**, use **Formato de
+saída** para escolher MP4/automático sem refazer tipo ou qualidade; legendas
+permitem SRT/TXT sem mudar o idioma. Itens inválidos
+precisam ser corrigidos ou excluídos explicitamente; `--yes` aborta a preparação
+inteira se houver falha, sem começar downloads. A opção MP4 compatível verifica H.264/AAC e pode recodificar codecs incompatíveis.
+
+`--jobs` aceita 1..8 e limita arquivos ativos. `--concurrent-fragments` mantém
+1..256 por download HLS/DASH. São limites diferentes: mais conexões não garantem
+mais velocidade. A conversão adicional de MP4 compatível usa um slot por lote;
+merge/extração/conversão interna do yt-dlp continua limitada por `jobs`, pois
+faz parte do seu processo. Não há um limite global de um único FFmpeg.
+
+`onError`/`--on-error continue` conclui os outros itens. `stop` deixa de iniciar
+novos itens após uma falha, permitindo que os ativos terminem. Ctrl+C cancela
+todos os processos ativos e preserva arquivos concluídos. Decisões sobre
+incompletos são sequenciais; `--yes` descarta automaticamente somente as áreas
+da execução atual. Não há retomada automática nem varredura de downloads antigos.
+Stdout traz um path entregue por linha, na ordem de conclusão; stderr traz
+resumo/progresso e resultado na ordem da lista. Durante consultas, um indicador
+mostra os itens verificados. Durante downloads, o painel tem uma barra geral por
+itens finalizados (incluindo falhas) e uma barra por download ativo, com nome,
+bytes, velocidade e ETA quando disponíveis. Ao terminar, o próximo item usa o
+mesmo espaço. Conversão e publicação mantêm animação até finalizar; atingir 100%
+da transferência não significa que o arquivo já foi entregue. Em saída
+redirecionada, há logs periódicos sem movimentação de cursor. Falhas retornam código não zero;
+cancelamento retorna 130. Download Windows continua indisponível.
+
+Exports de descoberta podem conter URLs inferidas de poster/preconnect;
+o aviso não comprova que a mídia existe. `command` legado nunca é executado.
+Schema e exemplo podem ser fornecidos ao seu exportador/gerador de JSON; o
+media-get não integra Google/Chrome/Gemini nem captura mídia do navegador.
+
 Downloader de vídeo, áudio e legendas com yt-dlp instalado no sistema. Produto
 experimental. O launcher possui testes nativos sintéticos no macOS e Linux
 (x64 e ARM64); funcionamento com sites/FFmpeg reais continua não verificado.
@@ -72,6 +179,8 @@ opção de melhor qualidade, evitando consultas redundantes; quando há altura
 desconhecida, os limites ficam disponíveis. Flags continuam aceitando todos os
 limites documentados. Legendas são identificadas na consulta inicial, com tamanho
 indisponível quando não há dados para calcular.
+Na edição do resumo, **Formato de saída** permite trocar vídeo entre automático
+e MP4 compatível ou legenda entre SRT/TXT, preservando qualidade/idioma.
 Após o resumo, escolha **Baixar com estas opções**, **Editar opções** ou
 **Cancelar**. Enter confirma a opção selecionada. Ctrl+C encerra os processos e
 retorna 130; o estado do terminal e a visibilidade do cursor são restaurados.
@@ -92,8 +201,11 @@ bloquear o download. Legendas têm estimativa indisponível.
 ## Destino e arquivos
 
 Precedência: `--output-dir` > `CLI_TOOLS_MEDIA_GET_DOWNLOAD_DIR` > `~/Downloads`.
-A variável precisa conter um caminho não vazio. O destino deve existir e ser
-um diretório real; a raiz selecionada não pode ser um symlink. Paths relativos
+A variável precisa conter um caminho não vazio. Se o destino não existir,
+ele e as subpastas necessárias são criados ao iniciar o download, após a
+confirmação (ou com `--yes`). Revisar/editar/cancelar não cria pastas.
+Arquivos e symlinks existentes não são substituídos; o destino precisa ser
+uma pasta real. Paths relativos
 são resolvidos contra o diretório atual; `~` deve ser expandido pelo shell.
 No Linux, a resolução de `user-dirs.dirs`/XDG customizado ainda não existe;
 configure a variável ou a flag para essa pasta.
@@ -291,8 +403,9 @@ altera a variável de ambiente nem grava preferências globais.
 
 Após editar, o resumo é exibido novamente antes de escolher **Baixar com estas
 opções**. **Voltar** no menu de edição mantém os valores; **Cancelar** encerra sem
-iniciar a transferência. O novo diretório deve existir e é validado antes de ser
-aceito. Trocar somente nome, destino ou fragmentos reaproveita metadata; mudar
+iniciar a transferência. O novo caminho é validado antes de ser aceito;
+pastas ausentes são criadas somente ao baixar. Trocar somente nome, destino
+ou fragmentos reaproveita metadata; mudar
 Referer renova a consulta e as escolhas. `--yes` mantém o fluxo automático com
 resumo e dispensa o menu final.
 

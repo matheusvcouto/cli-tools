@@ -63,11 +63,11 @@ suíte, as versões individuais dos produtos e a causa da divergência. Pergunta
 aguardar aprovação explícita; apenas comunicar o resultado calculado ou receber
 um pedido genérico de publicar não autoriza a divergência.
 
-O prepare vigente agrega o maior impacto dos componentes na suíte. Isso é uma
-política do tooling, não uma autorização do usuário nem uma exigência do Go.
-Uma correção de metadados de publicação autorizada preserva os manifests já
-preparados e o código; não repetir bumps de produtos ao corrigir a tag da suíte.
-Não alterar a identidade do módulo nem contornar API/contracts/preflight/CI.
+O prepare usa o impacto de `module` para minor/major da suíte. Alterações das
+CLIs, com versões individuais, provocam patch da suíte e mantêm o impacto
+próprio de cada produto. O lock da API Go pública e os gates de breaking changes
+continuam obrigatórios. Versões explicitamente pedidas precisam coincidir com
+essa política; divergências exigem decisão explícita antes da preparação.
 
 ## Preparar a release
 

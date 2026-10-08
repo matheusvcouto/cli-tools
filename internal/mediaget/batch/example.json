@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "defaults": {
+    "kind": "video",
+    "quality": "best",
+    "videoFormat": "auto"
+  },
+  "execution": {
+    "jobs": 2,
+    "onError": "continue"
+  },
+  "items": [
+    {
+      "url": "https://example.invalid/video",
+      "name": "Meu vídeo",
+      "referer": "https://example.invalid/pagina"
+    }
+  ]
+}

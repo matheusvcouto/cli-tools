@@ -103,6 +103,50 @@ func TestRefererAndIsolationAppliedToBothCalls(t *testing.T) {
 		t.Fatalf("selector: %s", data)
 	}
 }
+
+func TestBatchOriginHeaderAndProcessingGate(t *testing.T) {
+	a, log := fixture(t)
+	src := mediaget.Source{URL: "https://example.invalid/video", Origin: "https://origin.invalid"}
+	if _, err := a.Inspect(t.Context(), src, mediaget.Selection{}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "--add-headers\nOrigin:https://origin.invalid\n") {
+		t.Fatal(string(data))
+	}
+	if err := a.Download(t.Context(), mediaget.Request{Source: src, Selection: mediaget.Selection{Kind: mediaget.Video}}, t.TempDir(), nil); err != nil {
+		t.Fatal(err)
+	}
+	data, err = os.ReadFile(log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "--add-headers\nOrigin:https://origin.invalid\n") {
+		t.Fatal(string(data))
+	}
+	a.Path = executable(t, t.TempDir(), "yt-dlp", "exit 0")
+	var lastStage mediaget.ProgressStage
+	notify := func(p mediaget.Progress) { lastStage = p.Stage }
+	want := errors.New("synthetic processing canceled")
+	req := mediaget.Request{Source: src, Selection: mediaget.Selection{Kind: mediaget.Video, VideoFormat: "mp4"}, AcquireProcessing: func(context.Context) (func(), error) {
+		if lastStage != mediaget.Processing {
+			t.Fatal("processing wait has no visible status", lastStage)
+		}
+		return nil, want
+	}}
+	if err := a.Download(t.Context(), req, t.TempDir(), notify); !errors.Is(err, want) {
+		t.Fatal(err)
+	}
+	released := false
+	req.AcquireProcessing = func(context.Context) (func(), error) { return func() { released = true }, nil }
+	// The synthetic probe deliberately fails; even that path releases its slot.
+	if err := a.Download(t.Context(), req, t.TempDir(), nil); err == nil || !released {
+		t.Fatal(err, released)
+	}
+}
 func TestMissingDependencyBeforeChildStarts(t *testing.T) {
 	a, log := fixture(t)
 	t.Setenv("PATH", t.TempDir())

@@ -47,7 +47,7 @@ func New(service mediaget.Service, product core.ProductMetadata, interaction ...
 	if len(interaction) > 0 {
 		prompts = interaction[0]
 	}
-	return core.Compile(core.App{
+	spec := core.App{
 		Interaction: prompts, ID: "media-get", Name: "media-get", Summary: "download video, audio or subtitles with system yt-dlp", Product: product,
 		Builtins: core.Builtins{Help: true, Version: true, Completion: true, Schema: true},
 		Root: core.Command{ID: prefix + "root", Name: "media-get", OptionPolicy: core.OptionsInterspersed,
@@ -55,7 +55,7 @@ func New(service mediaget.Service, product core.ProductMetadata, interaction ...
 			Flags: []core.Flag{
 				{ID: prefix + "fragments", Long: "concurrent-fragments", Summary: fmt.Sprintf("parallel native HLS/DASH fragments (1 to %d)", mediaget.MaxConcurrentFragments), Value: fragmentsValue(), Providers: []core.ResolutionProvider{core.EnvProvider(FragmentsEnv)}, Default: []string{strconv.Itoa(mediaget.DefaultConcurrentFragments)}},
 				{ID: prefix + "referer", Long: "referer", Summary: "optional origin page; omitted means none", Value: core.StringValue(), Sensitive: true},
-				{ID: prefix + "output", Long: "output-dir", Short: 'o', Summary: "existing download directory", Value: core.DirectoryValue(), Providers: []core.ResolutionProvider{
+				{ID: prefix + "output", Long: "output-dir", Short: 'o', Summary: "download directory (created when needed)", Value: core.DirectoryValue(), Providers: []core.ResolutionProvider{
 					core.EnvProvider(DownloadEnv),
 					{Source: core.SourceProvider, Name: "Downloads", Resolve: func(context.Context) ([]string, bool, error) {
 						home, err := os.UserHomeDir()
@@ -95,7 +95,9 @@ func New(service mediaget.Service, product core.ProductMetadata, interaction ...
 				}},
 			}, Handler: func(inv *core.Invocation) error { return run(inv, service) },
 		},
-	})
+	}
+	spec.Root.Commands = []core.Command{batchCommand(service, spec.Root.Flags)}
+	return core.Compile(spec)
 }
 func value(inv *core.Invocation, name string) string {
 	s, _ := core.ValueAs[string](inv, prefix+name)

@@ -1,8 +1,50 @@
 # ADR — media-get
 
+## M019 — Lote JSON versionado e execução concorrente (2026-10-04)
+
+Pedido aprovado: importar manifestos e mostrar formato/extensão no resumo;
+publicação futura somente após teste/aprovação do usuário, suíte esperada 1.3.5.
+Entrada nativa schemaVersion 1 e adapter legado videos; schema/exemplo embutidos,
+parser limitado e estrito (UTF-8, surrogate pairs, duplicatas, null, casing,
+profundidade/tamanho). Dados command/metadados nunca viram shell/argv livre.
+Origin tipado validado e repassado por lista argv, junto ao Referer, em todas
+as consultas/transferências. Não inferir headers da proveniência.
+
+Lacuna: validar o mesmo JSON Schema 2020-12 fornecido ao produtor externo.
+Adotar santhosh-tekuri/jsonschema/v6 6.0.3 (Apache-2.0), com x/text 0.42.0
+(BSD, oficial Go), revisão do source/go.mod/licenças e notices distribuídos.
+regexp2 1.11.0 pertence aos testes da dependência, não ao binário. Sem loader
+de arquivo/rede para schemas; metaschemas e referências locais embutidos.
+encoding/json stdlib preservado; não ativar experimento jsonv2. Testes do
+manifesto cobrem a semântica motivadora; módulos preparados/verificados em
+cache dedicado, sem vendor nem estado real.
+
+Fila no domínio usa Service.Download existente, jobs 1..8 (default 2), eventos
+serializados e join dos workers. Preparação tem até 3 workers globais, nenhum
+download antes da revisão; falha de preparação bloqueia todo --yes. Default
+video/best/auto; nomes fornecidos dispensam prompt. Flags > item > defaults >
+env > padrão, edição local prevalece. Não substituir arquivos em colisões.
+Cancelamento mata processos existentes por backend e preserva entregas.
+
+Ajuste ao plano: apenas a conversão adicional de MP4 compatível é serializada
+por slot cancelável. FFmpeg interno de yt-dlp (merge/áudio/legenda) permanece
+limitado por jobs; não afirmar limite global de um encoder. Separar esses
+postprocessadores exigiria outro fluxo de extração/merge e não cabe nesta entrega.
+UI atual reaproveitada, sem nova TUI ou multi-select. Resumo informa extensão
+conhecida/arquivo previsto e ressalva colisões; automático não promete extensão.
+
+Correção autorizada após teste do usuário: o destino não precisa existir.
+ValidateDestination é read-only e valida o ancestral real mais próximo;
+Service.Download chama safefs.EnsureDir somente após validar pedido/dependências
+e cancelamento, ao iniciar a transferência confirmada. Criação confinada de
+subpastas, sem substituir arquivo/symlink; diretórios existentes mantêm suas
+permissões. Preparação/cancelamento antes de baixar não cria pastas. Mesmo fluxo
+para single-URL, lote, flags/env/JSON e edição. Cobrir criação concorrente de
+destino comum, edição sem nova metadata, cancelamento e ancestrais inválidos.
+
 ## M001 — Migração por capacidade, não tradução literal — Accepted
 
-Extrair do projeto Deno em `/Users/matheus/pessoal/videos` a escolha de mídia,
+Extrair do projeto Deno em `<local-project>` a escolha de mídia,
 qualidade, legenda, estimativa e nome. Implementar domínio Go privado em
 `internal/mediaget`, composição em `internal/mediaget/cli` e backend em
 `internal/mediaget/ytdlp`. O projeto original é referência somente de leitura;
@@ -299,3 +341,18 @@ aparecem antes do download; resultados publicados permanecem sem clobber.
 
 Referências: https://github.com/yt-dlp/yt-dlp#format-selection,
 https://ffmpeg.org/ffmpeg.html#Streamcopy e https://ffmpeg.org/ffprobe.html.
+
+## M020 — Revisão de formato e painel concorrente
+
+A revisão expõe formato independentemente de tipo/qualidade, tanto no fluxo
+individual quanto por item do lote. O lote também aplica automático/MP4 a todos
+os vídeos incluídos; outras opções e itens excluídos são preservados. Consultas
+mostram atividade e contagem de itens antes de qualquer transferência.
+
+Um único proprietário da UI consome eventos limitados e redesenha slots ativos
+com ticker, reutilizando contabilização/formatador do download individual.
+A barra geral conta itens finalizados, incluindo falhas; bytes e ETA pertencem
+a cada transferência, sem somar estimativas desconhecidas como zero. Slots são
+reutilizados após finalização. Conversão/publicação permanecem indeterminadas.
+Saída sem TTY usa logs periódicos. Falha de escrita cancela e aguarda workers;
+nenhuma goroutine de download escreve no terminal. Sem novas dependências.

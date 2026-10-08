@@ -73,7 +73,7 @@
       {
         "id": "mediaget.output",
         "long": "output-dir",
-        "summary": "existing download directory",
+        "summary": "download directory (created when needed)",
         "short": "o",
         "type": "directory",
         "hint": "directory",
@@ -215,6 +215,229 @@
     ],
     "option_policy": "interspersed",
     "commands": [
+      {
+        "id": "mediaget.batch.root",
+        "name": "batch",
+        "summary": "download a reviewed JSON batch",
+        "args": [
+          {
+            "id": "mediaget.batch.file",
+            "name": "file",
+            "summary": "local JSON manifest",
+            "type": "file",
+            "hint": "file",
+            "required": true,
+            "min": 1,
+            "max": 1
+          }
+        ],
+        "flags": [
+          {
+            "id": "mediaget.batch.auto",
+            "long": "auto-subs",
+            "summary": "choose an automatic subtitle track",
+            "type": "bool",
+            "action": "switch"
+          },
+          {
+            "id": "mediaget.batch.fragments",
+            "long": "concurrent-fragments",
+            "summary": "parallel native HLS/DASH fragments (1 to 256)",
+            "type": "fragment_concurrency",
+            "action": "set"
+          },
+          {
+            "id": "mediaget.batch.jobs",
+            "long": "jobs",
+            "summary": "simultaneous downloads (1 to 8; default 2)",
+            "type": "batch_jobs",
+            "action": "set"
+          },
+          {
+            "id": "mediaget.batch.kind",
+            "long": "kind",
+            "summary": "video with audio, audio only, or subtitle",
+            "type": "enum",
+            "hint": "enum",
+            "action": "set",
+            "choices": [
+              {
+                "Value": "video",
+                "Description": ""
+              },
+              {
+                "Value": "audio",
+                "Description": ""
+              },
+              {
+                "Value": "subtitle",
+                "Description": ""
+              }
+            ]
+          },
+          {
+            "id": "mediaget.batch.on-error",
+            "long": "on-error",
+            "summary": "continue other items or stop starting new ones",
+            "type": "enum",
+            "hint": "enum",
+            "action": "set",
+            "choices": [
+              {
+                "Value": "continue",
+                "Description": ""
+              },
+              {
+                "Value": "stop",
+                "Description": ""
+              }
+            ]
+          },
+          {
+            "id": "mediaget.batch.origin",
+            "long": "origin",
+            "summary": "HTTP(S) Origin header override",
+            "type": "string",
+            "action": "set",
+            "sensitive": true
+          },
+          {
+            "id": "mediaget.batch.output",
+            "long": "output-dir",
+            "summary": "download directory (created when needed)",
+            "short": "o",
+            "type": "directory",
+            "hint": "directory",
+            "action": "set"
+          },
+          {
+            "id": "mediaget.batch.quality",
+            "long": "quality",
+            "summary": "video height limit; best has no height limit",
+            "type": "video_height",
+            "hint": "enum",
+            "action": "set",
+            "choices": [
+              {
+                "Value": "best",
+                "Description": ""
+              },
+              {
+                "Value": "2160",
+                "Description": ""
+              },
+              {
+                "Value": "1080",
+                "Description": ""
+              },
+              {
+                "Value": "720",
+                "Description": ""
+              },
+              {
+                "Value": "480",
+                "Description": ""
+              },
+              {
+                "Value": "360",
+                "Description": ""
+              }
+            ]
+          },
+          {
+            "id": "mediaget.batch.referer",
+            "long": "referer",
+            "summary": "optional origin page; omitted means none",
+            "type": "string",
+            "action": "set",
+            "sensitive": true
+          },
+          {
+            "id": "mediaget.batch.subtitle-format",
+            "long": "subtitle-format",
+            "summary": "subtitle output: srt or plain txt",
+            "type": "enum",
+            "hint": "enum",
+            "action": "set",
+            "choices": [
+              {
+                "Value": "srt",
+                "Description": ""
+              },
+              {
+                "Value": "txt",
+                "Description": ""
+              }
+            ]
+          },
+          {
+            "id": "mediaget.batch.lang",
+            "long": "subtitle-lang",
+            "summary": "exact subtitle language from metadata",
+            "type": "string",
+            "action": "set"
+          },
+          {
+            "id": "mediaget.batch.video-format",
+            "long": "video-format",
+            "summary": "auto container or compatible MP4 (H.264/AAC; may re-encode)",
+            "type": "enum",
+            "hint": "enum",
+            "action": "set",
+            "choices": [
+              {
+                "Value": "auto",
+                "Description": ""
+              },
+              {
+                "Value": "mp4",
+                "Description": ""
+              }
+            ]
+          },
+          {
+            "id": "mediaget.batch.yes",
+            "long": "yes",
+            "summary": "confirm the complete batch without prompts",
+            "short": "y",
+            "type": "bool",
+            "action": "switch"
+          }
+        ],
+        "option_policy": "interspersed",
+        "commands": [
+          {
+            "id": "mediaget.batch.example",
+            "name": "example",
+            "summary": "print a synthetic batch example",
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "mediaget.batch.schema",
+            "name": "schema",
+            "summary": "print the embedded batch JSON Schema",
+            "option_policy": "interspersed"
+          },
+          {
+            "id": "mediaget.batch.validate",
+            "name": "validate",
+            "summary": "validate a manifest offline; does not check media",
+            "args": [
+              {
+                "id": "mediaget.batch.validate.file",
+                "name": "file",
+                "summary": "local JSON manifest",
+                "type": "file",
+                "hint": "file",
+                "required": true,
+                "min": 1,
+                "max": 1
+              }
+            ],
+            "option_policy": "interspersed"
+          }
+        ]
+      },
       {
         "id": "cli.builtin.completion",
         "name": "completion",

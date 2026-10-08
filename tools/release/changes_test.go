@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func TestPlanReleaseUsesIndependentToolVersionsAndHighestSuiteImpact(t *testing.T) {
+func TestPlanReleaseUsesIndependentToolVersionsAndModuleImpact(t *testing.T) {
 	root := t.TempDir()
 	cmdRoot := filepath.Join(root, "cmd")
 	for _, tc := range []struct{ name, version string }{{"ai-profile", "0.1.1"}, {"repo-zip", "0.1.1"}} {
@@ -37,11 +37,11 @@ func TestPlanReleaseUsesIndependentToolVersionsAndHighestSuiteImpact(t *testing.
 	if err := os.WriteFile(changelog, []byte("# Changelog\n\n## [Unreleased]\n\n## [0.1.1] - 2026-09-12\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	plan, _, _, err := planRelease(cmdRoot, changes, changelog, "v0.2.0")
+	plan, _, _, err := planRelease(cmdRoot, changes, changelog, "v0.1.2")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if plan.NextSuite.String() != "0.2.0" || plan.SuiteImpact != impactMinor {
+	if plan.NextSuite.String() != "0.1.2" || plan.SuiteImpact != impactPatch {
 		t.Fatalf("suite plan=%+v", plan)
 	}
 	if got := plan.Tools["ai-profile"].Next.String(); got != "0.2.0" {
@@ -50,9 +50,19 @@ func TestPlanReleaseUsesIndependentToolVersionsAndHighestSuiteImpact(t *testing.
 	if got := plan.Tools["repo-zip"].Next.String(); got != "0.1.2" {
 		t.Fatalf("repo-zip next=%s", got)
 	}
-	if _, _, _, err := planRelease(cmdRoot, changes, changelog, "v0.1.2"); err == nil {
+	if _, _, _, err := planRelease(cmdRoot, changes, changelog, "v0.2.0"); err == nil {
 		t.Fatal("expected incorrect suite bump to fail")
 	}
+	// Public module additions still drive the suite minor, independently.
+	record = strings.Replace(record, `"module","impact":"patch"`, `"module","impact":"minor"`, 1)
+	if err := os.WriteFile(filepath.Join(changes, "x.json"), []byte(record), 0644); err != nil {
+		t.Fatal(err)
+	}
+	plan, _, _, err = planRelease(cmdRoot, changes, changelog, "v0.2.0")
+	if err != nil || plan.SuiteImpact != impactMinor {
+		t.Fatal(plan, err)
+	}
+
 }
 
 func TestExplicitSuiteVersionOverrideOnlyAdvancesAndPreservesToolVersions(t *testing.T) {
@@ -82,10 +92,10 @@ func TestExplicitSuiteVersionOverrideOnlyAdvancesAndPreservesToolVersions(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	if plan.NextSuite.String() != "1.3.0" || plan.SuiteImpact != impactMinor || plan.Tools["tool"].Next.String() != "0.2.0" {
+	if plan.NextSuite.String() != "1.3.0" || plan.SuiteImpact != impactPatch || plan.Tools["tool"].Next.String() != "0.2.0" {
 		t.Fatalf("%+v", plan)
 	}
-	for _, version := range []string{"v1.1.0", "v1.1.9", "v2.0.0", "v1.3.0-rc.1"} {
+	for _, version := range []string{"v1.1.0", "v2.0.0", "v1.3.0-rc.1"} {
 		if _, _, _, err := planReleaseWithVersionOverride(cmdRoot, changes, changelog, version, true); err == nil {
 			t.Fatalf("accepted invalid override %s", version)
 		}
@@ -123,7 +133,7 @@ func TestStableBreakingToolRequiresMajorImpact(t *testing.T) {
 	if err := os.WriteFile(changelog, []byte("# Changelog\n\n## [Unreleased]\n\n## [1.2.3] - 2026-09-12\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, _, err := planRelease(cmdRoot, changes, changelog, "v1.3.0"); err == nil || !strings.Contains(err.Error(), "requires major") {
+	if _, _, _, err := planRelease(cmdRoot, changes, changelog, "v1.2.4"); err == nil || !strings.Contains(err.Error(), "requires major") {
 		t.Fatalf("err=%v", err)
 	}
 }
@@ -289,7 +299,7 @@ func TestFirstV1ToolReleaseRequiresExplicitStablePromotion(t *testing.T) {
 	if err := os.WriteFile(changelogPath, []byte("# Changelog\n\n## [Unreleased]\n\n## [0.9.0] - 2026-09-12\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, _, err := planRelease(cmdRoot, changesDir, changelogPath, "v1.0.0"); err == nil || !strings.Contains(err.Error(), "explicit stability promotion to stable") {
+	if _, _, _, err := planRelease(cmdRoot, changesDir, changelogPath, "v0.9.1"); err == nil || !strings.Contains(err.Error(), "explicit stability promotion to stable") {
 		t.Fatalf("expected explicit stable promotion requirement, err=%v", err)
 	}
 
@@ -297,7 +307,7 @@ func TestFirstV1ToolReleaseRequiresExplicitStablePromotion(t *testing.T) {
 	if err := os.WriteFile(changePath, []byte(withPromotion), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	plan, _, _, err := planRelease(cmdRoot, changesDir, changelogPath, "v1.0.0")
+	plan, _, _, err := planRelease(cmdRoot, changesDir, changelogPath, "v0.9.1")
 	if err != nil {
 		t.Fatal(err)
 	}

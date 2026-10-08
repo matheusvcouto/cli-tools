@@ -1,7 +1,7 @@
 # Contexto atual — revisão do fluxo Go para v1.3.2
 
 Data: 2026-10-01. Base inicial: v1.3.0 / 14dfc95. Integração: v1.3.1 / 5ba6009. Branch: codex/go-workflow-1.3.2.
-Worktree: /Users/matheus/matheusvcouto/root/__worktrees/cli-tools/go-workflow.
+Worktree: <local-path>.
 
 ## Escopo e integração
 
@@ -21,7 +21,7 @@ dist/dependency-audit/vendor-paths.txt. Notices/licenças permanecem nos archive
 
 ## Ambiente e regras vigentes
 
-Go 1.27.1 disponível em /Users/matheus/.local/share/mise/installs/go/1.27.1/bin.
+Go 1.27.1 disponível no ambiente local.
 A instalação padrão em /usr/local/go tentou baixar outra toolchain; usar o
 Go compatível já instalado no PATH, sem alterar configurações globais.
 Preparação de módulos com rede é permitida. Checks reutilizam dist/go-cache
@@ -230,3 +230,79 @@ pelo usuário não foi inspecionado, convertido nem usado como fixture. Não
 declarar reprodução em todo player ou download Windows: capability preservada.
 Receipt e logs: dist/release-validation/1.3.4/publication-receipt.json.
 Binários nativos atualizados em dist/<tool>/<tool>; main contém a implementação.
+
+## Plano de lote JSON — 2026-10-04
+
+Pedido atual é investigação/plano, sem implementação/publicação. Leitura
+somente de lote.json em Downloads: 15 mídias HLS com títulos,
+Referer/Origin e proveniência inferida; acesso às URLs não foi testado.
+Proposta em plans/media-get/BATCH_JSON.md: adapter legado, manifesto nativo
+schemaVersion 1 + JSON Schema 2020-12, resumo/edição com UI atual, jobs separados
+dos fragmentos e limite de conversão, cancelamento/falhas por item. Nenhuma
+dependência instalada nem versão escolhida. Produtor "Google" ainda ambíguo
+(Chrome/exportador/Gemini): confirmar somente antes de integração específica.
+tasks.md continua com três funcionalidades pendentes; consulta ao concluir
+não autoriza iniciá-las sem escolha do usuário.
+
+## Lote JSON implementado para teste — 2026-10-04
+
+Usuário aprovou o plano e escolheu suíte 1.3.5 após sua aprovação do teste.
+Implementação local concluída: batch/validate/schema/example, nativo v1 e
+adapter videos, Origin tipado, fila limitada e revisão/edição, extensão no resumo.
+Gates completos locais PASS; ajustes finais cobertos por race de mediaget PASS.
+Build nativo/help/version isolados PASS, dist/media-get/media-get atualizado
+(produto atual 0.3.1, suite v1.3.4+dev, sem preparo de release). Evidência/limites
+em plans/media-get/BATCH_VALIDATION.md e dist/batch-validation. Nenhum download
+real nem CI remoto nesta etapa; nenhum commit/push/publicação autorizado agora.
+
+Pendência REAL antes do preparo: preview 1.3.5 recusado por agregação antiga de
+impactos de produtos na suíte (calcula 1.4.0 para minor de media-get 0.4.0).
+Pergunta assíncrona enviada: autorizar cálculo patch da suíte para mudanças
+privadas de CLI, mantendo minor/major da API Go pública. AGUARDAR resposta.
+Não preparar/publicar 1.4.0, falsificar record como patch ou enfraquecer gates.
+Suíte solicitada continua 1.3.5. Após decisão do tooling e aprovação do teste,
+fazer gates/CI/preparo/builds/publicação conforme autorização específica.
+Tasks: resumo e lote JSON concluídos localmente; multi-select e URLs por linha
+continuam pendentes, sem autorização de iniciar nesta tarefa.
+
+Teste do usuário encontrou destino ausente ao trocar --output-dir. Corrigido:
+ValidateDestination aceita sufixo ausente sob ancestral real sem criar nada;
+Service.Download usa safefs.EnsureDir depois da confirmação/validações.
+Criação de subpastas compartilhadas concorrentes testada com fakes, assim como
+edição sem renovar metadata, cancelar sem criar pasta e rejeitar files/symlinks.
+Nenhuma pasta real em Downloads criada/testada nesta etapa. Destino inexistente
+não é mais erro por si só; falhas de permissão continuam explícitas.
+check-safe.sh all da correção PASS (inclui race/contratos/API). Binário nativo
+reconstruído e help/version isolados PASS. Log destination-all.log e evidências
+em dist/batch-validation; detalhes em plans/media-get/BATCH_VALIDATION.md.
+
+## Revisão de formato/progresso do lote — 2026-10-04
+
+Formato de saída agora é edição direta no resumo individual e por item do lote,
+preservando qualidade/idioma. O lote aplica automático/MP4 aos vídeos incluídos.
+Destinos/dependências/metadata têm indicador com contagem; atualizações de
+formato mostram carregamento. Painel concorrente tem barra geral por itens
+finalizados e slots reutilizados por downloads ativos, com bytes/speed/ETA ou
+animação para total desconhecido, processamento e publicação. Espera pelo slot
+de conversão MP4 também emite Processing antes de adquirir o semáforo.
+
+check-safe.sh all PASS: fmt/test/vet/shuffle/race/API/contratos/change records.
+Regressões cobrem formato por item/em todos/individual preservando qualidade,
+slots reutilizados, animação sem eventos novos, largura, logs sem ANSI e
+falha de saída cancelando/juntando workers. Testes usam somente mídia/backend
+sintéticos; nenhum download real nem CI remoto nesta etapa.
+Build nativo Go1.27.1 atualizado em dist/media-get/media-get, help e version
+em ambiente isolado PASS (suite v1.3.4+dev). Logs progress-all.log,
+progress-help.log e progress-version.json em dist/batch-validation.
+Publicação e decisão do cálculo da suíte 1.3.5 continuam pendentes.
+
+## Publicação 1.3.5 autorizada — 2026-10-08
+
+Usuário aprovou a publicação na versão informada e exigiu ausência de dados
+pessoais no GitHub. Política da suíte separada dos produtos: module determina
+minor/major; CLI privada provoca patch da suíte. Preview/preparo: suite 1.3.5,
+media-get 0.4.0; demais produtos 1.1.0. Gates de API/contratos preservados.
+Referências ao manifesto pessoal e caminhos locais substituídos por exemplos
+genéricos. Builds publicados usam trimpath. Commit usa identidade pública do
+GitHub com email noreply, sem mudar configuração global.
+A pendência anterior de versão está resolvida; publicação aguarda gates/CI.

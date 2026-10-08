@@ -369,7 +369,12 @@ func planReleaseWithVersionOverride(cmdRoot, changesDir, changelogPath, requeste
 		}
 	}
 	suiteImpact := impactNone
-	for _, x := range impacts {
+	for component, x := range impacts {
+		if component != "module" && x != impactNone {
+			// Products carry their own SemVer. Private CLI changes only
+			// republish the suite; public Go API impact belongs to module.
+			x = impactPatch
+		}
 		suiteImpact = maxImpact(suiteImpact, x)
 	}
 	if suiteImpact == impactNone {

@@ -1,8 +1,15 @@
 # Media Get — plano e acompanhamento
 
+## Proposta ativa de lote JSON
+
+Investigação e plano de importação de manifestos, contrato versionado,
+downloads simultâneos e resumo com a UI atual:
+[BATCH_JSON.md](BATCH_JSON.md). Implementação local autorizada em 2026-10-04;
+publicação somente depois da aprovação do usuário, com suíte esperada 1.3.5.
+
 ## Objetivo e origem
 
-Trazer as capacidades úteis de `/Users/matheus/pessoal/videos` para esta suíte,
+Trazer as capacidades úteis de `<local-project>` para esta suíte,
 com domínio Go, CLI Core único e backend yt-dlp substituível. A referência Deno
 foi lida somente como fonte de comportamento. Banco, mídias, arquivos de conta e
 configurações reais não são copiados, executados, alterados ou usados em testes.
@@ -214,3 +221,11 @@ Decisões/limites/fontes em ../../docs/media-get-throughput.md e M014.
 - [x] Gates locais, builds e CI nativo da implementação (37055188631).
 - [x] CI do commit preparado (37055942843) e publicação v1.3.4 (37056511916).
 - [x] Mise público isolado e seis archives/SHA256SUMS confirmados.
+
+## Refinamento local do lote JSON
+
+- [x] Edição direta do formato por item/individual e MP4 em todos os vídeos.
+- [x] Carregamento nas consultas e painel com barra geral e slots ativos reutilizados.
+- [x] Espera de conversão animada, regressões e gates locais completos.
+- [x] Binário nativo reconstruído para teste do usuário.
+- [ ] Aprovação do teste e decisão de versionamento antes de publicação 1.3.5.

@@ -34,6 +34,23 @@ func (r *downloadRenderer) render(force bool) {
 		return
 	}
 	r.last = now
+	width := r.inv.Terminal.Width
+	if f, ok := r.inv.IO.Err.(*os.File); ok && r.inv.Terminal.StderrTTY {
+		width, _, _ = term.GetSize(int(f.Fd()))
+	}
+	if width <= 0 {
+		width = 80
+	}
+	message := r.line(width, r.inv.Terminal.StderrTTY)
+	if r.inv.Terminal.StderrTTY {
+		_, r.err = fmt.Fprintf(r.inv.IO.Err, "\r\x1b[2K%s", fitLine(message, width-1))
+	} else {
+		_, r.err = fmt.Fprintln(r.inv.IO.Err, message)
+	}
+}
+
+// line shares transfer accounting and formatting with the batch renderer.
+func (r *downloadRenderer) line(width int, tty bool) string {
 	p := r.current
 	message := "Baixando mídia..."
 	switch p.Stage {
@@ -41,13 +58,6 @@ func (r *downloadRenderer) render(force bool) {
 		message = "Processando mídia (conversão/mesclagem)..."
 	case mediaget.Publishing:
 		message = "Verificando e salvando arquivo..."
-	}
-	width := r.inv.Terminal.Width
-	if f, ok := r.inv.IO.Err.(*os.File); ok && r.inv.Terminal.StderrTTY {
-		width, _, _ = term.GetSize(int(f.Fd()))
-	}
-	if width <= 0 {
-		width = 80
 	}
 	if p.Stage == mediaget.Transferring && (p.Downloaded > 0 || p.Total > 0) {
 		sizes := mediaget.HumanSize(p.Downloaded)
@@ -72,7 +82,7 @@ func (r *downloadRenderer) render(force bool) {
 		if p.ETA > 0 {
 			stats += " | " + (time.Duration(p.ETA) * time.Second).String()
 		}
-		if r.inv.Terminal.StderrTTY {
+		if tty {
 			if percent >= 0 {
 				barWidth := min(24, max(5, width-len(stats)-10))
 				filled := barWidth * percent / 100
@@ -86,7 +96,7 @@ func (r *downloadRenderer) render(force bool) {
 				message = fmt.Sprintf("[%s█%s] %s", strings.Repeat("░", position), strings.Repeat("░", width-position-1), stats)
 			}
 		} else {
-			message = "Transferência atual: " + mediaget.HumanSize(p.Downloaded)
+			message = "Transferência atual: " + sizes
 			if percent >= 0 {
 				message = fmt.Sprintf("Transferência atual: %d%% (%s)", percent, sizes)
 			}
@@ -97,15 +107,11 @@ func (r *downloadRenderer) render(force bool) {
 				message += " | restante: " + (time.Duration(p.ETA) * time.Second).String()
 			}
 		}
-	} else if r.inv.Terminal.StderrTTY {
+	} else if tty {
 		message = fmt.Sprintf("%c %s", "|/-\\"[r.frame%4], message)
 	}
 	r.frame++
-	if r.inv.Terminal.StderrTTY {
-		_, r.err = fmt.Fprintf(r.inv.IO.Err, "\r\x1b[2K%s", fitLine(message, width-1))
-	} else {
-		_, r.err = fmt.Fprintln(r.inv.IO.Err, message)
-	}
+	return message
 }
 
 // Only this goroutine draws. yt-dlp callbacks feed bounded events, and the ticker

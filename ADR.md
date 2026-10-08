@@ -198,3 +198,11 @@ sintético e downloads bloqueados. Fuzz mantém crashers na worktree persistente
 Esta separação permite dependências externas justificadas e reutilização de
 cache sem usar contas/perfis reais como fixtures. Downloads bloqueados no Go
 não significam isolamento integral de rede.
+
+## Suite and product version separation
+
+Suite releases use module/public Go API impact for minor/major changes. Changes
+to independently versioned CLI products require a suite patch release while
+each product retains its own calculated SemVer impact. Module breaking-change
+validation and the public API lock remain mandatory. This allows private CLI
+features to ship in suite 1.3.5 with media-get 0.4.0 without changing module path.

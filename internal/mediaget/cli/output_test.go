@@ -30,7 +30,7 @@ func TestMP4FilenameAndFlagReachBackendAndSummary(t *testing.T) {
 		if err := app(t, b).Run(context.Background(), argv, core.IO{Err: &log}); err != nil {
 			t.Fatal(err)
 		}
-		if b.last.Selection.VideoFormat != "mp4" || b.last.Name != "example" || !strings.Contains(log.String(), "MP4 compatível") {
+		if b.last.Selection.VideoFormat != "mp4" || b.last.Name != "example" || !strings.Contains(log.String(), "Formato de saída: MP4 (.mp4)") {
 			t.Fatalf("%+v %s", b.last, log.String())
 		}
 		if _, err := os.Stat(filepath.Join(dir, "example.mp4")); err != nil {

@@ -6,6 +6,21 @@ versões seguem [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [1.3.5] - 2026-10-08
+
+### Adicionado
+
+- **media-get:** Import versioned and discovery JSON manifests, validate them offline, review each output and safely download a bounded concurrent batch with typed Origin headers, cancellation and partial-failure handling. Show output format and extension in every download summary, and safely create missing destination directories only when the confirmed download begins. Expose direct output-format editing and a batch-wide MP4 choice; show metadata loading counts and a concurrent progress panel with reusable active slots.
+
+### Alterado
+
+- **module:** Prepare the embedded JSON Schema validator dependency and record batch workflow documentation.
+- **module:** Record verified v1.3.4 publication, isolated mise installation and completed media-get output checklist.
+
+### Corrigido
+
+- **module:** Calculate suite releases from public module impact independently of CLI product versions, and use synthetic examples in batch documentation.
+
 ## [1.3.4] - 2026-10-02
 
 ### Corrigido

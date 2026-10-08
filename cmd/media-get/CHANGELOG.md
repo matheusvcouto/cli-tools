@@ -28,3 +28,9 @@
 ### Corrigido
 
 - **media-get:** Fix missing plain TXT subtitle output and offer validated compatible MP4 output, including explicit filename extensions.
+
+## [0.4.0] - 2026-10-08
+
+### Adicionado
+
+- **media-get:** Import versioned and discovery JSON manifests, validate them offline, review each output and safely download a bounded concurrent batch with typed Origin headers, cancellation and partial-failure handling. Show output format and extension in every download summary, and safely create missing destination directories only when the confirmed download begins. Expose direct output-format editing and a batch-wide MP4 choice; show metadata loading counts and a concurrent progress panel with reusable active slots.

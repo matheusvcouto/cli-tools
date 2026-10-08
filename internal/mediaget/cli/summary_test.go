@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -80,8 +82,12 @@ func TestFlagsSkipNamePromptAndReviewBeforeConfirmation(t *testing.T) {
 
 func TestFinalReviewEditsFlagValuesAndRejectsInvalidDestination(t *testing.T) {
 	initialDir, finalDir := t.TempDir(), t.TempDir()
+	invalid := filepath.Join(initialDir, "file")
+	if err := os.WriteFile(invalid, []byte("synthetic"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	b := &backend{info: mediaget.Info{Title: "Synthetic", Heights: []int{360}}}
-	input := "1\n1\n2\n2\nnew-name\n2\n3\n" + initialDir + "/missing\n" + finalDir + "\n2\n4\nfrag\n1\n128\n2\n1\n2\n1\n1\n"
+	input := "1\n1\n2\n2\nnew-name\n2\n3\n" + invalid + "\n" + finalDir + "\n2\n4\nfrag\n1\n128\n2\n1\n2\n1\n1\n"
 	var log bytes.Buffer
 	err := app(t, b).Run(context.Background(), []string{"https://example.invalid", "--kind", "video", "--quality", "360", "--name", "original", "--concurrent-fragments", "25", "--output-dir", initialDir}, core.IO{In: strings.NewReader(input), Err: &log, Terminal: core.Terminal{StdinTTY: true}})
 	if err != nil {
@@ -110,5 +116,20 @@ func TestFinalReviewBackAndCancelDoNotDownload(t *testing.T) {
 	}
 	if b.downloads != 0 || strings.Count(log.String(), "Resumo do download") != 2 || !strings.Contains(log.String(), "Cancelado.") {
 		t.Fatalf("downloads=%d log=%s", b.downloads, log.String())
+	}
+}
+
+func TestFinalReviewDirectMP4EditPreservesVideoQuality(t *testing.T) {
+	b := &backend{info: mediaget.Info{Title: "Synthetic", Heights: []int{360}}}
+	var log bytes.Buffer
+	err := app(t, b).Run(t.Context(), []string{"https://example.invalid", "--kind", "video", "--quality", "360", "--video-format", "auto", "--name", "video", "--output-dir", t.TempDir()}, core.IO{In: strings.NewReader("1\n2\n5\n2\n1\n"), Err: &log, Terminal: core.Terminal{StdinTTY: true}})
+	if err != nil {
+		t.Fatal(err, log.String())
+	}
+	if b.downloads != 1 || b.last.Selection.VideoFormat != "mp4" || b.last.Selection.Height != 360 {
+		t.Fatal(b.last)
+	}
+	if !strings.Contains(log.String(), "Formato de saída") || !strings.Contains(log.String(), "MP4") {
+		t.Fatal(log.String())
 	}
 }

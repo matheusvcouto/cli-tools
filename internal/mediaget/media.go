@@ -29,8 +29,8 @@ const DefaultConcurrentFragments = 4
 const MaxConcurrentFragments = 256
 
 type Source struct {
-	URL, Referer        string
-	ConcurrentFragments int
+	URL, Referer, Origin string
+	ConcurrentFragments  int
 }
 type Track struct {
 	Lang, Name string
@@ -77,6 +77,9 @@ type Request struct {
 	Selection       Selection
 	OutputDir, Name string
 	KeepIncomplete  bool // Caller takes responsibility for offering retention or discard after failure.
+	// AcquireProcessing optionally limits the adapter's extra conversion stage.
+	// Transfer/merge performed by the downloader remains bounded by batch jobs.
+	AcquireProcessing func(context.Context) (func(), error)
 }
 type Result struct {
 	Path           string
@@ -87,7 +90,8 @@ type Result struct {
 
 // Backend is the boundary for extraction and transfer. It does not publish the
 // final file or decide the destination. Other extractors can implement it.
-// Inspect must support concurrent calls and respect context cancellation.
+// Check/Inspect/Download must support concurrent calls and respect context
+// cancellation. Download receives a distinct private working directory per call.
 type Backend interface {
 	Check(context.Context, Selection) error
 	Inspect(context.Context, Source, Selection) (Info, error)
@@ -113,6 +117,15 @@ func ValidateSource(src Source) error {
 	if src.Referer != "" {
 		if err := validateURL(src.Referer); err != nil {
 			return fmt.Errorf("Referer: %w", err)
+		}
+	}
+	if src.Origin != "" {
+		if err := validateURL(src.Origin); err != nil {
+			return errors.New("Origin deve ser uma origem HTTP(S) válida")
+		}
+		u, _ := url.Parse(src.Origin)
+		if u.Path != "" && u.Path != "/" || strings.ContainsAny(src.Origin, "?#") {
+			return errors.New("Origin não pode conter path, query ou fragmento")
 		}
 	}
 	return nil
@@ -142,12 +155,34 @@ func (s Service) Check(ctx context.Context, selection Selection) error {
 	return s.Backend.Check(ctx, selection)
 }
 
+// ValidateDestination is read-only. Missing suffixes may be created when the
+// confirmed transfer begins; existing files/symlinks are never replaced.
 func (s Service) ValidateDestination(path string) error {
-	root, err := safefs.Open(path)
-	if err != nil {
-		return fmt.Errorf("diretório de download precisa existir e ser uma pasta real: %w", err)
+	if strings.TrimSpace(path) == "" {
+		return errors.New("diretório de download vazio")
 	}
-	return root.Close()
+	ancestor, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	for {
+		_, err = os.Lstat(ancestor)
+		if err == nil {
+			root, err := safefs.Open(ancestor)
+			if err != nil {
+				return fmt.Errorf("destino deve ser uma pasta real ou estar abaixo de uma: %w", err)
+			}
+			return root.Close()
+		}
+		if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("diretório de download inválido: %w", err)
+		}
+		parent := filepath.Dir(ancestor)
+		if parent == ancestor {
+			return errors.New("destino sem pasta existente para criação")
+		}
+		ancestor = parent
+	}
 }
 
 // SafeName caps bytes (rather than runes), leaving room for suffix and extension.
@@ -241,6 +276,9 @@ func validateSelection(sel Selection) error {
 	return nil
 }
 
+// ValidateSelection checks a resolved request before metadata or mutation.
+func ValidateSelection(sel Selection) error { return validateSelection(sel) }
+
 // ValidTrackLang permits extractor language identifiers but rejects path,
 // template and comma-list syntax before it can affect output filenames.
 func ValidTrackLang(lang string) bool {
@@ -276,7 +314,7 @@ func (s Service) Download(ctx context.Context, req Request, progress func(Progre
 	if err = ctx.Err(); err != nil {
 		return
 	}
-	req.OutputDir, err = filepath.Abs(req.OutputDir)
+	req.OutputDir, err = safefs.EnsureDir(req.OutputDir, 0755)
 	if err != nil {
 		return
 	}

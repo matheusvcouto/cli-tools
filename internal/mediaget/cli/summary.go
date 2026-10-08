@@ -20,11 +20,6 @@ func printDownloadSummary(inv *core.Invocation, info mediaget.Info, src mediaget
 			quality = fmt.Sprintf("Até %dp", sel.Height)
 		}
 		rows = append(rows, "Tipo: Vídeo com áudio", "Qualidade: "+quality)
-		format := "Automático (contêiner/codecs da fonte)"
-		if sel.VideoFormat == "mp4" {
-			format = "MP4 compatível (H.264/AAC; pode recodificar)"
-		}
-		rows = append(rows, "Formato: "+format)
 	case mediaget.Audio:
 		rows = append(rows, "Tipo: Áudio M4A")
 	case mediaget.Subtitle:
@@ -46,8 +41,16 @@ func printDownloadSummary(inv *core.Invocation, info mediaget.Info, src mediaget
 		rows = append(rows, "Transferência: "+size, fmt.Sprintf("Fragmentos paralelos: %d (HLS/DASH)", src.FragmentConcurrency()))
 	}
 	rows = append(rows, "Nome base: "+mediaget.SafeName(name), "Destino: "+dir)
+	format, extension := outputFormat(sel)
+	rows = append(rows, "Formato de saída: "+format)
+	if extension != "" {
+		rows = append(rows, "Arquivo previsto: "+mediaget.SafeName(name)+extension+" (colisões recebem sufixo)")
+	}
 	if src.Referer != "" {
 		rows = append(rows, "Referer: definido")
+	}
+	if src.Origin != "" {
+		rows = append(rows, "Origin: definido")
 	}
 	var b strings.Builder
 	b.WriteByte('\n')
@@ -78,6 +81,23 @@ func printDownloadSummary(inv *core.Invocation, info mediaget.Info, src mediaget
 		return io.ErrShortWrite
 	}
 	return err
+}
+
+func outputFormat(sel mediaget.Selection) (string, string) {
+	switch sel.Kind {
+	case mediaget.Audio:
+		return "M4A (.m4a)", ".m4a"
+	case mediaget.Subtitle:
+		if sel.SubtitleFormat == "txt" {
+			return "TXT (.txt)", ".txt"
+		}
+		return "SRT (.srt)", ".srt"
+	case mediaget.Video:
+		if sel.VideoFormat == "mp4" {
+			return "MP4 (.mp4) — H.264/AAC; pode recodificar", ".mp4"
+		}
+	}
+	return "Automático — extensão a confirmar após processamento", ""
 }
 
 func summaryWidth(inv *core.Invocation) int {
