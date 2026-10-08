@@ -228,4 +228,4 @@ Decisões/limites/fontes em ../../docs/media-get-throughput.md e M014.
 - [x] Carregamento nas consultas e painel com barra geral e slots ativos reutilizados.
 - [x] Espera de conversão animada, regressões e gates locais completos.
 - [x] Binário nativo reconstruído para teste do usuário.
-- [ ] Aprovação do teste e decisão de versionamento antes de publicação 1.3.5.
+- [x] Aprovação e publicação 1.3.5; CI nativo, pacotes/checksums e mise isolado PASS.

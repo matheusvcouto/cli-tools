@@ -306,3 +306,18 @@ Referências ao manifesto pessoal e caminhos locais substituídos por exemplos
 genéricos. Builds publicados usam trimpath. Commit usa identidade pública do
 GitHub com email noreply, sem mudar configuração global.
 A pendência anterior de versão está resolvida; publicação aguarda gates/CI.
+
+## Release v1.3.5 pública — 2026-10-08
+
+Tag v1.3.5 aponta para d6acd2f, preparado na main. CI preparado 37776766968
+success; workflow release 37777528801 success após reexecução do Windows ARM
+por término anormal do Bash no teste de completion existente. Gates preservados
+e tag/código intactos. Seis runners nativos e smokes dos seis archives PASS.
+Release: https://github.com/matheusvcouto/cli-tools/releases/tag/v1.3.5.
+Sete assets públicos e SHA256SUMS verificados; mise público com HOME/MISE/GH
+sintéticos PASS para ai-profile/repo-zip 1.1.0 e media-get 0.4.0, suite v1.3.5.
+Builds locais atualizados. Evidências em dist/release-validation/1.3.5.
+Dados pessoais do manifesto, URLs reais, credenciais e caminhos locais não
+foram incluídos no payload novo. Commit usa noreply e builds usam trimpath.
+Pendências funcionais: multi-select de saídas e lote de URLs por linhas,
+sem autorização de implementação nesta publicação.

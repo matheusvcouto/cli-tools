@@ -1,0 +1,1 @@
+{"schema_version":1,"changes":[{"component":"module","impact":"none","summary":"Record verified v1.3.5 publication, native package checks and isolated mise installation.","justification":"Publication evidence and task checklist only; no production code, public API or product versions change."}]}
