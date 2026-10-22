@@ -51,6 +51,7 @@ internal/
 ├── filelock/                # primitive de plataforma focada
 ├── fscommit/                # commit/replace confinado
 ├── safefs/                  # operações confinadas a uma raiz
+├── toolhome/                # ~/.cli-tools/<tool>: config, state, cache, backups
 └── version/                 # manifest/version metadata
 changes/                     # change records pendentes
 plans/                       # planos ativos

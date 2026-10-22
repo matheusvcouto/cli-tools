@@ -199,6 +199,16 @@ Esta separação permite dependências externas justificadas e reutilização de
 cache sem usar contas/perfis reais como fixtures. Downloads bloqueados no Go
 não significam isolamento integral de rede.
 
+## D024 — Diretório central por ferramenta — Accepted
+
+Configuração e estado das ferramentas ficam em `~/.cli-tools/<tool>/`
+(`$CLI_TOOLS_HOME/<tool>/` quando definido; precisa ser absoluto), resolvidos por
+`internal/toolhome` a partir do nome do `tool.json`. Layout fixo: `config.toml`,
+`state/`, `cache/`, `backups/`. Resolver não toca o disco; criar não segue
+symlinks (`safefs`) e nunca sobrescreve um `config.toml` existente. Ferramentas
+novas usam o pacote; as existentes (`ai-profile`, `media-get`) migram só com
+decisão explícita, porque mover dados do usuário é mudança de contrato.
+
 ## Suite and product version separation
 
 Suite releases use module/public Go API impact for minor/major changes. Changes

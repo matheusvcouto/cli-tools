@@ -1,5 +1,27 @@
 # Tarefas
 
+## Prioridade alta — configuração central da suíte
+
+Visão em [ideias.md](ideias.md#configuração-central-da-suíte) · decisão no
+[ADR D024](ADR.md#d024--diretório-central-por-ferramenta--accepted).
+
+- [x] **toolhome:** pacote `internal/toolhome` resolve `~/.cli-tools/<tool>/`
+  (ou `$CLI_TOOLS_HOME/<tool>/`) pelo nome do `tool.json`, com layout fixo
+  (`config.toml`, `state/`, `cache/`, `backups/`), criação sem seguir symlinks e
+  `EnsureConfig` que cria o padrão uma vez e nunca sobrescreve.
+
+- [ ] **skills:** nova CLI usa `toolhome` desde o início — config em
+  `~/.cli-tools/skills/config.toml`, índice de destinos em `state/`, backups em
+  `backups/` com retenção de 30 dias. Plano em `plans/skills/` (em elaboração).
+
+- [ ] **Migração das CLIs existentes:** levantar o que `ai-profile`
+  (`~/.ai-profiles`, `AI_PROFILE_ROOT`) e `media-get` guardam hoje e propor,
+  para cada uma, como migrar para `toolhome` sem perder dados nem quebrar
+  quem já usa (leitura do local antigo, migração explícita ou manter). Exige
+  decisão antes de implementar.
+
+## media-get
+
 Plano de investigação para entrada JSON e execução concorrente do lote:
 [plans/media-get/BATCH_JSON.md](plans/media-get/BATCH_JSON.md).
 Implementação publicada na suíte 1.3.5 (media-get 0.4.0).

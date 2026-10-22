@@ -1,0 +1,1 @@
+{"schema_version":1,"changes":[{"component":"module","impact":"none","summary":"Add internal toolhome package resolving the per-tool directory ~/.cli-tools/<tool> (CLI_TOOLS_HOME override) with confined creation and non-overwriting default config.","justification":"Internal package with no consumer yet; no product behavior, public Go API or CLI contract changes."}]}
