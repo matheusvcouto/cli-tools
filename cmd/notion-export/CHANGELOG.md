@@ -1,6 +1,6 @@
 # Changelog — notion-export
 
-## Unreleased
+## [0.1.1] - 2026-11-12
 
 - Nova CLI experimental, sucessora em Go da CLI Deno `notion-public-exporter`:
   export de página pública do Notion para Markdown/HTML com assets locais,
