@@ -210,6 +210,15 @@ symlinks (`safefs`) e nunca sobrescreve um `config.toml` existente. Ferramentas
 novas usam o pacote; as existentes (`ai-profile`, `media-get`) migram só com
 decisão explícita, porque mover dados do usuário é mudança de contrato.
 
+## D025 — Conformidade de produto automática — Accepted
+
+Problemas encontrados só após uso real (media-get) mostraram que regras
+comuns precisam de gate, não de lembrança. `tools/release contracts check`
+compila cada CLI de `cmd/*` e prova, em estado sintético e sem rede, que as
+superfícies estáticas funcionam, reportam a versão do `tool.json` e não gravam
+estado, e que README/ADR/CHANGELOG existem. Regras específicas continuam nos
+testes de cada domínio; este gate cobre apenas invariantes da suíte.
+
 ## Suite and product version separation
 
 Suite releases use module/public Go API impact for minor/major changes. Changes

@@ -32,6 +32,7 @@ const (
 	flagConcurrency = prefix + "concurrency"
 	flagNoProbe     = prefix + "no-size-probe"
 	flagForce       = prefix + "force"
+	flagName        = prefix + "name"
 )
 
 // Dependencies are created by the composition root and used only by the
@@ -94,6 +95,7 @@ func New(deps Dependencies, product core.ProductMetadata, interaction core.Inter
 	flags = append(flags,
 		core.Flag{ID: flagConcurrency, Long: "concurrency", Summary: fmt.Sprintf("parallel requests/downloads (%d-%d)", ne.MinConcurrency, ne.MaxConcurrency), Value: concurrencyValue(), Default: []string{strconv.Itoa(ne.DefaultConcurrency)}},
 		core.Flag{ID: flagNoProbe, Long: "no-size-probe", Summary: "skip the 1-byte range requests that estimate asset sizes", Action: core.FlagSwitch},
+		core.Flag{ID: flagName, Long: "name", Short: 'n', Summary: "export directory name inside --out (default: slug of the page title)", Value: core.StringValue()},
 		core.Flag{ID: flagForce, Long: "force", Short: 'f', Summary: "replace a previous export of the same page (validated by its manifest)", Action: core.FlagSwitch},
 	)
 	app := core.App{
@@ -145,6 +147,9 @@ func run(inv *core.Invocation, deps Dependencies, product core.ProductMetadata) 
 	if retry.Sleep == nil && retry.MaxRetries == 0 && retry.BaseDelay == 0 {
 		retry = ne.DefaultRetryPolicy()
 	}
+	retry.Notify = func(wait time.Duration, err error) {
+		say("Aviso: %v; nova tentativa em %s.", err, wait.Round(time.Second))
+	}
 	api := notionapi.Client{HTTP: client, BaseURL: deps.BaseURL, Retry: retry,
 		Progress: func(s string) { say("%s", s) },
 		Warn:     func(s string) { say("Aviso: %s", s) }}
@@ -162,6 +167,12 @@ func run(inv *core.Invocation, deps Dependencies, product core.ProductMetadata) 
 	concurrency, _ := core.ValueAs[int](inv, flagConcurrency)
 	force := boolValue(inv, flagForce)
 	fromJSON := stringValue(inv, flagFromJSON)
+	name := stringValue(inv, flagName)
+	if inv.Present(flagName) {
+		if err := ne.ValidateExportName(name); err != nil {
+			return usage(err.Error(), err)
+		}
+	}
 
 	var page *ne.Page
 	var err error
@@ -180,6 +191,9 @@ func run(inv *core.Invocation, deps Dependencies, product core.ProductMetadata) 
 		return failure(ctx, "não foi possível carregar a página", err)
 	}
 	say("Título: %s", page.Title)
+	if name != "" {
+		page.Slug = name
+	}
 	if err := service.CheckDestination(outDir, page, force); err != nil {
 		return destinationFailure(err)
 	}
@@ -199,10 +213,18 @@ func run(inv *core.Invocation, deps Dependencies, product core.ProductMetadata) 
 		return err
 	}
 
+	var chosen []ne.Asset
+	for _, a := range page.Assets {
+		if selected[a.BlockID] {
+			chosen = append(chosen, a)
+		}
+	}
+	reporter := newDownloadReporter(inv, chosen)
 	result, err := service.Export(ctx, page, ne.ExportOptions{
 		OutDir: outDir, Format: format, Selected: selected, Concurrency: concurrency, Force: force,
-		OnDownload: func(ev ne.DownloadEvent) { reportDownload(inv, ev) },
+		OnDownload: reporter.event, OnBytes: reporter.bytes,
 	})
+	reporter.finish()
 	if err != nil {
 		if errors.Is(err, ne.ErrDestinationExists) || errors.Is(err, ne.ErrForeignDestination) {
 			return destinationFailure(err)
@@ -249,9 +271,9 @@ func failure(ctx context.Context, message string, err error) error {
 func destinationFailure(err error) error {
 	hint := ""
 	if errors.Is(err, ne.ErrDestinationExists) {
-		hint = "use --force para substituir um export anterior da mesma página ou escolha outro --out"
+		hint = "use --force para substituir um export anterior da mesma página, --name para outro nome ou outro --out"
 	} else if errors.Is(err, ne.ErrForeignDestination) {
-		hint = "o destino não foi alterado; escolha outro --out"
+		hint = "o destino não foi alterado; use --name ou outro --out"
 	}
 	return &core.Diagnostic{Code: "notionexport.destination", Kind: "destination", Message: err.Error(), Hint: hint, Class: core.ExitExecution, Cause: err}
 }

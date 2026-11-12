@@ -1,5 +1,12 @@
 # ADR — media-get
 
+## M020 — Nomes sem caracteres de formato Unicode (2026-11-12)
+
+`SafeName` já removia controles; agora remove também a categoria Cf (bidi
+overrides, isolates e zero-width), já filtrada no desenho do terminal (M008).
+Um título remoto com U+202E podia exibir uma extensão diferente da real no
+nome do arquivo. Teste de regressão em `media_test.go`.
+
 ## M019 — Lote JSON versionado e execução concorrente (2026-10-04)
 
 Pedido aprovado: importar manifestos e mostrar formato/extensão no resumo;

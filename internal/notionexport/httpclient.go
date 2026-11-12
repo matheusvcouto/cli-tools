@@ -2,6 +2,8 @@ package notionexport
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"math/rand/v2"
@@ -29,12 +31,15 @@ func NewHTTPClient() *http.Client {
 	return &http.Client{Transport: transport, CheckRedirect: checkRedirect}
 }
 
+// errRedirectPolicy marks redirects refused by policy; retrying cannot help.
+var errRedirectPolicy = errors.New("redirecionamento recusado")
+
 func checkRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= maxRedirects {
-		return fmt.Errorf("mais de %d redirecionamentos", maxRedirects)
+		return fmt.Errorf("%w: mais de %d redirecionamentos", errRedirectPolicy, maxRedirects)
 	}
 	if req.URL.Scheme != "http" && req.URL.Scheme != "https" {
-		return fmt.Errorf("redirecionamento para esquema não permitido: %s", req.URL.Scheme)
+		return fmt.Errorf("%w: esquema não permitido: %s", errRedirectPolicy, req.URL.Scheme)
 	}
 	return nil
 }
@@ -49,6 +54,9 @@ type RetryPolicy struct {
 	// cooldown window cannot succeed.
 	RateLimitDelay time.Duration
 	Sleep          func(context.Context, time.Duration) error
+	// Notify is called before each wait so long waits (e.g. Notion's 429
+	// cooldown) are visible instead of looking like a hang.
+	Notify func(wait time.Duration, err error)
 }
 
 // DefaultRetryPolicy matches notion-client: 3 retries, full-jitter exponential
@@ -130,7 +138,11 @@ func (p RetryPolicy) Do(ctx context.Context, op func(attempt int) (retry bool, e
 		if sleep == nil {
 			sleep = SleepContext
 		}
-		if serr := sleep(ctx, p.delay(attempt, err)); serr != nil {
+		wait := p.delay(attempt, err)
+		if p.Notify != nil {
+			p.Notify(wait, err)
+		}
+		if serr := sleep(ctx, wait); serr != nil {
 			return errors.Join(serr, err)
 		}
 	}
@@ -158,10 +170,18 @@ func (p RetryPolicy) delay(attempt int, err error) time.Duration {
 	return time.Duration(rand.Int64N(int64(window) + 1))
 }
 
-// transientNetworkError reports failures worth retrying: timeouts, resets and
-// other transport errors, but never cancellation of the caller's context.
-func transientNetworkError(ctx context.Context, err error) bool {
-	if err == nil || ctx.Err() != nil || errors.Is(err, context.Canceled) {
+// TransientNetworkError reports transport failures worth retrying: timeouts,
+// resets and refused connections. Cancellation, refused redirects and
+// certificate problems are permanent: retrying only delays the error.
+func TransientNetworkError(ctx context.Context, err error) bool {
+	if err == nil || ctx.Err() != nil || errors.Is(err, context.Canceled) || errors.Is(err, errRedirectPolicy) {
+		return false
+	}
+	var verify *tls.CertificateVerificationError
+	var unknownAuthority x509.UnknownAuthorityError
+	var hostname x509.HostnameError
+	var invalid x509.CertificateInvalidError
+	if errors.As(err, &verify) || errors.As(err, &unknownAuthority) || errors.As(err, &hostname) || errors.As(err, &invalid) {
 		return false
 	}
 	return true

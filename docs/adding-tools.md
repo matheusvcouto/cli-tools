@@ -40,6 +40,10 @@ Nomes visíveis não substituem stable IDs. Não reutilize um ID para outra sem�
 
 ## 4. Gerar e travar o contrato
 
+Crie também `cmd/<tool>/README.md`, `ADR.md` e `CHANGELOG.md`: o gate de
+conformidade de `contracts check` recusa a CLI sem eles e verifica que
+help/versão/schema/contrato/completion não gravam estado nem usam rede.
+
 ```sh
 go run ./cmd/<tool> __cli contract > cmd/<tool>/cli.contract.json
 ```

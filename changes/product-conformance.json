@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "module",
+      "impact": "patch",
+      "summary": "Extend contracts check with an automatic product conformance gate: every CLI under cmd/ is built and its static commands must match tool.json, emit valid output and leave synthetic user state untouched without network; README, ADR and CHANGELOG are required."
+    },
+    {
+      "component": "media-get",
+      "impact": "patch",
+      "summary": "Drop Unicode format characters (bidi overrides, zero-width) from names derived from media titles so a remote title cannot disguise the real file extension."
+    }
+  ]
+}

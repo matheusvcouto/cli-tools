@@ -3,17 +3,19 @@ package notioncli
 import (
 	"fmt"
 	"strings"
+	"unicode"
 
 	core "github.com/matheusvcouto/cli-tools/cli"
 	ne "github.com/matheusvcouto/cli-tools/internal/notionexport"
 )
 
-// FormatBytes renders binary-prefixed sizes with one decimal ("14.8 MB").
+// FormatBytes renders IEC binary sizes with one decimal ("14.8 MiB"), the
+// same units media-get uses.
 func FormatBytes(n int64) string {
 	if n < 0 {
 		return "desconhecido"
 	}
-	units := []string{"B", "KB", "MB", "GB", "TB"}
+	units := []string{"B", "KiB", "MiB", "GiB", "TiB"}
 	value := float64(n)
 	unit := 0
 	for value >= 1024 && unit < len(units)-1 {
@@ -129,23 +131,11 @@ func ask(inv *core.Invocation, message string) (string, error) {
 	}
 }
 
-func reportDownload(inv *core.Invocation, ev ne.DownloadEvent) {
-	out := inv.IO.Err
-	name := ne.OriginalFilename(firstNonEmpty(ev.Asset.Source, ev.Asset.URL))
-	if ev.Started {
-		fmt.Fprintf(out, "Baixando %s: %s\n", ev.Asset.Type, sanitize(name))
-		return
-	}
-	if ev.Result.Status == ne.StatusFailed && ev.Result.Err != nil {
-		fmt.Fprintf(out, "Falha em %s: %s\n", sanitize(name), sanitize(ev.Result.Err.Error()))
-	}
-	fmt.Fprintf(out, "Downloads: %d/%d\n", ev.Completed, ev.Total)
-}
-
-// sanitize keeps remote names and errors from injecting terminal controls.
+// sanitize keeps remote titles, names and errors from injecting terminal
+// controls or bidi/zero-width format characters that disguise text.
 func sanitize(s string) string {
 	return strings.Map(func(r rune) rune {
-		if r < 0x20 || r == 0x7f || r >= 0x80 && r < 0xa0 {
+		if unicode.IsControl(r) || unicode.Is(unicode.Cf, r) {
 			return -1
 		}
 		return r

@@ -94,11 +94,20 @@ Se algum gate exceder a janela do runner ou não puder ser executado, registrar 
 
 CI executa testes nativos em Linux, macOS, Windows x64 (`windows-2025`) e Windows ARM64 (`windows-11-vs2026-arm`). Windows roda `go test ./...`, vet, shuffle, primitives específicas, lock entre processos, Job Object com encerramento real de descendentes e PowerShell completion; race permanece nos runners onde é suportado pelo projeto. Cross-build das seis combinações darwin/linux/windows × amd64/arm64 continua como evidência separada de compilação. Suporte de runtime só é promovido com evidência nativa observada.
 
-## Contract locks
+## Contract locks e conformidade de produto
 
 `go run ./tools/release contracts check` é um gate dedicado: gera cada contrato
 por `__cli contract` em ambiente sintético/offline e compara byte a byte com o
 lock versionado. Drift não é corrigido silenciosamente pelo CI.
+
+O mesmo gate aplica, automaticamente a toda CLI descoberta em `cmd/*`, uma
+verificação de conformidade: compila o binário (CGO desabilitado) e executa
+`--help`, `--version`, `version --json`, `__cli schema`, `__cli contract` e
+`completion generate bash` com HOME/XDG/TMP/`CLI_TOOLS_HOME` sintéticos e proxy
+HTTP inalcançável. Exige `--version` e `version --json` iguais ao `tool.json`,
+JSON válido, saída não vazia, nenhum arquivo criado no estado sintético e
+`README.md`, `ADR.md` e `CHANGELOG.md` no diretório da CLI. Uma nova CLI herda
+o gate sem configuração adicional.
 
 ## Dependências de terminal
 

@@ -775,17 +775,14 @@ func contractBuildCaches() (map[string]string, error) {
 	return caches, nil
 }
 
-func generateContract(cmdRoot, name string) ([]byte, error) {
+// isolatedGoEnv prepares a sandbox whose HOME/config/credentials are
+// synthetic while reusing the invoking Go build caches with downloads and
+// module VCS disabled.
+func isolatedGoEnv(sandbox string) ([]string, error) {
 	buildCaches, err := contractBuildCaches()
 	if err != nil {
 		return nil, err
 	}
-	sandbox, err := os.MkdirTemp("", "cli-tools-contract-")
-	if err != nil {
-		return nil, err
-	}
-	defer os.RemoveAll(sandbox)
-
 	home := filepath.Join(sandbox, "home")
 	config := filepath.Join(sandbox, "config")
 	data := filepath.Join(sandbox, "data")
@@ -807,8 +804,6 @@ func generateContract(cmdRoot, name string) ([]byte, error) {
 	if err := os.WriteFile(gitConfig, nil, 0o600); err != nil {
 		return nil, err
 	}
-
-	cmd := exec.Command(goCommandName(), "run", "./"+filepath.ToSlash(filepath.Join(cmdRoot, name)), "__cli", "contract")
 	// Contract generation is static. Preserve only the build-tool paths/caches
 	// needed to invoke Go, while isolating user HOME/config/credentials and
 	// disabling network/module VCS discovery.
@@ -838,6 +833,20 @@ func generateContract(cmdRoot, name string) ([]byte, error) {
 			env = append(env, key+"="+value)
 		}
 	}
+	return env, nil
+}
+
+func generateContract(cmdRoot, name string) ([]byte, error) {
+	sandbox, err := os.MkdirTemp("", "cli-tools-contract-")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(sandbox)
+	env, err := isolatedGoEnv(sandbox)
+	if err != nil {
+		return nil, err
+	}
+	cmd := exec.Command(goCommandName(), "run", "./"+filepath.ToSlash(filepath.Join(cmdRoot, name)), "__cli", "contract")
 	cmd.Env = env
 	out, err := cmd.Output()
 	if err != nil {
@@ -903,6 +912,15 @@ func checkContracts(cmdRoot string) error {
 	if len(drift) != 0 {
 		return fmt.Errorf("contract lock drift: %s; regenerate through release prepare --write or the CLI contract endpoint", strings.Join(drift, ", "))
 	}
+	manifests, err := discoverToolManifests(cmdRoot)
+	if err != nil {
+		return err
+	}
+	for _, name := range names {
+		if err := checkProductSurface(cmdRoot, name, manifests[name].Manifest.Version); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -923,7 +941,7 @@ func runContractsCommand(args []string) {
 	if err := checkContracts(cmdRoot); err != nil {
 		fatalf("contracts check: %v", err)
 	}
-	fmt.Println("contract locks match generated CLI contracts")
+	fmt.Println("contract locks match generated CLI contracts; static product surfaces are hermetic")
 }
 
 func changedPaths(base, head string) ([]string, error) {

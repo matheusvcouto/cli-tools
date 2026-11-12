@@ -189,7 +189,9 @@ func (s Service) ValidateDestination(path string) error {
 func SafeName(s string) string {
 	var b strings.Builder
 	for _, r := range strings.TrimSpace(s) {
-		if unicode.IsControl(r) {
+		// Format characters (bidi overrides, zero-width joiners) can make a
+		// remote title display a different extension than the real one.
+		if unicode.IsControl(r) || unicode.Is(unicode.Cf, r) {
 			continue
 		}
 		if strings.ContainsRune(`/\:*?"<>|`, r) {

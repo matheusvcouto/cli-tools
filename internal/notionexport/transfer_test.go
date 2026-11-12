@@ -3,7 +3,11 @@ package notionexport
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -257,5 +261,40 @@ func TestRedirectPolicy(t *testing.T) {
 	ok, _ := http.NewRequest(http.MethodGet, "https://example.com", nil)
 	if checkRedirect(ok, make([]*http.Request, maxRedirects)) == nil || checkRedirect(ok, nil) != nil {
 		t.Fatal("redirect limit")
+	}
+}
+
+func TestPermanentTransportErrorsAreNotRetried(t *testing.T) {
+	ctx := context.Background()
+	for _, err := range []error{
+		&tls.CertificateVerificationError{Err: x509.UnknownAuthorityError{}},
+		fmt.Errorf("get: %w", x509.HostnameError{Host: "x"}),
+		fmt.Errorf("get: %w", errRedirectPolicy),
+		context.Canceled,
+	} {
+		if TransientNetworkError(ctx, err) {
+			t.Errorf("%v retried", err)
+		}
+	}
+	if !TransientNetworkError(ctx, io.ErrUnexpectedEOF) {
+		t.Fatal("connection reset must be retried")
+	}
+	var waits []time.Duration
+	p := testRetry(2)
+	p.Notify = func(wait time.Duration, _ error) { waits = append(waits, wait) }
+	_ = p.Do(ctx, func(int) (bool, error) { return true, errors.New("x") })
+	if len(waits) != 2 {
+		t.Fatalf("Notify calls = %d", len(waits))
+	}
+}
+
+func TestDownloaderReportsBytes(t *testing.T) {
+	srv, _ := assetServer(t)
+	root, _ := openTestRoot(t)
+	var total atomic.Int64
+	d := Downloader{Client: srv.Client(), Concurrency: 2, OnBytes: func(n int64) { total.Add(n) }}
+	d.Download(context.Background(), root, []Asset{{Index: 1, BlockID: "a", Type: AssetImage, URL: srv.URL + "/img.png"}, {Index: 2, BlockID: "d", Type: AssetPDF, URL: srv.URL + "/truncated.pdf"}})
+	if total.Load() != int64(len("\x89PNG-binary\x00\xff")) {
+		t.Fatalf("bytes = %d; discarded transfers must be subtracted", total.Load())
 	}
 }

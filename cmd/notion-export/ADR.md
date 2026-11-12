@@ -114,3 +114,22 @@ Nenhum código por SO: `net/http`, `os.Root` (via `safefs`) e rename de
 diretório confinado. Cross-build dos seis targets verificado localmente.
 Runtime observado localmente em Linux amd64 (suíte e export real); macOS e
 Windows ficam `untested` até a execução nativa do CI desta mudança.
+
+## N008 — Reanálise de experiência e erros — Accepted (2026-11-12)
+
+Aplicadas as lições dos ajustes pós-uso do media-get (progresso, texto remoto,
+falhas só percebidas em uso real), antes da primeira publicação:
+
+- `RetryPolicy.Notify` anuncia cada espera; o cooldown de 60 s após 429 deixa de
+  parecer travamento;
+- erros de transporte permanentes (verificação de certificado, redirect
+  recusado pela política, cancelamento) não são repetidos;
+- `Downloader.OnBytes` alimenta uma linha viva em TTY (contagem, bytes e total
+  estimado, descontando transferências descartadas); sem TTY, linhas por evento;
+- `--name` escolhe o diretório do export, validado como um único componente
+  ASCII portável sem `.` inicial, resolvendo páginas homônimas;
+- texto remoto exibido no terminal remove controles e caracteres de formato
+  Unicode (bidi/zero-width);
+- tamanhos em KiB/MiB, como no media-get;
+- sobras de staging/quarentena de processos mortos são avisadas, nunca
+  apagadas automaticamente.

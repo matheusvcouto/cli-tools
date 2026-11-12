@@ -408,3 +408,13 @@ func TestIncompleteDiscardRejectsReplacement(t *testing.T) {
 		t.Fatal("replacement changed")
 	}
 }
+
+func TestSafeNameDropsFormatCharacters(t *testing.T) {
+	// U+202E would display "invoice‮gpj.exe" as "invoiceexe.jpg".
+	if got := SafeName("invoice‮gpj.exe​"); got != "invoicegpj.exe" {
+		t.Fatalf("SafeName = %q", got)
+	}
+	if got := SafeName("⁦⁩"); got != "media" {
+		t.Fatalf("SafeName = %q", got)
+	}
+}

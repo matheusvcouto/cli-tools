@@ -140,6 +140,14 @@
         ]
       },
       {
+        "id": "notionexport.name",
+        "long": "name",
+        "summary": "export directory name inside --out (default: slug of the page title)",
+        "short": "n",
+        "type": "string",
+        "action": "set"
+      },
+      {
         "id": "notionexport.no-size-probe",
         "long": "no-size-probe",
         "summary": "skip the 1-byte range requests that estimate asset sizes",

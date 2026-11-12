@@ -294,7 +294,7 @@ func (c Client) post(ctx context.Context, endpoint string, body any, out any) er
 		req.Header.Set("User-Agent", ne.UserAgent)
 		resp, err := client.Do(req)
 		if err != nil {
-			return transient(ctx, err), fmt.Errorf("%s: %w", endpoint, err)
+			return ne.TransientNetworkError(ctx, err), fmt.Errorf("%s: %w", endpoint, err)
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
@@ -303,7 +303,7 @@ func (c Client) post(ctx context.Context, endpoint string, body any, out any) er
 		}
 		data, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes+1))
 		if err != nil {
-			return transient(ctx, err), fmt.Errorf("%s: %w", endpoint, err)
+			return ne.TransientNetworkError(ctx, err), fmt.Errorf("%s: %w", endpoint, err)
 		}
 		if len(data) > maxResponseBytes {
 			return false, fmt.Errorf("%s: resposta excede %d bytes", endpoint, maxResponseBytes)
@@ -313,8 +313,4 @@ func (c Client) post(ctx context.Context, endpoint string, body any, out any) er
 		}
 		return false, nil
 	})
-}
-
-func transient(ctx context.Context, err error) bool {
-	return ctx.Err() == nil && !errors.Is(err, context.Canceled)
 }

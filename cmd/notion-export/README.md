@@ -24,7 +24,14 @@ A entrada aceita URL pública (`notion.so`, `notion.site`, `app.notion.com/p/...
 UUID ou page ID compacto. A query e o fragmento da URL nunca fornecem o ID.
 
 Progresso, perguntas e o resumo vão para stderr; stdout recebe apenas o caminho
-do diretório exportado, para uso em scripts.
+do diretório exportado, para uso em scripts. Em terminal, os downloads mostram
+uma linha viva com quantidade, bytes recebidos e total estimado; com stderr
+redirecionado, uma linha por evento. Esperas longas (por exemplo o intervalo de
+60 s após `429` do Notion) são anunciadas com o motivo e a duração.
+
+O diretório é `<out>/<slug-do-título>`. Para páginas com o mesmo título, ou
+para escolher outro nome, use `--name` (letras ASCII, números, `.`, `_` e `-`,
+sem começar com `.`).
 
 ## Saída
 
@@ -62,9 +69,9 @@ tipo:
 
 ```text
 Assets encontrados:
-  Imagens: 9 (14.8 MB)
-  Vídeos: 2 (126.3 MB)
-Encontradas 9 imagens (14.8 MB). Baixar imagens? [s/N]
+  Imagens: 9 (14.8 MiB)
+  Vídeos: 2 (126.3 MiB)
+Encontradas 9 imagens (14.8 MiB). Baixar imagens? [s/N]
 ```
 
 | Flag | Efeito |
@@ -79,7 +86,8 @@ um aviso. Vídeos de YouTube/Vimeo e similares permanecem links.
 
 Cada download valida `Content-Type` contra o tipo do asset (por exemplo, uma
 página HTML de erro não vira `.mp4`), confere `Content-Length`, aborta após 60 s
-sem dados e repete falhas transitórias. A falha de um asset não interrompe os
+sem dados e repete falhas transitórias. Erros permanentes (certificado TLS
+inválido, redirect recusado, 4xx) não são repetidos. A falha de um asset não interrompe os
 demais: a saída mantém a URL remota segura e o manifesto registra o erro.
 
 ## Publicação e `--force`
@@ -97,6 +105,9 @@ quarentena, é restaurado se a instalação falhar e só é apagado depois do
 sucesso.
 
 `--out` (padrão `./exports`) é criado quando necessário, sem seguir symlinks.
+Se um processo anterior foi morto antes da limpeza, a sobra
+(`.notion-export-<slug>-*.tmp`/`.old`) é apenas avisada: nada é apagado sem
+prova de posse.
 
 ## Reprocessar `page.json`
 

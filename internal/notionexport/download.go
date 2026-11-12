@@ -43,6 +43,10 @@ type Downloader struct {
 	StallTimeout time.Duration
 	// Progress receives serialized start/finish notifications.
 	Progress func(DownloadEvent)
+	// OnBytes receives received byte counts; it may be called concurrently
+	// and must be cheap (e.g. an atomic add). A retried transfer reports a
+	// negative count for the bytes it discarded.
+	OnBytes func(int64)
 }
 
 // DownloadEvent reports progress without exposing transport details.
@@ -122,7 +126,7 @@ func (d Downloader) downloadOne(ctx context.Context, root *safefs.Root, asset As
 	req.Header.Set("User-Agent", UserAgent)
 	resp, err := d.Client.Do(req)
 	if err != nil {
-		return DownloadResult{}, transientNetworkError(ctx, err), err
+		return DownloadResult{}, TransientNetworkError(ctx, err), err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -146,7 +150,7 @@ func (d Downloader) downloadOne(ctx context.Context, root *safefs.Root, asset As
 	if err != nil {
 		return DownloadResult{}, false, fmt.Errorf("criar %s: %w", rel, err)
 	}
-	written, copyErr := copyWithStall(reqCtx, cancel, f, resp.Body, stall)
+	written, copyErr := copyWithStall(reqCtx, cancel, f, resp.Body, stall, d.OnBytes)
 	if errors.Is(copyErr, io.ErrUnexpectedEOF) {
 		copyErr = fmt.Errorf("download incompleto: conexão encerrada após %d bytes: %w", written, copyErr)
 	}
@@ -160,13 +164,16 @@ func (d Downloader) downloadOne(ctx context.Context, root *safefs.Root, asset As
 	if copyErr == nil {
 		copyErr = closeErr
 	}
+	if copyErr != nil && d.OnBytes != nil {
+		d.OnBytes(-written)
+	}
 	if copyErr != nil {
 		// The file was created exclusively by this transfer, so it is ours.
 		removeErr := root.Remove(rel)
 		if removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
 			copyErr = errors.Join(copyErr, fmt.Errorf("remover parcial: %w", removeErr))
 		}
-		return DownloadResult{}, transientNetworkError(ctx, copyErr) && removeErr == nil, copyErr
+		return DownloadResult{}, TransientNetworkError(ctx, copyErr) && removeErr == nil, copyErr
 	}
 	return DownloadResult{Status: StatusDownloaded, Path: rel, Bytes: written, ContentType: MediaType(contentType)}, false, nil
 }
@@ -175,7 +182,7 @@ var errStalled = errors.New("download parado: nenhum dado recebido no tempo limi
 
 // copyWithStall copies src to dst, cancelling the request when no bytes
 // arrive for the stall window.
-func copyWithStall(ctx context.Context, cancel context.CancelCauseFunc, dst io.Writer, src io.Reader, stall time.Duration) (int64, error) {
+func copyWithStall(ctx context.Context, cancel context.CancelCauseFunc, dst io.Writer, src io.Reader, stall time.Duration, onBytes func(int64)) (int64, error) {
 	timer := time.AfterFunc(stall, func() { cancel(errStalled) })
 	defer timer.Stop()
 	buf := make([]byte, 64<<10)
@@ -186,6 +193,9 @@ func copyWithStall(ctx context.Context, cancel context.CancelCauseFunc, dst io.W
 			timer.Reset(stall)
 			m, werr := dst.Write(buf[:n])
 			written += int64(m)
+			if onBytes != nil && m > 0 {
+				onBytes(int64(m))
+			}
 			if werr != nil {
 				return written, werr
 			}

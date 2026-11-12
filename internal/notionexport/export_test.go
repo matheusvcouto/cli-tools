@@ -352,3 +352,35 @@ func TestExportRejectsUnsafeOutput(t *testing.T) {
 		t.Fatal("source error swallowed")
 	}
 }
+
+func TestStaleStagingIsReportedNotDeleted(t *testing.T) {
+	_, svc := exportFixture(t, "https://cdn.invalid")
+	var messages []string
+	svc.Progress = func(m string) { messages = append(messages, m) }
+	page := fetchFixturePage(t, svc)
+	out := t.TempDir()
+	stale := filepath.Join(out, stagingPrefix+page.Slug+"-dead.tmp")
+	os.MkdirAll(stale, 0o755)
+	if _, err := svc.Export(context.Background(), page, ExportOptions{OutDir: out, Format: FormatMarkdown}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(stale); err != nil {
+		t.Fatal("stale staging must not be deleted automatically")
+	}
+	if !strings.Contains(strings.Join(messages, "\n"), "export interrompido") {
+		t.Fatalf("messages: %v", messages)
+	}
+}
+
+func TestValidateExportName(t *testing.T) {
+	for _, ok := range []string{"backup", "pagina-2", "v1.0_final"} {
+		if err := ValidateExportName(ok); err != nil {
+			t.Errorf("%q: %v", ok, err)
+		}
+	}
+	for _, bad := range []string{"", ".x", "x.", "..", "a/b", `a\\b`, "á", "a b", strings.Repeat("a", 81), "-a"} {
+		if ValidateExportName(bad) == nil {
+			t.Errorf("%q accepted", bad)
+		}
+	}
+}

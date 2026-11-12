@@ -149,6 +149,7 @@ type ExportOptions struct {
 	Concurrency int
 	Force       bool
 	OnDownload  func(DownloadEvent)
+	OnBytes     func(int64)
 }
 
 // Result summarizes a published export.
@@ -191,6 +192,7 @@ func (s Service) Export(ctx context.Context, page *Page, opts ExportOptions) (Re
 	if _, err := inspectDestination(outRoot, page.Slug, page.PageID, opts.Force); err != nil {
 		return Result{}, err
 	}
+	s.reportStaleStaging(outAbs, page.Slug)
 	suffix, err := randomSuffix()
 	if err != nil {
 		return Result{}, err
@@ -246,6 +248,22 @@ func (s Service) Export(ctx context.Context, page *Page, opts ExportOptions) (Re
 	return result, nil
 }
 
+// reportStaleStaging lists leftovers of an interrupted export (process killed
+// before cleanup). They are only reported: their ownership cannot be proven,
+// so nothing is deleted automatically.
+func (s Service) reportStaleStaging(outAbs, slug string) {
+	entries, err := os.ReadDir(outAbs)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() && strings.HasPrefix(name, stagingPrefix+slug+"-") && (strings.HasSuffix(name, ".tmp") || strings.HasSuffix(name, ".old")) {
+			s.progress("Aviso: sobra de um export interrompido em %s; revise e remova se não precisar.", filepath.Join(outAbs, name))
+		}
+	}
+}
+
 func (s Service) writeExport(ctx context.Context, root *safefs.Root, page *Page, opts ExportOptions) (Result, error) {
 	var selected []Asset
 	for _, a := range page.Assets {
@@ -259,7 +277,7 @@ func (s Service) writeExport(ctx context.Context, root *safefs.Root, page *Page,
 		if client == nil {
 			client = NewHTTPClient()
 		}
-		downloads = Downloader{Client: client, Retry: s.Retry, Concurrency: opts.Concurrency, Progress: opts.OnDownload}.Download(ctx, root, selected)
+		downloads = Downloader{Client: client, Retry: s.Retry, Concurrency: opts.Concurrency, Progress: opts.OnDownload, OnBytes: opts.OnBytes}.Download(ctx, root, selected)
 		if err := ctx.Err(); err != nil {
 			return Result{}, err
 		}

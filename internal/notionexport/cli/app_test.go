@@ -212,12 +212,12 @@ func TestUnavailablePageFailsClearly(t *testing.T) {
 }
 
 func TestHelpers(t *testing.T) {
-	for n, want := range map[int64]string{0: "0 B", 1023: "1023 B", 1536: "1.5 KB", 15518924: "14.8 MB", -1: "desconhecido"} {
+	for n, want := range map[int64]string{0: "0 B", 1023: "1023 B", 1536: "1.5 KiB", 15518924: "14.8 MiB", -1: "desconhecido"} {
 		if got := FormatBytes(n); got != want {
 			t.Errorf("FormatBytes(%d) = %q", n, got)
 		}
 	}
-	if DescribeGroupSize(ne.GroupSummary{Count: 2, KnownBytes: 2048, UnknownCount: 1}) != "pelo menos 2.0 KB; 1 com tamanho desconhecido" {
+	if DescribeGroupSize(ne.GroupSummary{Count: 2, KnownBytes: 2048, UnknownCount: 1}) != "pelo menos 2.0 KiB; 1 com tamanho desconhecido" {
 		t.Fatal("DescribeGroupSize")
 	}
 	for _, yes := range []string{"s", "SIM", " y ", "yes"} {
@@ -230,8 +230,8 @@ func TestHelpers(t *testing.T) {
 			t.Error(no)
 		}
 	}
-	if sanitize("a\x1b[2Jb\u009bc\n") != "a[2Jbc" {
-		t.Fatal(sanitize("a\x1b[2Jb\u009bc\n"))
+	if got := sanitize("a\x1b[2Jb\u009bc\n\u202egpj.exe\u200b"); got != "a[2Jbcgpj.exe" {
+		t.Fatal(got)
 	}
 }
 
@@ -250,5 +250,64 @@ func TestContractLockIsCurrent(t *testing.T) {
 	}
 	if !bytes.Equal(got, want) {
 		t.Fatal("notion-export cli.contract.json is stale; regenerate it from __cli contract")
+	}
+}
+
+func TestNameFlagSeparatesPagesWithTheSameTitle(t *testing.T) {
+	srv, hits := syntheticNotion(t)
+	out := t.TempDir()
+	if r := runCLI(t, testDeps(srv), "", false, pageID, "--out", out); r.code != 0 {
+		t.Fatal(r.err)
+	}
+	r := runCLI(t, testDeps(srv), "", false, pageID, "--out", out, "--name", "copia_2")
+	if r.code != 0 || r.out != filepath.Join(out, "copia_2")+"\n" {
+		t.Fatalf("--name: %+v", r)
+	}
+	before := hits.Load()
+	for _, bad := range []string{".hidden", "a/b", `a\\b`, "..", "nome com espaço", strings.Repeat("a", 81), ""} {
+		if r := runCLI(t, testDeps(srv), "", false, pageID, "--out", out, "--name", bad); r.code != 2 {
+			t.Errorf("--name %q: code=%d", bad, r.code)
+		}
+	}
+	if hits.Load() != before {
+		t.Fatal("invalid --name reached the network")
+	}
+}
+
+func TestRateLimitWaitIsAnnounced(t *testing.T) {
+	srv, _ := syntheticNotion(t)
+	var limited atomic.Bool
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v3/loadPageChunk" && limited.CompareAndSwap(false, true) {
+			w.Header().Set("Retry-After", "3")
+			w.WriteHeader(http.StatusTooManyRequests)
+			return
+		}
+		http.Redirect(w, r, srv.URL+r.URL.Path, http.StatusTemporaryRedirect)
+	}))
+	defer proxy.Close()
+	deps := testDeps(srv)
+	deps.BaseURL = proxy.URL + "/api/v3"
+	deps.Retry = ne.RetryPolicy{MaxRetries: 1, RateLimitDelay: time.Second, Sleep: func(ctx context.Context, _ time.Duration) error { return ctx.Err() }}
+	r := runCLI(t, deps, "", false, pageID, "--out", t.TempDir(), "--no-size-probe")
+	if r.code != 0 || !strings.Contains(r.err, "HTTP 429") || !strings.Contains(r.err, "nova tentativa em") {
+		t.Fatalf("%+v", r)
+	}
+}
+
+func TestLiveProgressOnTerminal(t *testing.T) {
+	srv, _ := syntheticNotion(t)
+	var out, errOut bytes.Buffer
+	app, err := New(testDeps(srv), core.ProductMetadata{Version: "0"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = app.Run(context.Background(), []string{pageID, "--out", t.TempDir(), "--yes"}, core.IO{Out: &out, Err: &errOut, Terminal: core.Terminal{StderrTTY: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := errOut.String()
+	if !strings.Contains(s, "\r\x1b[2KBaixando assets: 2/2 · 8 B de 8 B") || strings.Contains(s, "Downloads: ") {
+		t.Fatalf("live progress: %q", s)
 	}
 }

@@ -100,6 +100,16 @@ func readManifestIdentity(r io.Reader) (generator, pageID string, err error) {
 
 const maxSlugBytes = 80
 
+// ValidateExportName checks a user-chosen export directory name: one
+// portable component (ASCII letters, digits, '.', '_', '-'), at most 80
+// bytes and not starting with '.', which is reserved for staging.
+func ValidateExportName(name string) error {
+	if name == "" || len(name) > maxSlugBytes || strings.HasPrefix(name, ".") || strings.HasSuffix(name, ".") || portableComponent(name) != name {
+		return fmt.Errorf("nome de diretório inválido %q: use letras ASCII, números, '.', '_' ou '-', sem começar com '.' (até %d bytes)", name, maxSlugBytes)
+	}
+	return nil
+}
+
 // Slugify turns a title into the export directory name: lowercase ASCII
 // letters/digits separated by single dashes, at most 80 bytes, never empty and
 // never starting with a dot (staging names are reserved dot-names).
