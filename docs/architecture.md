@@ -48,6 +48,9 @@ internal/
 ├── mediaget/                # domínio media-get
 │   ├── cli/                 # Spec e fluxo interativo
 │   └── ytdlp/               # adapter e processos por plataforma
+├── notionexport/            # domínio notion-export (render, assets, publicação)
+│   ├── cli/                 # Spec e perguntas por tipo de asset
+│   └── notionapi/           # adapter da API interna pública do Notion
 ├── filelock/                # primitive de plataforma focada
 ├── fscommit/                # commit/replace confinado
 ├── safefs/                  # operações confinadas a uma raiz

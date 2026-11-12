@@ -96,3 +96,42 @@ func TestEnsureDirRejectsSymlinkedParentWithoutCreatingOutside(t *testing.T) {
 		t.Fatalf("outside directory was created through symlink: %v", err)
 	}
 }
+
+func TestOpenRootStaysConfinedAndRejectsSymlinks(t *testing.T) {
+	base := t.TempDir()
+	outside := t.TempDir()
+	r, err := Open(base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	if err := r.MkdirAll("sub/inner", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	sub, err := r.OpenRoot("sub")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sub.Close()
+	if _, err := sub.Lstat("inner"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := sub.Open("../sub/inner"); err == nil {
+		t.Fatal("expected parent escape rejection from nested root")
+	}
+	if _, err := r.OpenRoot("missing"); err == nil {
+		t.Fatal("expected missing directory error")
+	}
+	if err := os.WriteFile(filepath.Join(base, "file"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.OpenRoot("file"); err == nil {
+		t.Fatal("expected regular file rejection")
+	}
+	if err := os.Symlink(outside, filepath.Join(base, "link")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	if _, err := r.OpenRoot("link"); err == nil {
+		t.Fatal("expected symlink rejection")
+	}
+}

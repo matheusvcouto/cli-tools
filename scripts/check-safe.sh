@@ -142,6 +142,8 @@ case "$MODE" in
     run_clean go test ./internal/repozip -run='^$' -fuzz=FuzzValidateSuffix -fuzztime=5s
     run_clean go test ./internal/repozip -run='^$' -fuzz=FuzzVerifyZipNeverPanics -fuzztime=5s
     run_clean go test ./tools/migrate-ai-profile-index -run='^$' -fuzz=FuzzParseLegacyNUONNeverPanics -fuzztime=5s
+    run_clean go test ./internal/notionexport -run='^$' -fuzz=FuzzRenderNeverPanicsOrEmitsActiveHTML -fuzztime=5s
+    run_clean go test ./internal/notionexport -run='^$' -fuzz=FuzzSafeURLOnlyAllowsSafeTargets -fuzztime=5s
     ;;
   all)
     fmt_check

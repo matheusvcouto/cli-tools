@@ -80,3 +80,13 @@ testes de publicação/cancelamento em x64 e ARM64, observados no CI do commit
 mídia real permanece **não verificada** pela suíte. Windows mantém help/schema/completion; download é `unsupported`
 até existir backend de contenção nativa e seus testes. Essas limitações são
 específicas do novo produto e não alteram a evidência das outras ferramentas.
+
+## notion-export experimental
+
+Sem código específico de SO: `net/http`, `os.Root` via `safefs` (inclusive
+`Root.OpenRoot` para o staging) e rename de diretório dentro da mesma raiz.
+Cross-build dos seis targets verificado. Runtime observado localmente em Linux
+amd64: suíte completa (race/shuffle/fuzz) e export real de uma página pública de
+demonstração com downloads. macOS e Windows permanecem `untested` até a
+execução nativa do CI; a publicação sem `--force` depende de o rename recusar
+destino não vazio (Unix) ou existente (Windows), coberto pelos testes nativos.

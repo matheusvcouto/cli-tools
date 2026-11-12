@@ -8,6 +8,7 @@ binários standalone e criadas para uso pessoal.
 - [`ai-profile`](cmd/ai-profile/README.md) — gerencia perfis isolados para Claude, Codex e Grok Build.
 - [`repo-zip`](cmd/repo-zip/README.md) — cria snapshots ZIP de repositórios Git.
 - [`media-get`](cmd/media-get/README.md) — baixa vídeo, áudio e legendas com yt-dlp/FFmpeg do sistema (experimental).
+- [`notion-export`](cmd/notion-export/README.md) — exporta uma página pública do Notion para Markdown/HTML com assets locais (experimental).
 
 ## Instalação
 
@@ -42,6 +43,7 @@ A instalação disponibiliza os comandos:
 ai-profile
 repo-zip
 media-get
+notion-export
 ```
 
 `media-get` entra na distribuição a partir da suíte `v1.3.0`.
@@ -85,10 +87,12 @@ Documentação técnica:
 - [Decisões arquiteturais da suíte](ADR.md)
 - [`ai-profile` ADR](cmd/ai-profile/ADR.md)
 - [`repo-zip` ADR](cmd/repo-zip/ADR.md)
+- [`media-get` ADR](cmd/media-get/ADR.md)
+- [`notion-export` ADR](cmd/notion-export/ADR.md)
 
 ## Sobre o projeto
 
 Este é um projeto pessoal, criado para automatizar fluxos específicos do
-autor. Não é uma distribuição oficial do Claude, Codex ou Git.
+autor. Não é uma distribuição oficial do Claude, Codex, Git ou Notion.
 
 **Roadmap (não implementado):** View Limits por provider/perfil, com fontes oficiais e separação entre assinatura, limites de API e uso local. Ver [`plans/view-limits/README.md`](plans/view-limits/README.md).

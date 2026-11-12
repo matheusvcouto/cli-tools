@@ -37,6 +37,18 @@
 - `force` e no-clobber usam commits diferentes;
 - `.tmp/repo-zip` recusa componentes symlink.
 
+## `notion-export`
+
+- somente páginas públicas; nenhum token, cookie ou Authorization é enviado;
+- conteúdo do Notion nunca vira HTML bruto: texto/atributos escapados na saída, Markdown também escapado;
+- URLs passam por allowlist (`http(s)` com host e sem userinfo, `mailto:`, fragmento, relativo sem `..`); `javascript:`, `data:`, protocol-relative e controles/bidi são descartados;
+- HTML sem JavaScript, iframes, objects ou forms; CSP restritiva, `no-referrer` e CSS local sem recursos externos;
+- respostas da API limitadas a 64 MiB, recordMap a 256 MiB, nesting a 64 níveis, ciclos de synced block interrompidos e busca de blocos ausentes com rodadas/IDs limitados;
+- downloads só `http(s)`, redirects limitados a `http(s)`, Content-Type e comprimento validados, stall timeout, arquivos `O_EXCL` dentro do staging confinado e removidos em falha;
+- nomes de assets ASCII portáveis com índice; slug sem `.` inicial, separadores ou componentes reservados;
+- export publicado por rename de staging; destino existente exige `--force`, que só substitui export do mesmo `pageId` com manifesto válido, com quarentena e rollback;
+- mensagens de terminal removem caracteres de controle de títulos, nomes e erros remotos.
+
 ## Root confinado
 
 Build oficial usa `os.Root` através de `internal/safefs`. `safefs.EnsureDir` ancora criação no ancestral real existente e cria o restante pela safety root, evitando `MkdirAll` direto em paths sensíveis. `safefs.Open` fixa/revalida a identidade do diretório; depois disso, operações sensíveis continuam relativas à raiz aberta em vez de voltar a resolver paths absolutos.
@@ -46,6 +58,8 @@ Build oficial usa `os.Root` através de `internal/safefs`. `safefs.EnsureDir` an
 A política é stdlib-first, não stdlib-only. media-get usa os módulos oficiais
 x/term e x/sys, fixados em go.mod/go.sum, com notices BSD na distribuição.
 A preparação verifica os módulos e os checks reutilizam caches dedicados.
+notion-export usa `golang.org/x/text/unicode/norm` (já fixado e coberto pelos
+notices) para normalização NFKD de slugs e nomes de arquivo.
 
 ## Supply chain
 

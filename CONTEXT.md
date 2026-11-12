@@ -321,3 +321,23 @@ Dados pessoais do manifesto, URLs reais, credenciais e caminhos locais não
 foram incluídos no payload novo. Commit usa noreply e builds usam trimpath.
 Pendências funcionais: multi-select de saídas e lote de URLs por linhas,
 sem autorização de implementação nesta publicação.
+
+## notion-export 0.1.0 experimental — 2026-11-12
+
+Branch claude/notion-public-exporter-cli-2okgz1. Pedido: implementar no
+cli-tools o notion public exporter completo, seguindo os padrões da suíte.
+Referência somente leitura: repositório notion-public-exporter (Deno 1.0.0).
+Decisões em cmd/notion-export/ADR.md (N001–N007); change record
+changes/notion-export.json (produto minor, module none). Sem release/tag.
+
+Go 1.27.1 (checksum oficial conferido) usado do scratchpad, sem alterar
+configuração global. Evidência local Linux amd64: check-safe.sh prepare, all
+(fmt/test/vet/shuffle/race/API/contratos/changes) e fuzz (10 alvos, inclusive
+os dois novos) PASS; go.sum inalterado; cross-build dos seis targets PASS.
+Endpoints loadPageChunk/syncRecordValuesMain/getSignedFileUrls e o probe Range
+conferidos contra a página pública de demonstração do react-notion-x; export
+real com downloads (imagem, vídeo, áudio, PDF, arquivo), --force, destino
+existente e --from-json observados no binário dist/notion-export. A suíte
+padrão continua offline (httptest sintético).
+Pendente: CI nativo macOS/Windows desta mudança; até lá, untested nessas
+plataformas.

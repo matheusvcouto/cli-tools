@@ -33,6 +33,14 @@ func (b *nativeBackend) RemoveAll(name string) error          { return b.root.Re
 func (b *nativeBackend) Symlink(oldname, newname string) error {
 	return b.root.Symlink(oldname, newname)
 }
+func (b *nativeBackend) OpenRoot(name string) (backend, error) {
+	r, err := b.root.OpenRoot(name)
+	if err != nil {
+		return nil, err
+	}
+	return &nativeBackend{root: r}, nil
+}
+
 func (b *nativeBackend) WalkDir(root string, fn fs.WalkDirFunc) error {
 	return fs.WalkDir(b.root.FS(), root, fn)
 }

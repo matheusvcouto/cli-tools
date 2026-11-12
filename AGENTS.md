@@ -17,7 +17,9 @@ Leia sempre:
 Ao trabalhar em uma CLI existente, leia também o ADR específico:
 
 - `cmd/ai-profile/ADR.md`;
-- `cmd/repo-zip/ADR.md`.
+- `cmd/repo-zip/ADR.md`;
+- `cmd/media-get/ADR.md`;
+- `cmd/notion-export/ADR.md`.
 
 Se `plans/` contiver um plano ativo relacionado à tarefa, leia o `README.md` dele e siga sua ordem/checklist.
 

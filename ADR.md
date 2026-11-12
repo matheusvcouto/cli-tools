@@ -5,7 +5,8 @@ Decisões específicas de cada CLI ficam próximas ao respectivo entrypoint:
 
 - [`ai-profile`](cmd/ai-profile/ADR.md);
 - [`repo-zip`](cmd/repo-zip/ADR.md).
-- [`media-get`](cmd/media-get/ADR.md).
+- [`media-get`](cmd/media-get/ADR.md);
+- [`notion-export`](cmd/notion-export/ADR.md).
 
 O CLI Core de `cli/` é a arquitetura ativa das CLIs. A implementação e os
 contratos vigentes são descritos pelas docs ativas; planos de migração concluídos

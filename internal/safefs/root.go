@@ -22,6 +22,7 @@ type backend interface {
 	RemoveAll(name string) error
 	Symlink(oldname, newname string) error
 	WalkDir(root string, fn fs.WalkDirFunc) error
+	OpenRoot(name string) (backend, error)
 }
 
 type Root struct{ b backend }
@@ -141,3 +142,29 @@ func (r *Root) Remove(name string) error                     { return r.b.Remove
 func (r *Root) RemoveAll(name string) error                  { return r.b.RemoveAll(name) }
 func (r *Root) Symlink(oldname, newname string) error        { return r.b.Symlink(oldname, newname) }
 func (r *Root) WalkDir(root string, fn fs.WalkDirFunc) error { return r.b.WalkDir(root, fn) }
+
+// OpenRoot opens a subdirectory as a new safety root without leaving r: the
+// name is resolved inside r and a symlink in any component is not followed
+// outside of it. The final component must be a real directory, not a symlink.
+func (r *Root) OpenRoot(name string) (*Root, error) {
+	before, err := r.b.Lstat(name)
+	if err != nil {
+		return nil, err
+	}
+	if before.Mode()&os.ModeSymlink != 0 || !before.IsDir() {
+		return nil, fmt.Errorf("safe root must be a real directory: %s", name)
+	}
+	b, err := r.b.OpenRoot(name)
+	if err != nil {
+		return nil, err
+	}
+	opened, err := b.Lstat(".")
+	if err != nil || !os.SameFile(before, opened) {
+		_ = b.Close()
+		if err == nil {
+			err = fmt.Errorf("safe root changed while opening: %s", name)
+		}
+		return nil, err
+	}
+	return &Root{b: b}, nil
+}

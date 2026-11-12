@@ -20,6 +20,12 @@ Visão em [ideias.md](ideias.md#configuração-central-da-suíte) · decisão no
   quem já usa (leitura do local antigo, migração explícita ou manter). Exige
   decisão antes de implementar.
 
+## notion-export
+
+- [x] **notion-export:** migrar a CLI Deno `notion-public-exporter` para a suíte, com CLI Core, domínio em `internal/notionexport`, adapter da API pública interna, renderers Markdown/HTML seguros, downloads validados, publicação em staging com `--force` validado/rollback, fuzz e testes offline.
+- [ ] **notion-export:** confirmar a execução nativa em macOS e Windows (CI) antes de promover o suporte além de `untested` nessas plataformas.
+- [ ] **notion-export:** avaliar export de bases de dados (collection views) e de subpáginas recursivas; hoje aparecem como aviso/link público.
+
 ## media-get
 
 Plano de investigação para entrada JSON e execução concorrente do lote:
