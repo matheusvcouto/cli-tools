@@ -34,3 +34,9 @@
 ### Adicionado
 
 - **media-get:** Import versioned and discovery JSON manifests, validate them offline, review each output and safely download a bounded concurrent batch with typed Origin headers, cancellation and partial-failure handling. Show output format and extension in every download summary, and safely create missing destination directories only when the confirmed download begins. Expose direct output-format editing and a batch-wide MP4 choice; show metadata loading counts and a concurrent progress panel with reusable active slots.
+
+## [0.4.1] - 2026-11-13
+
+### Corrigido
+
+- **media-get:** Drop Unicode format characters (bidi overrides, zero-width) from names derived from media titles so a remote title cannot disguise the real file extension.

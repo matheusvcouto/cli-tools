@@ -6,6 +6,20 @@ versões seguem [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [1.3.6] - 2026-11-13
+
+### Alterado
+
+- **module:** Add internal toolhome package resolving the per-tool directory ~/.cli-tools/<tool> (CLI_TOOLS_HOME override) with confined creation and non-overwriting default config.
+- **module:** Discover the new notion-export product and register its fuzz targets.
+- **module:** Record verified v1.3.5 publication, native package checks and isolated mise installation.
+
+### Corrigido
+
+- **media-get:** Drop Unicode format characters (bidi overrides, zero-width) from names derived from media titles so a remote title cannot disguise the real file extension.
+- **module:** Extend contracts check with an automatic product conformance gate: every CLI under cmd/ is built and its static commands must match tool.json, emit valid output and leave synthetic user state untouched without network; README, ADR and CHANGELOG are required.
+- **notion-export:** Release experimental notion-export 0.1.1: export a public Notion page (URL, UUID or page ID, no token) to Markdown and script-free HTML with local CSS and CSP, page.json and a versioned manifest; ask/yes/no download policy per asset type after 1-byte size probes; bounded concurrent downloads with Content-Type, length and stall validation; bounded retries for the unofficial API; staged publication that never replaces an existing export unless --force validates it belongs to the same page, with rollback; --from-json reprocessing.
+
 ## [1.3.5] - 2026-10-08
 
 ### Adicionado

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "changes": [
+    {
+      "component": "notion-export",
+      "impact": "patch",
+      "breaking": false,
+      "summary": "Release experimental notion-export 0.1.1: export a public Notion page (URL, UUID or page ID, no token) to Markdown and script-free HTML with local CSS and CSP, page.json and a versioned manifest; ask/yes/no download policy per asset type after 1-byte size probes; bounded concurrent downloads with Content-Type, length and stall validation; bounded retries for the unofficial API; staged publication that never replaces an existing export unless --force validates it belongs to the same page, with rollback; --from-json reprocessing."
+    },
+    {
+      "component": "module",
+      "impact": "none",
+      "justification": "Adds a private product and an internal safefs.Root.OpenRoot helper; promotes the already-vetted golang.org/x/text to a direct dependency. The public cli Go API, module path and existing products are unchanged.",
+      "summary": "Discover the new notion-export product and register its fuzz targets."
+    }
+  ]
+}
